@@ -935,7 +935,7 @@
       m.bindPopup(`<strong>${a.name || 'وكيل'}</strong><br>${a.address || ''}`);
       // Draw coverage circle
       L.circle([a.lat, a.lng], {
-        radius: AGENT_COVERAGE_KM * 1000,
+        radius: (a.coverageKm ?? AGENT_COVERAGE_KM) * 1000,
         color: 'rgba(45,106,79,0.5)',
         fillColor: 'rgba(45,106,79,0.08)',
         fillOpacity: 1,
