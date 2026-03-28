@@ -2043,8 +2043,31 @@
   // AGENTS PAGE — إدارة الوكلاء
   // ═══════════════════════════════════════════
   async function renderAgentsPage(content) {
-    const { getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, doc, collection } =
+    const { getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, doc, collection, query, where } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    // Iraqi governorates and districts
+    const IRAQ_GEO = {
+      'بغداد':       ['بغداد الكرخ','بغداد الرصافة','أبو غريب','المحمودية','المدائن','الطارمية'],
+      'البصرة':      ['البصرة','أبو الخصيب','الزبير','الفاو','شط العرب','القرنة','المدينة'],
+      'نينوى':       ['الموصل','تلعفر','سنجار','الحضر','تلكيف','الحمدانية','مخمور','شيخان'],
+      'أربيل':       ['أربيل','كوية','شقلاوة','سوران','رانية','صلاح الدين'],
+      'السليمانية':  ['السليمانية','حلبجة','دوكان','كلار','جمجمال','رانية','كفري'],
+      'دهوك':        ['دهوك','زاخو','العمادية','سميل'],
+      'كركوك':       ['كركوك','الحويجة','دبس','داقوق'],
+      'النجف':       ['النجف','الكوفة','المناذرة'],
+      'كربلاء':      ['كربلاء','عين التمر'],
+      'بابل':        ['الحلة','المحاويل','المسيب','الهاشمية'],
+      'واسط':        ['الكوت','الحي','العزيزية','الصويرة','بدرة','نور'],
+      'ذي قار':      ['الناصرية','الجبايش','الشطرة','سوق الشيوخ','الرفاعي'],
+      'ميسان':       ['العمارة','قلعة صالح','علي الغربي','المجر الكبير'],
+      'المثنى':      ['السماوة','الرميثة','المجد','خضر'],
+      'القادسية':    ['الديوانية','الشامية','الحمزة','عفك'],
+      'صلاح الدين':  ['تكريت','بيجي','الدور','الشرقاط','بلد','سامراء','توز','العلم'],
+      'الأنبار':     ['الرمادي','الفلوجة','هيت','الحديثة','القائم','راوة','عنه'],
+      'ديالى':       ['بعقوبة','المقدادية','خانقين','كفري','مندلي','بلدروز']
+    };
+    const GOVS = Object.keys(IRAQ_GEO);
 
     // Global defaults from Firestore
     let defaultCommissionRate = 35;
@@ -2057,17 +2080,19 @@
       }
     } catch {}
 
-    // Load agents + orders + products in parallel
+    // Load agents + orders + products + users in parallel
     async function loadAll() {
-      const [agSnap, orSnap, prSnap] = await Promise.all([
+      const [agSnap, orSnap, prSnap, usSnap] = await Promise.all([
         getDocs(collection(db, 'agents')),
         getDocs(collection(db, 'orders')),
         getDocs(collection(db, 'products')),
+        getDocs(collection(db, 'users')),
       ]);
       const agents   = agSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const orders   = orSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const products = Object.fromEntries(prSnap.docs.map(d => [d.id, d.data()]));
-      return { agents, orders, products };
+      const users    = usSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      return { agents, orders, products, users };
     }
 
     // Commission = sum of (sellPrice - costPrice) * agentRate for each item in each order
@@ -2094,8 +2119,37 @@
       return map;
     }
 
-    const { agents, orders, products } = await loadAll();
+    const { agents, orders, products, users } = await loadAll();
     const comMap = calcAgentCommissions(agents, orders, products);
+
+    // Helper: governorate options HTML
+    function govOptions(selected = '') {
+      return `<option value="">— اختر المحافظة —</option>` +
+        GOVS.map(g => `<option value="${g}" ${g === selected ? 'selected' : ''}>${g}</option>`).join('');
+    }
+    // Helper: district options HTML
+    function distOptions(gov, selected = '') {
+      if (!gov || !IRAQ_GEO[gov]) return `<option value="">— اختر القضاء —</option>`;
+      return `<option value="">— اختر القضاء —</option>` +
+        IRAQ_GEO[gov].map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${d}</option>`).join('');
+    }
+    // Helper: user options HTML
+    function userOptions(selectedId = '') {
+      const opts = `<option value="">— بدون حساب مرتبط —</option>` +
+        users.filter(u => u.role !== 'admin').map(u =>
+          `<option value="${u.id}" ${u.id === selectedId ? 'selected' : ''}>${u.name || u.email} (${u.email})</option>`
+        ).join('');
+      return opts;
+    }
+
+    // Make IRAQ_GEO available globally for dynamic dropdowns
+    window._IRAQ_GEO = IRAQ_GEO;
+
+    window.updateAgentDistricts = function(govVal, distSelectId, currentDist = '') {
+      const sel = document.getElementById(distSelectId);
+      if (!sel) return;
+      sel.innerHTML = distOptions(govVal, currentDist);
+    };
 
     function renderTable(agents) {
       if (!agents.length) return `
@@ -2104,58 +2158,77 @@
           <div style="font-weight:600;">لا يوجد وكلاء بعد</div>
           <div style="font-size:0.83rem;margin-top:6px;">أضف أول وكيل من النموذج أدناه</div>
         </div>`;
-      return `<div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-          <thead>
-            <tr style="background:var(--gold-pale);text-align:right;">
-              <th style="padding:10px 12px;border-radius:12px 0 0 0;">الوكيل</th>
-              <th style="padding:10px 12px;">الهاتف</th>
-              <th style="padding:10px 12px;text-align:center;">التغطية(كم)</th>
-              <th style="padding:10px 12px;text-align:center;">عمولته%</th>
-              <th style="padding:10px 12px;text-align:center;">الطلبات</th>
-              <th style="padding:10px 12px;">هامش ربح طلباته</th>
-              <th style="padding:10px 12px;">إجمالي عمولته</th>
-              <th style="padding:10px 12px;text-align:center;">الحالة</th>
-              <th style="padding:10px 12px;border-radius:0 12px 0 0;text-align:center;">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${agents.map(a => {
-              const cm   = comMap[a.id] || { count: 0, totalCommission: 0, totalProfit: 0 };
-              const rate = a.commissionRate ?? defaultCommissionRate;
-              return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
-                <td style="padding:11px 12px;font-weight:700;">${a.name || '—'}</td>
-                <td style="padding:11px 12px;direction:ltr;text-align:right;">${a.phone || '—'}</td>
-                <td style="padding:11px 12px;text-align:center;">
-                  <span style="background:#e8f4fd;color:#1a56db;padding:3px 10px;border-radius:20px;font-weight:800;">${a.coverageKm ?? AGENT_COVERAGE_KM_DEFAULT} كم</span>
-                </td>
-                <td style="padding:11px 12px;text-align:center;">
-                  <span style="background:var(--gold-pale);color:var(--gold-dark);padding:3px 10px;border-radius:20px;font-weight:800;">${rate}%</span>
-                </td>
-                <td style="padding:11px 12px;text-align:center;">
-                  <span style="background:#f0f0f0;padding:3px 10px;border-radius:20px;font-weight:700;">${cm.count}</span>
-                </td>
-                <td style="padding:11px 12px;color:var(--text-secondary);">${cm.totalProfit.toLocaleString('ar-IQ')} د.ع</td>
-                <td style="padding:11px 12px;font-weight:800;color:var(--green);">${cm.totalCommission.toLocaleString('ar-IQ')} د.ع</td>
-                <td style="padding:11px 12px;text-align:center;">
-                  <span style="padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;
-                    background:${a.active!==false?'rgba(45,106,79,0.12)':'rgba(180,60,60,0.1)'};
-                    color:${a.active!==false?'var(--green)':'#c0392b'};">
-                    ${a.active!==false?'🟢 نشط':'🔴 متوقف'}
-                  </span>
-                </td>
-                <td style="padding:11px 12px;text-align:center;">
-                  <div style="display:flex;gap:4px;justify-content:center;">
-                    <button onclick="openEditAgent('${a.id}')" class="btn btn-ghost btn-sm" title="تعديل"><i class="fas fa-edit" style="color:var(--gold-dark);"></i></button>
-                    <button onclick="toggleAgentStatus('${a.id}',${a.active!==false})" class="btn btn-ghost btn-sm" title="${a.active!==false?'إيقاف':'تفعيل'}"><i class="fas fa-${a.active!==false?'pause-circle':'play-circle'}" style="color:${a.active!==false?'#e67e22':'var(--green)'};"></i></button>
-                    <button onclick="deleteAgentConfirm('${a.id}','${(a.name||'').replace(/'/g,"\\'")}')" class="btn btn-ghost btn-sm" title="حذف"><i class="fas fa-trash" style="color:#c0392b;"></i></button>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
+
+      return agents.map(a => {
+        const cm       = comMap[a.id] || { count: 0, totalCommission: 0, totalProfit: 0 };
+        const rate     = a.commissionRate ?? defaultCommissionRate;
+        const coverage = a.coverageKm ?? AGENT_COVERAGE_KM_DEFAULT;
+        const isActive = a.active !== false;
+        return `
+          <div style="background:var(--bg-elevated);border:1.5px solid var(--border);
+            border-radius:16px;padding:14px;margin-bottom:12px;">
+
+            <!-- اسم + حالة -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-weight:800;font-size:1rem;color:var(--text-primary);">
+                🏪 ${a.name || '—'}
+              </div>
+              <span style="padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;
+                background:${isActive?'rgba(45,106,79,0.12)':'rgba(180,60,60,0.1)'};
+                color:${isActive?'var(--green)':'#c0392b'};">
+                ${isActive ? '🟢 نشط' : '🔴 متوقف'}
+              </span>
+            </div>
+
+            <!-- هاتف + محافظة -->
+            <div style="font-size:0.83rem;color:var(--text-muted);margin-bottom:6px;direction:ltr;text-align:right;">
+              📞 ${a.phone || '—'}
+            </div>
+            ${(a.governorate || a.district) ? `
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+              📍 ${[a.governorate, a.district].filter(Boolean).join(' ← ')}
+            </div>` : `<div style="margin-bottom:10px;"></div>`}
+            ${a.userId ? (() => { const u = users.find(x => x.id === a.userId); return u ? `<div style="font-size:0.75rem;color:#1a56db;margin-bottom:8px;">👤 ${u.name || u.email}</div>` : ''; })() : ''}
+
+            <!-- إحصائيات 4 أعمدة -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+              <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">التغطية</div>
+                <div style="font-weight:800;font-size:0.9rem;color:#1a56db;">${coverage}<span style="font-size:0.65rem;">كم</span></div>
+              </div>
+              <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">العمولة</div>
+                <div style="font-weight:800;font-size:0.9rem;color:var(--gold-dark);">${rate}<span style="font-size:0.65rem;">%</span></div>
+              </div>
+              <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">الطلبات</div>
+                <div style="font-weight:800;font-size:0.9rem;">${cm.count}</div>
+              </div>
+              <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">العمولة الكلية</div>
+                <div style="font-weight:800;font-size:0.75rem;color:var(--green);">${cm.totalCommission.toLocaleString('ar-IQ')}</div>
+              </div>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div style="display:flex;gap:8px;">
+              <button onclick="openEditAgent('${a.id}')"
+                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;">
+                <i class="fas fa-edit" style="color:var(--gold-dark);"></i> تعديل
+              </button>
+              <button onclick="toggleAgentStatus('${a.id}',${isActive})"
+                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;">
+                <i class="fas fa-${isActive?'pause-circle':'play-circle'}"
+                  style="color:${isActive?'#e67e22':'var(--green)'};">
+                </i> ${isActive ? 'إيقاف' : 'تفعيل'}
+              </button>
+              <button onclick="deleteAgentConfirm('${a.id}','${(a.name||'').replace(/'/g,"\\'")}')"
+                class="btn btn-ghost btn-sm" style="color:#c0392b;" title="حذف">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>`;
+      }).join('');
     }
 
     content.innerHTML = `
@@ -2202,6 +2275,30 @@
             <div class="form-group" style="margin:0;">
               <label class="form-label">خط الطول *</label>
               <input type="number" step="any" class="form-input" id="agentLng" placeholder="44.00123" dir="ltr">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">المحافظة *</label>
+              <select class="form-input" id="agentGov"
+                onchange="updateAgentDistricts(this.value,'agentDist')">
+                ${govOptions()}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">القضاء *</label>
+              <select class="form-input" id="agentDist">
+                <option value="">— اختر المحافظة أولاً —</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">ربط بحساب مستخدم</label>
+            <select class="form-input" id="agentUserId">
+              ${userOptions()}
+            </select>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
+              سيُمنح الحساب المختار صلاحية <strong>وكيل</strong> ويتمكن من الدخول للوحة الوكيل
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
@@ -2269,6 +2366,27 @@
                 <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">المسافة التي يغطيها الوكيل</div>
               </div>
             </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">المحافظة</label>
+                <select class="form-input" id="editAgentGov"
+                  onchange="updateAgentDistricts(this.value,'editAgentDist')">
+                  ${govOptions()}
+                </select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">القضاء</label>
+                <select class="form-input" id="editAgentDist">
+                  <option value="">— اختر المحافظة أولاً —</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+              <label class="form-label">ربط بحساب مستخدم</label>
+              <select class="form-input" id="editAgentUserId">
+                ${userOptions()}
+              </select>
+            </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-ghost" onclick="document.getElementById('editAgentModal').style.display='none'">إلغاء</button>
@@ -2281,22 +2399,33 @@
     `;
 
     window.submitAddAgent = async function() {
-      const btn   = document.getElementById('addAgentBtn');
-      const name  = document.getElementById('agentName').value.trim();
-      const phone = document.getElementById('agentPhone').value.trim();
-      const lat   = parseFloat(document.getElementById('agentLat').value);
-      const lng   = parseFloat(document.getElementById('agentLng').value);
-      const coverageKmRaw = document.getElementById('agentCoverageKm').value;
-      const coverageKm    = parseFloat(coverageKmRaw);
-      const commRaw = document.getElementById('agentCommRate').value;
+      const btn         = document.getElementById('addAgentBtn');
+      const name        = document.getElementById('agentName').value.trim();
+      const phone       = document.getElementById('agentPhone').value.trim();
+      const lat         = parseFloat(document.getElementById('agentLat').value);
+      const lng         = parseFloat(document.getElementById('agentLng').value);
+      const coverageKm  = parseFloat(document.getElementById('agentCoverageKm').value);
+      const commRaw     = document.getElementById('agentCommRate').value;
+      const governorate = document.getElementById('agentGov').value;
+      const district    = document.getElementById('agentDist').value;
+      const linkedUserId = document.getElementById('agentUserId').value;
+
       if (!name || !phone || isNaN(lat) || isNaN(lng) || isNaN(coverageKm)) {
         showToast('يرجى تعبئة جميع الحقول المطلوبة بما فيها نطاق التغطية', 'warning'); return;
+      }
+      if (!governorate || !district) {
+        showToast('يرجى اختيار المحافظة والقضاء', 'warning'); return;
       }
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
       try {
-        const agentData = { name, phone, lat, lng, coverageKm, active: true, createdAt: new Date().toISOString() };
+        const agentData = { name, phone, lat, lng, coverageKm, governorate, district, active: true, createdAt: new Date().toISOString() };
         if (commRaw !== '') agentData.commissionRate = parseFloat(commRaw);
+        if (linkedUserId) {
+          agentData.userId = linkedUserId;
+          // Grant agent role to the linked user
+          await setDoc(doc(db, 'users', linkedUserId), { role: 'agent' }, { merge: true });
+        }
         await addDoc(collection(db, 'agents'), agentData);
         showToast('✅ تم إضافة الوكيل', 'success');
         await renderAgentsPage(content);
@@ -2315,6 +2444,12 @@
       document.getElementById('editAgentLng').value          = a.lng         || '';
       document.getElementById('editAgentCommRate').value     = a.commissionRate ?? '';
       document.getElementById('editAgentCoverageKm').value   = a.coverageKm  ?? '';
+      // Populate governorate then districts
+      const govSel = document.getElementById('editAgentGov');
+      govSel.value = a.governorate || '';
+      updateAgentDistricts(a.governorate || '', 'editAgentDist', a.district || '');
+      // Linked user
+      document.getElementById('editAgentUserId').value = a.userId || '';
       document.getElementById('editAgentModal').style.display = 'flex';
     };
 
@@ -2325,17 +2460,34 @@
         const id            = document.getElementById('editAgentId').value;
         const commRaw       = document.getElementById('editAgentCommRate').value;
         const coverageKmRaw = document.getElementById('editAgentCoverageKm').value;
+        const governorate   = document.getElementById('editAgentGov').value;
+        const district      = document.getElementById('editAgentDist').value;
+        const linkedUserId  = document.getElementById('editAgentUserId').value;
         const data = {
           name:  document.getElementById('editAgentName').value.trim(),
           phone: document.getElementById('editAgentPhone').value.trim(),
           lat:   parseFloat(document.getElementById('editAgentLat').value),
           lng:   parseFloat(document.getElementById('editAgentLng').value),
+          governorate: governorate || '',
+          district:    district    || '',
           updatedAt: new Date().toISOString()
         };
         if (commRaw !== '') data.commissionRate = parseFloat(commRaw);
         else delete data.commissionRate;
         if (coverageKmRaw !== '') data.coverageKm = parseFloat(coverageKmRaw);
         else delete data.coverageKm;
+        // Handle linked user change
+        const oldAgent = agents.find(a => a.id === id);
+        if (linkedUserId) {
+          data.userId = linkedUserId;
+          await setDoc(doc(db, 'users', linkedUserId), { role: 'agent' }, { merge: true });
+        } else {
+          data.userId = '';
+          // Revert old linked user's role back to customer if changed
+          if (oldAgent?.userId && oldAgent.userId !== linkedUserId) {
+            await setDoc(doc(db, 'users', oldAgent.userId), { role: 'customer' }, { merge: true });
+          }
+        }
         await updateDoc(doc(db, 'agents', id), data);
         document.getElementById('editAgentModal').style.display = 'none';
         showToast('✅ تم تحديث الوكيل', 'success');
