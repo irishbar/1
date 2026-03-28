@@ -6,6 +6,7 @@ import {
   collection, addDoc, getDocs, doc, updateDoc, getDoc,
   query, orderBy, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { fetchAgents, getCoverageStatus, AGENT_COMMISSION_RATE } from './agents.js';
 
 // ──────────────────────────────────────────
 // TELEGRAM NOTIFICATION
@@ -49,6 +50,30 @@ ${itemLines}
 💰 *الإجمالي: ${fmt(order.total)}*
 ━━━━━━━━━━━━━━━━━━${mapLine}`
   );
+}
+
+// ── Send notification to agent's personal Telegram ──
+async function sendAgentTelegramNotification(order, agent) {
+  try {
+    const tg = await getTelegramSettings();
+    if (!tg || !tg.botToken || !agent.telegramId) return;
+    const message = buildTelegramMessage(order);
+    await fetch(
+      `https://api.telegram.org/bot${tg.botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id:    agent.telegramId,
+          text:       message,
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false
+        })
+      }
+    );
+  } catch (e) {
+    console.warn('Agent Telegram notification failed:', e);
+  }
 }
 
 async function sendTelegramNotification(order) {
@@ -169,7 +194,27 @@ export async function createOrder({ customerId, customerName, phone, address, de
   const ref = await addDoc(collection(db, 'orders'), order);
   const fullOrder = { id: ref.id, ...order };
 
-  // 🔔 Send Telegram notification (non-blocking)
+  // 🤝 Auto-assign nearest agent if location provided
+  if (location?.lat && location?.lng) {
+    try {
+      const agents = await fetchAgents();
+      const coverage = getCoverageStatus(location.lat, location.lng, agents);
+      if (coverage.covered && coverage.nearest) {
+        const agent = coverage.nearest;
+        const rate = agent.commissionRate != null
+          ? agent.commissionRate / 100
+          : AGENT_COMMISSION_RATE;
+        const agentShare = Math.round(deliveryFee * rate);
+        await updateDoc(doc(db, 'orders', ref.id), { agentId: agent.id, agentShare });
+        fullOrder.agentId = agent.id;
+        fullOrder.agentShare = agentShare;
+        // 🔔 Notify agent on their personal Telegram
+        if (agent.telegramId) sendAgentTelegramNotification(fullOrder, agent);
+      }
+    } catch (e) { console.warn('Agent assignment failed:', e); }
+  }
+
+  // 🔔 Send Telegram notification to admin (non-blocking)
   sendTelegramNotification(fullOrder);
 
   return fullOrder;
