@@ -134,6 +134,7 @@
 
   function getDashboardUrl(role) {
     if (role === 'admin' || role === 'manager') return 'dashboard.html';
+    if (role === 'agent') return 'agent-dashboard.html';
     return '../index.html';
   }
 
