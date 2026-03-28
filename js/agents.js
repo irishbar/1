@@ -55,8 +55,10 @@ export function findNearestAgent(userLat, userLng, agents) {
 export function getCoverageStatus(userLat, userLng, agents) {
   const nearest = findNearestAgent(userLat, userLng, agents);
   if (!nearest) return { covered: false, nearest: null, distance: null };
+  // Use agent's own coverageKm if set, otherwise fall back to global setting
+  const agentCoverage = nearest.coverageKm ?? AGENT_COVERAGE_KM;
   return {
-    covered: nearest.distance <= AGENT_COVERAGE_KM,
+    covered: nearest.distance <= agentCoverage,
     nearest,
     distance: nearest.distance
   };
