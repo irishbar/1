@@ -2046,12 +2046,15 @@
     const { getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, doc, collection } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    // Global default commission rate
+    // Global defaults from Firestore
     let defaultCommissionRate = 35;
+    let AGENT_COVERAGE_KM_DEFAULT = 8;
     try {
       const snap = await getDoc(doc(db, 'settings', 'agents'));
-      if (snap.exists() && snap.data().commissionRate != null)
-        defaultCommissionRate = snap.data().commissionRate;
+      if (snap.exists()) {
+        if (snap.data().commissionRate != null) defaultCommissionRate    = snap.data().commissionRate;
+        if (snap.data().coverageKm     != null) AGENT_COVERAGE_KM_DEFAULT = snap.data().coverageKm;
+      }
     } catch {}
 
     // Load agents + orders + products in parallel
@@ -2107,6 +2110,7 @@
             <tr style="background:var(--gold-pale);text-align:right;">
               <th style="padding:10px 12px;border-radius:12px 0 0 0;">الوكيل</th>
               <th style="padding:10px 12px;">الهاتف</th>
+              <th style="padding:10px 12px;text-align:center;">التغطية(كم)</th>
               <th style="padding:10px 12px;text-align:center;">عمولته%</th>
               <th style="padding:10px 12px;text-align:center;">الطلبات</th>
               <th style="padding:10px 12px;">هامش ربح طلباته</th>
@@ -2122,6 +2126,9 @@
               return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
                 <td style="padding:11px 12px;font-weight:700;">${a.name || '—'}</td>
                 <td style="padding:11px 12px;direction:ltr;text-align:right;">${a.phone || '—'}</td>
+                <td style="padding:11px 12px;text-align:center;">
+                  <span style="background:#e8f4fd;color:#1a56db;padding:3px 10px;border-radius:20px;font-weight:800;">${a.coverageKm ?? AGENT_COVERAGE_KM_DEFAULT} كم</span>
+                </td>
                 <td style="padding:11px 12px;text-align:center;">
                   <span style="background:var(--gold-pale);color:var(--gold-dark);padding:3px 10px;border-radius:20px;font-weight:800;">${rate}%</span>
                 </td>
@@ -2187,7 +2194,7 @@
               <input type="text" class="form-input" id="agentPhone" placeholder="07XXXXXXXXX" dir="ltr">
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
             <div class="form-group" style="margin:0;">
               <label class="form-label">خط العرض *</label>
               <input type="number" step="any" class="form-input" id="agentLat" placeholder="32.61234" dir="ltr">
@@ -2196,11 +2203,19 @@
               <label class="form-label">خط الطول *</label>
               <input type="number" step="any" class="form-input" id="agentLng" placeholder="44.00123" dir="ltr">
             </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
             <div class="form-group" style="margin:0;">
               <label class="form-label">نسبة عمولته (%)</label>
               <input type="number" min="1" max="99" class="form-input" id="agentCommRate"
                 placeholder="${defaultCommissionRate}" dir="ltr">
               <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">فارغ = تطبيق الافتراضية</div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">نطاق التغطية (كيلومتر) *</label>
+              <input type="number" min="1" max="100" step="any" class="form-input" id="agentCoverageKm"
+                placeholder="8" dir="ltr">
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">المسافة التي يغطيها هذا الوكيل</div>
             </div>
           </div>
           <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:6px;align-items:center;margin-bottom:16px;">
@@ -2232,7 +2247,7 @@
                 <input type="text" class="form-input" id="editAgentPhone" dir="ltr">
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
               <div class="form-group" style="margin:0;">
                 <label class="form-label">خط العرض</label>
                 <input type="number" step="any" class="form-input" id="editAgentLat" dir="ltr">
@@ -2241,10 +2256,17 @@
                 <label class="form-label">خط الطول</label>
                 <input type="number" step="any" class="form-input" id="editAgentLng" dir="ltr">
               </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
               <div class="form-group" style="margin:0;">
                 <label class="form-label">العمولة (%)</label>
                 <input type="number" min="1" max="99" class="form-input" id="editAgentCommRate" dir="ltr">
                 <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = افتراضية</div>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">نطاق التغطية (كيلومتر)</label>
+                <input type="number" min="1" max="100" step="any" class="form-input" id="editAgentCoverageKm" dir="ltr">
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">المسافة التي يغطيها الوكيل</div>
               </div>
             </div>
           </div>
@@ -2264,14 +2286,16 @@
       const phone = document.getElementById('agentPhone').value.trim();
       const lat   = parseFloat(document.getElementById('agentLat').value);
       const lng   = parseFloat(document.getElementById('agentLng').value);
+      const coverageKmRaw = document.getElementById('agentCoverageKm').value;
+      const coverageKm    = parseFloat(coverageKmRaw);
       const commRaw = document.getElementById('agentCommRate').value;
-      if (!name || !phone || isNaN(lat) || isNaN(lng)) {
-        showToast('يرجى تعبئة جميع الحقول المطلوبة', 'warning'); return;
+      if (!name || !phone || isNaN(lat) || isNaN(lng) || isNaN(coverageKm)) {
+        showToast('يرجى تعبئة جميع الحقول المطلوبة بما فيها نطاق التغطية', 'warning'); return;
       }
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
       try {
-        const agentData = { name, phone, lat, lng, active: true, createdAt: new Date().toISOString() };
+        const agentData = { name, phone, lat, lng, coverageKm, active: true, createdAt: new Date().toISOString() };
         if (commRaw !== '') agentData.commissionRate = parseFloat(commRaw);
         await addDoc(collection(db, 'agents'), agentData);
         showToast('✅ تم إضافة الوكيل', 'success');
@@ -2284,12 +2308,13 @@
     window.openEditAgent = function(id) {
       const a = agents.find(x => x.id === id);
       if (!a) return;
-      document.getElementById('editAgentId').value       = id;
-      document.getElementById('editAgentName').value     = a.name  || '';
-      document.getElementById('editAgentPhone').value    = a.phone || '';
-      document.getElementById('editAgentLat').value      = a.lat   || '';
-      document.getElementById('editAgentLng').value      = a.lng   || '';
-      document.getElementById('editAgentCommRate').value = a.commissionRate ?? '';
+      document.getElementById('editAgentId').value           = id;
+      document.getElementById('editAgentName').value         = a.name        || '';
+      document.getElementById('editAgentPhone').value        = a.phone       || '';
+      document.getElementById('editAgentLat').value          = a.lat         || '';
+      document.getElementById('editAgentLng').value          = a.lng         || '';
+      document.getElementById('editAgentCommRate').value     = a.commissionRate ?? '';
+      document.getElementById('editAgentCoverageKm').value   = a.coverageKm  ?? '';
       document.getElementById('editAgentModal').style.display = 'flex';
     };
 
@@ -2297,8 +2322,9 @@
       const btn = document.getElementById('saveEditAgentBtn');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       try {
-        const id      = document.getElementById('editAgentId').value;
-        const commRaw = document.getElementById('editAgentCommRate').value;
+        const id            = document.getElementById('editAgentId').value;
+        const commRaw       = document.getElementById('editAgentCommRate').value;
+        const coverageKmRaw = document.getElementById('editAgentCoverageKm').value;
         const data = {
           name:  document.getElementById('editAgentName').value.trim(),
           phone: document.getElementById('editAgentPhone').value.trim(),
@@ -2308,6 +2334,8 @@
         };
         if (commRaw !== '') data.commissionRate = parseFloat(commRaw);
         else delete data.commissionRate;
+        if (coverageKmRaw !== '') data.coverageKm = parseFloat(coverageKmRaw);
+        else delete data.coverageKm;
         await updateDoc(doc(db, 'agents', id), data);
         document.getElementById('editAgentModal').style.display = 'none';
         showToast('✅ تم تحديث الوكيل', 'success');
