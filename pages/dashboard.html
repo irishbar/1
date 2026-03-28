@@ -1,0 +1,3111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Irish Bar — لوحة التحكم</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <style>
+    .sidebar-logo span, .loader-logo,
+    .topbar-title { letter-spacing: 2px; }
+    .item-price, .order-total, .stat-value {
+      font-family: 'Barlow', 'Cairo', sans-serif !important;
+      font-weight: 700 !important;
+    }
+    /* Toggle Switch */
+    .toggle-switch {
+      width: 48px; height: 26px;
+      background: #ddd;
+      border-radius: 999px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px; right: 3px;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .toggle-switch.on {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+    }
+    .toggle-switch.on::after {
+      transform: translateX(-22px);
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader">
+  <div class="loader-logo" style="font-family:var(--font-en);letter-spacing:6px;">IRISH BAR</div>
+  <div class="loader-sub" style="font-family:var(--font-en-body);font-weight:600;letter-spacing:3px;text-transform:uppercase;">PREMIUM IRISH SELECTION</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<div class="dashboard-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fas fa-martini-glass" style="font-size:1rem;color:var(--gold-light);"></i></div>
+        <span style="font-family:var(--font-en);letter-spacing:3px;font-size:1.1rem;">IRISH BAR</span>
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebarUserName">...</div>
+        <div class="sidebar-user-role" id="sidebarUserRole"></div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- Rendered by role -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-block btn-sm" onclick="handleLogout()">
+        <i class="fas fa-sign-out-alt"></i>
+        تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- ── Main Content ── -->
+  <main style="flex:1; min-width:0;">
+
+    <!-- Top Bar (mobile) -->
+    <div class="dashboard-topbar">
+      <button class="icon-btn" id="sidebarToggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="topbar-title" id="topbarTitle">لوحة التحكم</div>
+      <a href="../index.html" class="icon-btn" title="المتجر">
+        <i class="fas fa-store"></i>
+      </a>
+    </div>
+
+    <!-- Dashboard Content Area -->
+    <div class="dashboard-content container" id="dashboardContent">
+      <div style="text-align:center;padding:60px 20px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Bottom Nav (mobile) ── -->
+<nav class="bottom-nav" id="bottomNav"></nav>
+
+<!-- ── Modals ── -->
+
+<!-- Add Product Modal -->
+<div class="modal-overlay" id="addProductModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-plus-circle" style="color:var(--gold)"></i> إضافة منتج</div>
+    <form id="addProductForm" novalidate>
+      <div class="form-group">
+        <label class="form-label">اسم المنتج</label>
+        <input type="text" class="form-input" id="apName" placeholder="مثال: جيمسون" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الفئة</label>
+        <select class="form-select" id="apCategory" required>
+          <option value="">اختر الفئة</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">السعر (د.ع)</label>
+        <input type="number" class="form-input" id="apPrice" placeholder="مثال: 55000" min="0" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">سعر الشراء / التكلفة (د.ع) <span style="color:var(--text-muted);font-size:0.8rem;">— يُستخدم لحساب هامش الربح والعمولة</span></label>
+        <input type="number" class="form-input" id="apCostPrice" placeholder="مثال: 40000" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea class="form-textarea" id="apDesc" rows="2" placeholder="وصف مختصر للمنتج"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إيموجي المنتج (اختياري)</label>
+        <input type="text" class="form-input" id="apEmoji" placeholder="مثال: 🥃 🍺 🍷" value="🥃">
+      </div>
+      <div class="form-group">
+        <label class="form-label">صورة المنتج (اختياري)</label>
+        <div id="imgUploadArea" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;transition:var(--transition);background:var(--bg-elevated);" onclick="document.getElementById('apImageFile').click()">
+          <div id="imgPreview" style="display:none;margin-bottom:10px;">
+            <img id="imgPreviewEl" src="" style="max-height:120px;border-radius:8px;max-width:100%;">
+          </div>
+          <div id="imgPlaceholder">
+            <i class="fas fa-cloud-upload-alt" style="font-size:1.8rem;color:var(--gold);display:block;margin-bottom:8px;"></i>
+            <span style="color:var(--text-muted);font-size:0.85rem;">اضغط لاختيار صورة</span>
+          </div>
+          <div id="imgUploading" style="display:none;color:var(--gold);font-size:0.85rem;">
+            <i class="fas fa-spinner fa-spin"></i> جاري الرفع على ImgBB...
+          </div>
+        </div>
+        <input type="file" id="apImageFile" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+        <input type="hidden" id="apImageUrl">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" id="apAvailable" checked style="width:auto">
+        <label for="apAvailable" class="form-label" style="margin:0">متاح للبيع</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="addProductBtn">
+        <i class="fas fa-plus"></i> إضافة المنتج
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px;"
+              onclick="closeModal('addProductModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal-overlay" id="addCategoryModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-tags" style="color:var(--gold)"></i> إضافة فئة</div>
+    <form id="addCategoryForm" novalidate>
+      <div class="form-group">
+        <label class="form-label">اسم الفئة</label>
+        <input type="text" class="form-input" id="acName" placeholder="مثال: ويسكي أيرلندي" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إيموجي الفئة</label>
+        <input type="text" class="form-input" id="acIcon" placeholder="🥃" value="🍺">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        <i class="fas fa-plus"></i> إضافة الفئة
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px;"
+              onclick="closeModal('addCategoryModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-edit" style="color:var(--gold)"></i> تحديث حالة الطلب</div>
+    <input type="hidden" id="statusOrderId">
+    <div class="form-group">
+      <label class="form-label">الحالة الجديدة</label>
+      <select class="form-select" id="statusSelect">
+        <option value="جديد">🔵 جديد</option>
+        <option value="قيد التجهيز">🟡 قيد التجهيز</option>
+        <option value="في التوصيل">🟢 في التوصيل</option>
+        <option value="مكتمل">✅ مكتمل</option>
+        <option value="ملغي">❌ ملغي</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="confirmStatusUpdate()">
+      <i class="fas fa-save"></i> حفظ
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;"
+            onclick="closeModal('statusModal')">إلغاء</button>
+  </div>
+</div>
+
+
+<!-- ── Edit Product Modal ── -->
+<div class="modal-overlay" id="editProductModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-edit"></i> تعديل المنتج</div>
+    <input type="hidden" id="epId">
+    <form id="editProductForm" novalidate>
+      <div class="form-group">
+        <label class="form-label">اسم المنتج</label>
+        <input type="text" class="form-input" id="epName" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الفئة</label>
+        <select class="form-select" id="epCategory"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">السعر (د.ع)</label>
+        <input type="number" class="form-input" id="epPrice" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">سعر الشراء / التكلفة (د.ع)</label>
+        <input type="number" class="form-input" id="epCostPrice" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea class="form-textarea" id="epDesc" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">إيموجي</label>
+        <input type="text" class="form-input" id="epEmoji" placeholder="🍺">
+      </div>
+      <div class="form-group">
+  <label class="form-label">رابط الصورة (اختياري)</label>
+  <input type="url" class="form-input" id="epImageUrl" placeholder="https://...">
+  <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+    إذا أضفت صورة ستظهر بدل الإيموجي
+  </div>
+</div>
+      <div class="form-group" style="display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" id="epAvailable" style="width:18px;height:18px;accent-color:var(--gold);">
+        <label for="epAvailable" class="form-label" style="margin:0;">متاح للبيع</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="editProductBtn">
+        <i class="fas fa-save"></i> حفظ التعديلات
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px;"
+              onclick="closeModal('editProductModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Category Modal ── -->
+<div class="modal-overlay" id="editCategoryModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-tag"></i> تعديل الفئة</div>
+    <input type="hidden" id="ecId">
+    <form id="editCategoryForm" novalidate>
+      <div class="form-group">
+        <label class="form-label">اسم الفئة</label>
+        <input type="text" class="form-input" id="ecName" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">أيقونة (إيموجي)</label>
+        <input type="text" class="form-input" id="ecIcon" placeholder="🍺">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الترتيب</label>
+        <input type="number" class="form-input" id="ecOrder" placeholder="1">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="editCategoryBtn">
+        <i class="fas fa-save"></i> حفظ التعديلات
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px;"
+              onclick="closeModal('editCategoryModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── Add/Edit User Modal ── -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="userModalTitle"><i class="fas fa-user-plus"></i> إضافة مستخدم</div>
+    <input type="hidden" id="umId">
+    <form id="userForm" novalidate>
+      <div class="form-group">
+        <label class="form-label">الاسم</label>
+        <input type="text" class="form-input" id="umName" placeholder="اسم المستخدم" required>
+      </div>
+      <div id="umEmailGroup" class="form-group">
+        <label class="form-label">البريد الإلكتروني</label>
+        <input type="email" class="form-input" id="umEmail" placeholder="example@email.com">
+      </div>
+      <div id="umPassGroup" class="form-group">
+        <label class="form-label">كلمة المرور <span style="color:var(--text-muted);font-weight:400;">(للمستخدم الجديد)</span></label>
+        <input type="password" class="form-input" id="umPass" placeholder="••••••••" minlength="6">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الصلاحية</label>
+        <select class="form-select" id="umRole">
+          <option value="customer">🛒 عميل</option>
+          <option value="manager">🔧 مدير</option>
+          <option value="admin">👑 مدير عام</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="userSubmitBtn">
+        <i class="fas fa-save"></i> حفظ
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px;"
+              onclick="closeModal('userModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db } from '../js/firebase-config.js';
+  import { onAuthChange, logout } from '../js/auth.js';
+  import { fetchCategories, fetchProducts, addProduct, updateProduct, deleteProduct, addCategory, fetchDeliverySettings, saveDeliverySettings } from '../js/store.js';
+  import { fetchAllOrders, fetchMyOrders, updateOrderStatus, listenToOrders, ORDER_STATUSES, getStatusBadgeClass, formatPrice } from '../js/orders.js';
+  import { showToast, openModal, closeModal, hideLoader, formatDate } from '../js/ui.js';
+
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+
+  // ── ImgBB Upload ──
+  // المفتاح يُحمَّل من Firestore أولاً، والقيمة الافتراضية كـ fallback
+  let IMGBB_KEY = '9bab59197bd489ad54ef8917dff4ce81';
+  (async () => {
+    try {
+      const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const snap = await getDoc(doc(db, 'settings', 'general'));
+      if (snap.exists() && snap.data().imgbbKey) IMGBB_KEY = snap.data().imgbbKey;
+    } catch {}
+  })();
+
+  window.handleImageUpload = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    // Show preview locally first
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('imgPreviewEl').src = e.target.result;
+      document.getElementById('imgPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    // Upload to ImgBB as WebP
+    document.getElementById('imgPlaceholder').style.display = 'none';
+    document.getElementById('imgUploading').style.display = 'block';
+    try {
+      const webpBlob = await compressToWebP(file, 0.82);
+      const formData = new FormData();
+      formData.append('image', webpBlob, 'product.webp');
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
+        method: 'POST', body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('apImageUrl').value = data.data.url;
+        document.getElementById('imgUploading').style.display = 'none';
+        document.getElementById('imgUploadArea').style.borderColor = 'var(--green-light)';
+        showToast('تم رفع الصورة بصيغة WebP ✅', 'success');
+      } else {
+        throw new Error('فشل الرفع');
+      }
+    } catch (err) {
+      document.getElementById('imgUploading').style.display = 'none';
+      document.getElementById('imgPlaceholder').style.display = 'block';
+      document.getElementById('apImageUrl').value = '';
+      showToast('فشل رفع الصورة، حاول مجدداً', 'error');
+    }
+  };
+
+  // ── ضغط الصورة وتحويلها إلى WebP (مشتركة بين المنتجات والإعلانات) ──
+  function compressToWebP(file, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else                { width  = Math.round(width  * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('WebP conversion failed')),
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  let currentProfile = null;
+  let categories     = [];
+  let products       = [];
+  let orders         = [];
+  let currentPage    = '';
+
+  // ── Auth Guard ──
+  onAuthChange(async (user, profile) => {
+    if (!user || !profile) {
+      window.location.href = 'auth.html';
+      return;
+    }
+    currentProfile = profile;
+    setupUI(profile);
+    hideLoader();
+    navigateTo(getDefaultPage(profile.role));
+  });
+
+  function getDefaultPage(role) {
+    if (role === 'admin' || role === 'manager') return 'orders';
+    return 'my-orders';
+  }
+
+  // ── Setup UI by Role ──
+  function setupUI(profile) {
+    document.getElementById('sidebarUserName').textContent = profile.name;
+    document.getElementById('sidebarUserRole').textContent = getRoleLabel(profile.role);
+
+    const navItems = getNavItems(profile.role);
+    const navHtml  = navItems.map(item => `
+      <a class="nav-item" data-page="${item.page}" onclick="navigateTo('${item.page}')">
+        <i class="fas ${item.icon}"></i>
+        <span>${item.label}</span>
+      </a>
+    `).join('');
+    document.getElementById('sidebarNav').innerHTML = navHtml;
+
+    // Bottom Nav
+    const bottomHtml = navItems.slice(0, 5).map(item => `
+      <button class="bottom-nav-item" data-page="${item.page}" onclick="navigateTo('${item.page}')">
+        <i class="fas ${item.icon}"></i>
+        <span>${item.label}</span>
+      </button>
+    `).join('');
+    document.getElementById('bottomNav').innerHTML = bottomHtml;
+  }
+
+  function getNavItems(role) {
+    const items = {
+      admin: [
+        { page: 'orders',        icon: 'fa-receipt',         label: 'الطلبات' },
+        { page: 'products',      icon: 'fa-box-open',        label: 'المنتجات' },
+        { page: 'categories',    icon: 'fa-tags',            label: 'الفئات' },
+        { page: 'purchases',     icon: 'fa-file-invoice',    label: 'قوائم الشراء' },
+        { page: 'promotions',    icon: 'fa-ad',              label: 'الإعلانات' },
+        { page: 'users',         icon: 'fa-users',           label: 'المستخدمون' },
+        { page: 'agents',        icon: 'fa-user-tie',        label: 'الوكلاء' },
+        { page: 'delivery',      icon: 'fa-motorcycle',      label: 'التوصيل' },
+        { page: 'notifications', icon: 'fa-bell',            label: 'الإشعارات' },
+        { page: 'stats',         icon: 'fa-chart-bar',       label: 'الإحصائيات' },
+        { page: 'setup',         icon: 'fa-cog',             label: 'الإعدادات' },
+        { page: 'my-orders',     icon: 'fa-shopping-bag',    label: 'طلباتي' },
+      ],
+      manager: [
+        { page: 'orders',     icon: 'fa-receipt',         label: 'الطلبات' },
+        { page: 'products',   icon: 'fa-box-open',        label: 'المنتجات' },
+        { page: 'categories', icon: 'fa-tags',            label: 'الفئات' },
+        { page: 'my-orders',  icon: 'fa-shopping-bag',    label: 'طلباتي' },
+      ],
+      customer: [
+        { page: 'my-orders',  icon: 'fa-shopping-bag',    label: 'طلباتي' },
+        { page: 'profile',    icon: 'fa-user-circle',     label: 'حسابي' },
+      ]
+    };
+    return items[role] || items.customer;
+  }
+
+  function getRoleLabel(role) {
+    const labels = { admin: '👑 مدير عام', manager: '🔧 مدير', customer: '🛒 عميل' };
+    return labels[role] || role;
+  }
+
+  // ── Navigation ──
+  window.navigateTo = function(page) {
+    currentPage = page;
+    document.getElementById('topbarTitle').textContent = getPageTitle(page);
+    document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.page === page);
+    });
+    closeSidebar();
+    renderPage(page);
+  };
+
+  function getPageTitle(page) {
+    const titles = {
+      orders: 'إدارة الطلبات', products: 'إدارة المنتجات',
+      categories: 'إدارة الفئات', users: 'إدارة المستخدمين',
+      stats: 'الإحصائيات', 'my-orders': 'طلباتي', profile: 'حسابي',
+      delivery: 'إعدادات التوصيل', notifications: 'إعدادات الإشعارات',
+      agents: 'إدارة الوكلاء', setup: 'إعدادات النظام', purchases: 'قوائم الشراء',
+      promotions: 'الإعلانات والعروض'
+    };
+    return titles[page] || 'لوحة التحكم';
+  }
+
+  // ── Render Pages ──
+  async function renderPage(page) {
+    const content = document.getElementById('dashboardContent');
+    content.innerHTML = `<div style="text-align:center;padding:60px 20px;"><div class="spinner"></div></div>`;
+
+    try {
+      if (page === 'orders')     await renderOrdersPage(content);
+      else if (page === 'products')   await renderProductsPage(content);
+      else if (page === 'categories') await renderCategoriesPage(content);
+      else if (page === 'users')      await renderUsersPage(content);
+      else if (page === 'stats')      await renderStatsPage(content);
+      else if (page === 'my-orders')  await renderMyOrdersPage(content);
+      else if (page === 'profile')    renderProfilePage(content);
+      else if (page === 'delivery')       await renderDeliveryPage(content);
+      else if (page === 'notifications')  await renderNotificationsPage(content);
+      else if (page === 'agents')         await renderAgentsPage(content);
+      else if (page === 'promotions')     await renderPromotionsPage(content);
+      else if (page === 'purchases')      await renderPurchasesPage(content);
+      else if (page === 'setup')          await renderSetupPage(content);
+    } catch (e) {
+      console.error('Page load error:', e);
+      content.innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">
+          <i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--gold);display:block;margin-bottom:12px;"></i>
+          <p style="margin-bottom:16px;">حدث خطأ أثناء التحميل</p>
+          <button class="btn btn-primary" onclick="navigateTo('${page}')">
+            <i class="fas fa-redo"></i> إعادة المحاولة
+          </button>
+        </div>`;
+    }
+  }
+
+  // ─────────────────────────────────────
+  // ORDERS PAGE
+  // ─────────────────────────────────────
+  async function renderOrdersPage(content) {
+    orders = await fetchAllOrders();
+    content.innerHTML = `
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-receipt"></i> جميع الطلبات</div>
+          <span class="badge badge-gold">${orders.length} طلب</span>
+        </div>
+        <div class="section-card-body" id="ordersList">
+          ${orders.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--text-muted);">لا توجد طلبات</div>' : ''}
+          ${orders.map(o => renderOrderCard(o)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderOrderCard(o) {
+    const badge = getStatusBadgeClass(o.status);
+    const itemsText = o.items?.map(i => `${i.emoji || ''} ${i.name} ×${i.quantity}`).join('، ') || '';
+    return `
+      <div class="order-card">
+        <div class="order-card-header">
+          <div>
+            <div class="order-id">#${o.id.slice(-6).toUpperCase()}</div>
+            <div class="order-date">${formatDate(o.createdAt)}</div>
+          </div>
+          <span class="badge ${badge}">${o.status}</span>
+        </div>
+        <div class="order-customer">${o.customerName}</div>
+        <div class="order-address"><i class="fas fa-phone" style="color:var(--gold);margin-left:4px;"></i>${o.phone} &nbsp;|&nbsp; <i class="fas fa-map-marker-alt" style="color:var(--gold);margin-left:4px;"></i>${o.address}</div>
+        <div class="order-items-preview">${itemsText}</div>
+        <div class="order-footer">
+          <div class="order-total">${formatPrice(o.total)}</div>
+          <button class="btn btn-secondary btn-sm" onclick="openStatusModal('${o.id}', '${o.status}')">
+            <i class="fas fa-edit"></i> تحديث
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  window.openStatusModal = function(orderId, currentStatus) {
+    document.getElementById('statusOrderId').value = orderId;
+    document.getElementById('statusSelect').value  = currentStatus;
+    openModal('statusModal');
+  };
+
+  window.confirmStatusUpdate = async function() {
+    const id     = document.getElementById('statusOrderId').value;
+    const status = document.getElementById('statusSelect').value;
+    try {
+      await updateOrderStatus(id, status);
+      showToast('تم تحديث حالة الطلب', 'success');
+      closeModal('statusModal');
+      await renderPage('orders');
+    } catch { showToast('حدث خطأ', 'error'); }
+  };
+
+  // ─────────────────────────────────────
+  // PRODUCTS PAGE
+  // ─────────────────────────────────────
+  async function renderProductsPage(content) {
+    [categories, products] = await Promise.all([fetchCategories(), fetchProducts()]);
+    const catOptions = categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    document.getElementById('apCategory').innerHTML = '<option value="">اختر الفئة</option>' + catOptions;
+
+    function buildProductsHTML(prods) {
+      const byCategory = {};
+      categories.forEach(c => { byCategory[c.id] = []; });
+      prods.forEach(p => {
+        if (byCategory[p.categoryId] !== undefined) byCategory[p.categoryId].push(p);
+        else { if (!byCategory['other']) byCategory['other'] = []; byCategory['other'].push(p); }
+      });
+
+      const catList = [...categories];
+      if (byCategory['other'] && byCategory['other'].length)
+        catList.push({ id: 'other', name: 'أخرى', icon: '📦' });
+
+      return catList.map(cat => {
+        const catProducts = byCategory[cat.id] || [];
+        if (!catProducts.length) return '';
+        return `
+          <div class="section-card" style="margin-bottom:20px;">
+            <div class="section-card-header">
+              <div class="section-card-title">${cat.icon} ${cat.name}</div>
+              <span class="badge badge-gold">${catProducts.length}</span>
+            </div>
+            <div class="admin-products-grid">
+              ${catProducts.map(p => `
+                <div class="admin-product-card">
+                  <div class="apc-img" onclick="openEditProduct('${p.id}')">
+                    ${p.imageUrl
+                      ? `<img src="${p.imageUrl}" alt="${p.name}">`
+                      : `<span class="apc-emoji">${p.emoji || '🍺'}</span>`
+                    }
+                    <span class="apc-status ${p.available !== false ? 'apc-avail' : 'apc-unavail'}">
+                      ${p.available !== false ? 'متاح' : 'غير متاح'}
+                    </span>
+                  </div>
+                  <div class="apc-body">
+                    <div class="apc-name">${p.name}</div>
+                    <div class="apc-price">${formatPrice(p.price)}</div>
+                  </div>
+                  <div class="apc-actions">
+                    <button class="apc-btn apc-toggle" title="تغيير الحالة" onclick="toggleAvailability('${p.id}', ${p.available !== false})">
+                      ${p.available !== false ? '🟢' : '🔴'}
+                    </button>
+                    <button class="apc-btn apc-edit" title="تعديل" onclick="openEditProduct('${p.id}')">
+                      <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="apc-btn apc-del" title="حذف" onclick="handleDeleteProduct('${p.id}', '${p.name}')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    content.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-light);">المنتجات</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addProductModal')">
+          <i class="fas fa-plus"></i> منتج جديد
+        </button>
+      </div>
+      <div style="position:relative;margin-bottom:20px;">
+        <i class="fas fa-search" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;"></i>
+        <input type="text" id="adminProductSearch" placeholder="ابحث عن منتج..." 
+          style="width:100%;padding:10px 40px 10px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-card);font-family:var(--font-body);font-size:0.9rem;color:var(--text-primary);direction:rtl;"
+          oninput="filterAdminProducts(this.value)">
+      </div>
+      <div id="adminProductsContainer">
+        ${buildProductsHTML(products)}
+        ${products.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--text-muted);">لا توجد منتجات بعد</div>' : ''}
+      </div>
+    `;
+
+    window._allProducts = products;
+    window.filterAdminProducts = function(q) {
+      const term = q.trim().toLowerCase();
+      const filtered = term ? window._allProducts.filter(p =>
+        p.name.toLowerCase().includes(term) ||
+        (p.description || '').toLowerCase().includes(term)
+      ) : window._allProducts;
+      document.getElementById('adminProductsContainer').innerHTML =
+        buildProductsHTML(filtered) ||
+        '<div style="text-align:center;padding:40px;color:var(--text-muted);">لا توجد نتائج</div>';
+    };
+  }
+
+  window.toggleAvailability = async function(id, current) {
+    await updateProduct(id, { available: !current });
+    showToast('تم التحديث', 'success');
+    await renderPage('products');
+  };
+
+  window.handleDeleteProduct = async function(id, name) {
+    if (!confirm(`هل تريد حذف "${name}"؟`)) return;
+    await deleteProduct(id);
+    showToast(`تم حذف ${name}`, 'success');
+    await renderPage('products');
+  };
+
+  document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('addProductBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
+    try {
+      const imageUrl = document.getElementById('apImageUrl').value || '';
+      await addProduct({
+        name:       document.getElementById('apName').value,
+        categoryId: document.getElementById('apCategory').value,
+        price:      Number(document.getElementById('apPrice').value),
+        costPrice:  Number(document.getElementById('apCostPrice').value) || 0,
+        description:document.getElementById('apDesc').value,
+        emoji:      document.getElementById('apEmoji').value || '🍺',
+        imageUrl,
+        available:  document.getElementById('apAvailable').checked
+      });
+      showToast('تم إضافة المنتج ✅', 'success');
+      closeModal('addProductModal');
+      document.getElementById('addProductForm').reset();
+      document.getElementById('apImageUrl').value = '';
+      document.getElementById('imgPreview').style.display = 'none';
+      document.getElementById('imgPlaceholder').style.display = 'block';
+      document.getElementById('imgUploadArea').style.borderColor = '';
+      await renderPage('products');
+    } catch { showToast('حدث خطأ', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-plus"></i> إضافة المنتج';
+  });
+
+  // ─────────────────────────────────────
+  // CATEGORIES PAGE
+  // ─────────────────────────────────────
+  async function renderCategoriesPage(content) {
+    categories = await fetchCategories();
+    content.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-light);">الفئات</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addCategoryModal')">
+          <i class="fas fa-plus"></i> فئة جديدة
+        </button>
+      </div>
+      <div class="section-card">
+        <div class="section-card-body">
+          ${categories.map((c, i) => `
+            <div class="admin-product-item">
+  <div class="item-icon" style="font-size:1.5rem;">${c.icon}</div>
+  <div class="item-info">
+    <div class="item-name">${c.name}</div>
+    <div class="item-meta">الترتيب: ${c.order || i+1}</div>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="btn btn-ghost btn-sm"
+      data-cid="${c.id}"
+      onclick="openEditCategory(this.dataset.cid)">
+      <i class="fas fa-pen"></i>
+    </button>
+  </div>
+</div>
+          `).join('')}
+          ${categories.length === 0 ? '<div style="text-align:center;padding:30px;color:var(--text-muted);">لا توجد فئات</div>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await addCategory({
+        name:  document.getElementById('acName').value,
+        icon:  document.getElementById('acIcon').value || '🍺',
+        order: (categories.length + 1)
+      });
+      showToast('تم إضافة الفئة', 'success');
+      closeModal('addCategoryModal');
+      document.getElementById('addCategoryForm').reset();
+      await renderPage('categories');
+    } catch { showToast('حدث خطأ', 'error'); }
+  });
+
+  // ─────────────────────────────────────
+  // STATS PAGE
+  // ─────────────────────────────────────
+  async function renderStatsPage(content) {
+    const [allOrders, allProducts] = await Promise.all([fetchAllOrders(), fetchProducts()]);
+    const revenue  = allOrders.filter(o => o.status === 'مكتمل').reduce((s, o) => s + (o.total || 0), 0);
+    const newOrders = allOrders.filter(o => o.status === 'جديد').length;
+    const completedOrders = allOrders.filter(o => o.status === 'مكتمل').length;
+
+    content.innerHTML = `
+      <h2 style="font-family:var(--font-display);color:var(--gold-light);margin-bottom:20px;">الإحصائيات</h2>
+      <div class="stats-grid">
+        <div class="stat-card gold">
+          <div class="stat-icon gold"><i class="fas fa-money-bill-wave"></i></div>
+          <div class="stat-value" style="font-size:1.2rem;">${formatPrice(revenue)}</div>
+          <div class="stat-label">إجمالي الإيرادات</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-receipt"></i></div>
+          <div class="stat-value">${allOrders.length}</div>
+          <div class="stat-label">إجمالي الطلبات</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-value">${completedOrders}</div>
+          <div class="stat-label">طلبات مكتملة</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="fas fa-clock"></i></div>
+          <div class="stat-value">${newOrders}</div>
+          <div class="stat-label">طلبات جديدة</div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-box-open"></i> إجمالي المنتجات</div>
+          <span class="badge badge-gold">${allProducts.length}</span>
+        </div>
+        <div class="section-card-body">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;">
+            <div style="color:var(--text-secondary);font-size:0.88rem;">
+              ✅ متاح: <strong style="color:var(--text-primary);">${allProducts.filter(p => p.available !== false).length}</strong>
+            </div>
+            <div style="color:var(--text-secondary);font-size:0.88rem;">
+              ❌ غير متاح: <strong style="color:var(--text-primary);">${allProducts.filter(p => p.available === false).length}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────
+  // USERS PAGE (admin only)
+  // ─────────────────────────────────────
+  async function renderUsersPage(content) {
+    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const snap = await getDocs(collection(db, 'users'));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const roleColors = { admin: 'badge-gold', manager: 'badge-blue', customer: 'badge-gray' };
+    const roleLabels = { admin: '👑 مدير عام', manager: '🔧 مدير', customer: '🛒 عميل' };
+
+    content.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-light);">المستخدمون</h2>
+        <button class="btn btn-primary btn-sm" onclick="openAddUser()">
+          <i class="fas fa-user-plus"></i> إضافة مستخدم
+        </button>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-users"></i> جميع المستخدمين</div>
+          <span class="badge badge-gold">${users.length}</span>
+        </div>
+        <div class="section-card-body">
+          ${users.length === 0 ? '<div style="text-align:center;padding:30px;color:var(--text-muted);">لا يوجد مستخدمون</div>' : ''}
+          ${users.map(u => `
+            <div class="admin-product-item">
+              <div class="item-icon" style="font-size:1.4rem;background:var(--gold-pale);">
+                ${u.role === 'admin' ? '👑' : u.role === 'manager' ? '🔧' : '👤'}
+              </div>
+              <div class="item-info">
+                <div class="item-name">${u.name || '—'}</div>
+                <div class="item-meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span>${u.email || '—'}</span>
+                  <span class="badge ${roleColors[u.role] || 'badge-gray'}">${roleLabels[u.role] || u.role}</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-ghost btn-sm"
+                  data-uid="${u.id}"
+                  data-name="${(u.name||'').replace(/"/g,'&quot;')}"
+                  data-email="${(u.email||'').replace(/"/g,'&quot;')}"
+                  data-role="${u.role||'customer'}"
+                  onclick="openEditUser(this.dataset.uid,this.dataset.name,this.dataset.email,this.dataset.role)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="btn btn-danger btn-sm"
+                  data-uid="${u.id}"
+                  data-name="${(u.name||'').replace(/"/g,'&quot;')}"
+                  onclick="handleDeleteUser(this.dataset.uid,this.dataset.name)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  window.openAddUser = function() {
+    document.getElementById('umId').value = '';
+    document.getElementById('umName').value = '';
+    document.getElementById('umEmail').value = '';
+    document.getElementById('umPass').value = '';
+    document.getElementById('umRole').value = 'customer';
+    document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> إضافة مستخدم';
+    document.getElementById('umEmailGroup').style.display = '';
+    document.getElementById('umPassGroup').style.display = '';
+    openModal('userModal');
+  };
+
+  window.openEditUser = function(id, name, email, role) {
+    document.getElementById('umId').value = id;
+    document.getElementById('umName').value = name;
+    document.getElementById('umEmail').value = email;
+    document.getElementById('umPass').value = '';
+    document.getElementById('umRole').value = role;
+    document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> تعديل المستخدم';
+    document.getElementById('umEmailGroup').style.display = 'none';
+    document.getElementById('umPassGroup').style.display = 'none';
+    openModal('userModal');
+  };
+
+  document.getElementById('userForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('userSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+    const id   = document.getElementById('umId').value;
+    const name = document.getElementById('umName').value;
+    const role = document.getElementById('umRole').value;
+    try {
+      const { setDoc, updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      if (id) {
+        // Edit existing — update Firestore only
+        await updateDoc(doc(db, 'users', id), { name, role });
+        showToast('✅ تم تحديث المستخدم', 'success');
+      } else {
+        // Add new — create via Admin API is needed for Auth
+        // We just create Firestore record; email/pass handled separately
+        const email = document.getElementById('umEmail').value;
+        // Create a placeholder doc with generated ID
+        const newId = 'manual_' + Date.now();
+        await setDoc(doc(db, 'users', newId), { name, email, role });
+        showToast('✅ تم إضافة المستخدم في قاعدة البيانات', 'success');
+        showToast('⚠️ أنشئ حساب Auth يدوياً من Firebase Console', 'info', 5000);
+      }
+      closeModal('userModal');
+      await renderPage('users');
+    } catch (err) {
+      showToast('حدث خطأ: ' + err.message, 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+  });
+
+  window.handleDeleteUser = async function(id, name) {
+    if (!confirm('هل تريد حذف "' + name + '"؟ (سيحذف من قاعدة البيانات فقط)')) return;
+    const { deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    await deleteDoc(doc(db, 'users', id));
+    showToast('تم حذف ' + name, 'success');
+    await renderPage('users');
+  };
+
+  // ─────────────────────────────────────
+  // MY ORDERS PAGE
+  // ─────────────────────────────────────
+  async function renderMyOrdersPage(content) {
+    let myOrders = [];
+    try {
+      myOrders = await fetchMyOrders(currentProfile.uid);
+    } catch (err) {
+      console.error('fetchMyOrders error:', err);
+      // Firestore index missing — fallback: fetch all and filter client-side
+      try {
+        const all = await fetchAllOrders();
+        myOrders = all.filter(o => o.customerId === currentProfile.uid);
+      } catch (err2) {
+        content.innerHTML = `
+          <div style="text-align:center;padding:40px;color:var(--text-muted);">
+            <i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--gold);display:block;margin-bottom:12px;"></i>
+            <p>تعذّر تحميل الطلبات. تأكد من الاتصال بالإنترنت.</p>
+            <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('my-orders')">
+              <i class="fas fa-redo"></i> إعادة المحاولة
+            </button>
+          </div>`;
+        return;
+      }
+    }
+    if (myOrders.length === 0) {
+      content.innerHTML = `
+        <div class="my-orders-empty">
+          <i class="fas fa-shopping-bag"></i>
+          <h3>لا توجد طلبات بعد</h3>
+          <p>ابدأ تسوقك الآن!</p>
+          <a href="../index.html" class="btn btn-primary" style="margin-top:16px;">
+            <i class="fas fa-store"></i> تصفح المتجر
+          </a>
+        </div>
+      `;
+      return;
+    }
+    content.innerHTML = `
+      <h2 style="font-family:var(--font-display);color:var(--gold-light);margin-bottom:20px;">طلباتي</h2>
+      ${myOrders.map(o => renderOrderCard(o)).join('')}
+    `;
+  }
+
+  // ─────────────────────────────────────
+  // PROFILE PAGE
+  // ─────────────────────────────────────
+  function renderProfilePage(content) {
+    content.innerHTML = `
+      <h2 style="font-family:var(--font-display);color:var(--gold-light);margin-bottom:20px;">حسابي</h2>
+      <div class="section-card">
+        <div class="section-card-body">
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:3.5rem;margin-bottom:12px;">👤</div>
+            <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold-light);margin-bottom:4px;">
+              ${currentProfile.name}
+            </div>
+            <div style="color:var(--text-muted);font-size:0.88rem;margin-bottom:12px;">
+              ${currentProfile.email}
+            </div>
+            <span class="badge badge-gold">${getRoleLabel(currentProfile.role)}</span>
+          </div>
+          <div class="gold-divider"></div>
+          <button class="btn btn-danger btn-block" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i>
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+
+  // ─────────────────────────────────────
+  // DELIVERY SETTINGS PAGE
+  // ─────────────────────────────────────
+  async function renderDeliveryPage(content) {
+    const s = await fetchDeliverySettings();
+    content.innerHTML = `
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-motorcycle"></i> إعدادات التوصيل</div>
+        </div>
+        <div class="section-card-body">
+
+          <!-- Center Location -->
+          <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:16px;padding:18px;margin-bottom:18px;">
+            <div style="font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-size:0.95rem;">
+              <i class="fas fa-store" style="color:var(--gold);"></i> موقع مركز المتجر
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">خط العرض</label>
+                <input type="number" step="0.00001" class="form-input" id="dCenterLat"
+                  value="${s?.centerLat || 32.6136}">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">خط الطول</label>
+                <input type="number" step="0.00001" class="form-input" id="dCenterLng"
+                  value="${s?.centerLng || 44.0092}">
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+              <i class="fas fa-lightbulb" style="color:var(--gold);"></i>
+              افتح Google Maps ← اضغط على موقع المتجر ← انسخ الإحداثيات
+            </div>
+          </div>
+
+          <!-- Price Per KM -->
+          <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px;">
+            <div style="font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-size:0.95rem;">
+              <i class="fas fa-route" style="color:var(--gold);"></i> سعر التوصيل
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">سعر الكيلومتر (د.ع)</label>
+                <input type="number" step="500" class="form-input" id="dPricePerKm"
+                  value="${s?.pricePerKm || 1000}" placeholder="1000">
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">لكل كيلومتر واحد</div>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">الحد الأدنى (د.ع)</label>
+                <input type="number" step="500" class="form-input" id="dMinFee"
+                  value="${s?.minFee || 1000}" placeholder="1000">
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">أقل أجرة توصيل</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Calculator -->
+          <div style="background:#f0faf5;border:1.5px solid rgba(45,106,79,0.2);border-radius:16px;padding:16px;margin-bottom:20px;">
+            <div style="font-weight:700;margin-bottom:12px;font-size:0.9rem;color:var(--green);">
+              <i class="fas fa-calculator"></i> حاسبة تجريبية
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:0.88rem;color:var(--text-secondary);">إذا كان الزبون على بعد</span>
+              <input type="number" id="previewKm" value="3" min="1" max="50"
+                style="width:64px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:0.9rem;text-align:center;"
+                oninput="previewCalc()">
+              <span style="font-size:0.88rem;color:var(--text-secondary);">كيلومتر</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:10px;padding:10px 14px;">
+              <span style="font-size:0.88rem;color:var(--text-secondary);">أجرة التوصيل</span>
+              <span style="font-weight:800;color:var(--green);font-size:1rem;" id="previewResult">—</span>
+            </div>
+          </div>
+
+          <button onclick="saveDeliveryPage()" class="btn btn-primary btn-block">
+            <i class="fas fa-save"></i> حفظ الإعدادات
+          </button>
+        </div>
+      </div>
+    `;
+    previewCalc();
+  }
+
+  window.previewCalc = function() {
+    const km         = parseFloat(document.getElementById('previewKm')?.value) || 0;
+    const pricePerKm = parseFloat(document.getElementById('dPricePerKm')?.value) || 1000;
+    const minFee     = parseFloat(document.getElementById('dMinFee')?.value) || 1000;
+    const fee        = Math.max(Math.ceil(km) * pricePerKm, minFee);
+    const el = document.getElementById('previewResult');
+    if (el) el.textContent = formatPrice(fee);
+  };
+
+  window.saveDeliveryPage = async function() {
+    const centerLat  = parseFloat(document.getElementById('dCenterLat').value);
+    const centerLng  = parseFloat(document.getElementById('dCenterLng').value);
+    const pricePerKm = parseFloat(document.getElementById('dPricePerKm').value);
+    const minFee     = parseFloat(document.getElementById('dMinFee').value);
+    if (isNaN(centerLat) || isNaN(centerLng) || isNaN(pricePerKm)) {
+      showToast('الرجاء تعبئة جميع الحقول', 'warning'); return;
+    }
+    try {
+      await saveDeliverySettings({ centerLat, centerLng, pricePerKm, minFee: minFee || pricePerKm });
+      showToast('✅ تم حفظ إعدادات التوصيل', 'success');
+    } catch { showToast('حدث خطأ', 'error'); }
+  };
+
+
+  // ─────────────────────────────────────
+  // EDIT PRODUCT
+  // ─────────────────────────────────────
+  window.openEditProduct = async function(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('epId').value         = id;
+    document.getElementById('epName').value       = p.name || '';
+    document.getElementById('epPrice').value      = p.price || '';
+    document.getElementById('epCostPrice').value  = p.costPrice || '';
+    document.getElementById('epDesc').value       = p.description || '';
+    document.getElementById('epEmoji').value      = p.emoji || '🍺';
+    document.getElementById('epImageUrl').value = p.imageUrl || '';
+    document.getElementById('epAvailable').checked = p.available !== false;
+    const cats = await fetchCategories();
+    document.getElementById('epCategory').innerHTML =
+      cats.map(c => `<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.icon} ${c.name}</option>`).join('');
+    openModal('editProductModal');
+  };
+
+  document.getElementById('editProductForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('editProductBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+    try {
+      const id = document.getElementById('epId').value;
+      await updateProduct(id, {
+        name:        document.getElementById('epName').value,
+        categoryId:  document.getElementById('epCategory').value,
+        price:       Number(document.getElementById('epPrice').value),
+        costPrice:   Number(document.getElementById('epCostPrice').value) || 0,
+        description: document.getElementById('epDesc').value,
+        emoji:       document.getElementById('epEmoji').value || '🍺',
+        imageUrl: document.getElementById('epImageUrl').value || '',
+        available:   document.getElementById('epAvailable').checked
+      });
+      showToast('✅ تم تحديث المنتج', 'success');
+      closeModal('editProductModal');
+      await renderPage('products');
+    } catch { showToast('حدث خطأ', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ التعديلات';
+  });
+
+  // ─────────────────────────────────────
+  // EDIT CATEGORY
+  // ─────────────────────────────────────
+  window.openEditCategory = function(id) {
+    const c = categories.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('ecId').value    = id;
+    document.getElementById('ecName').value  = c.name || '';
+    document.getElementById('ecIcon').value  = c.icon || '';
+    document.getElementById('ecOrder').value = c.order ?? '';
+    openModal('editCategoryModal');
+  };
+
+  document.getElementById('editCategoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('editCategoryBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+    try {
+      const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const id = document.getElementById('ecId').value;
+      await updateDoc(doc(db, 'categories', id), {
+        name:  document.getElementById('ecName').value,
+        icon:  document.getElementById('ecIcon').value,
+        order: Number(document.getElementById('ecOrder').value) || 0
+      });
+      showToast('✅ تم تحديث الفئة', 'success');
+      closeModal('editCategoryModal');
+      await renderPage('categories');
+    } catch { showToast('حدث خطأ', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ التعديلات';
+  });
+
+  // ─────────────────────────────────────
+  // NOTIFICATIONS PAGE
+  // ─────────────────────────────────────
+  async function renderNotificationsPage(content) {
+    // Load saved settings from Firestore
+    const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    let tgSettings = { botToken: '', chatId: '', enabled: false };
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'telegram'));
+      if (snap.exists()) tgSettings = { ...tgSettings, ...snap.data() };
+    } catch {}
+
+    content.innerHTML = `
+      <!-- Header -->
+      <div style="margin-bottom:24px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:6px;">
+          <i class="fas fa-bell" style="color:var(--gold);margin-left:8px;"></i>إعدادات الإشعارات
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.88rem;">
+          استلم إشعار فوري على تيليغرام عند كل طلب جديد مع كامل التفاصيل
+        </p>
+      </div>
+
+      <!-- Status Banner -->
+      <div id="tgStatusBanner" style="
+        display:flex;align-items:center;gap:12px;
+        padding:14px 18px;border-radius:16px;margin-bottom:22px;
+        background:${tgSettings.enabled ? '#f0faf5' : '#fdf8f0'};
+        border:1.5px solid ${tgSettings.enabled ? 'rgba(45,106,79,0.25)' : 'rgba(184,146,42,0.25)'};
+      ">
+        <div style="
+          width:40px;height:40px;border-radius:50%;flex-shrink:0;
+          background:${tgSettings.enabled ? 'rgba(45,106,79,0.12)' : 'rgba(184,146,42,0.12)'};
+          display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+        ">${tgSettings.enabled ? '🟢' : '🔴'}</div>
+        <div>
+          <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary);">
+            ${tgSettings.enabled ? 'الإشعارات مفعّلة' : 'الإشعارات معطّلة'}
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+            ${tgSettings.enabled ? 'ستصلك رسالة تيليغرام عند كل طلب جديد' : 'أضف بيانات البوت لتفعيل الإشعارات'}
+          </div>
+        </div>
+        <label style="margin-right:auto;display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <div class="toggle-switch ${tgSettings.enabled ? 'on' : ''}" id="tgToggle" onclick="toggleTgEnabled()"></div>
+        </label>
+      </div>
+
+      <!-- How to setup guide -->
+      <div class="section-card" style="margin-bottom:20px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fab fa-telegram" style="color:#229ED9;"></i>
+            كيفية إعداد بوت تيليغرام
+          </div>
+          <button onclick="document.getElementById('setupGuide').classList.toggle('hidden')"
+            class="btn btn-ghost btn-sm">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+        <div class="section-card-body hidden" id="setupGuide">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--gold-pale);border:2px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold-dark);flex-shrink:0;font-size:0.85rem;">1</div>
+              <div>
+                <div style="font-weight:700;font-size:0.9rem;margin-bottom:3px;">افتح تيليغرام وابحث عن BotFather</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">ابحث في تيليغرام عن <strong>@BotFather</strong> وابدأ محادثة معه</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--gold-pale);border:2px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold-dark);flex-shrink:0;font-size:0.85rem;">2</div>
+              <div>
+                <div style="font-weight:700;font-size:0.9rem;margin-bottom:3px;">أنشئ بوت جديد</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">أرسل <code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;">/newbot</code> ثم اتبع التعليمات. ستحصل على <strong>Bot Token</strong></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--gold-pale);border:2px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold-dark);flex-shrink:0;font-size:0.85rem;">3</div>
+              <div>
+                <div style="font-weight:700;font-size:0.9rem;margin-bottom:3px;">احصل على Chat ID</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">ابحث عن <strong>@userinfobot</strong> وأرسل له أي رسالة — سيعطيك الـ Chat ID الخاص بك</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--gold-pale);border:2px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold-dark);flex-shrink:0;font-size:0.85rem;">4</div>
+              <div>
+                <div style="font-weight:700;font-size:0.9rem;margin-bottom:3px;">أدخل البيانات وجرّب الإرسال</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">أدخل الـ Token والـ Chat ID أدناه واضغط "إرسال رسالة تجريبية"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Settings Form -->
+      <div class="section-card" style="margin-bottom:20px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fas fa-key"></i> بيانات البوت
+          </div>
+        </div>
+        <div class="section-card-body">
+          <div class="form-group">
+            <label class="form-label">Bot Token <span style="color:var(--gold);">*</span></label>
+            <div style="position:relative;">
+              <input type="${tgSettings.botToken ? 'password' : 'text'}" class="form-input" id="tgBotToken"
+                placeholder="123456789:AABBccDDeeFFggHH..." 
+                value="${tgSettings.botToken || ''}"
+                style="padding-left:44px;font-family:monospace;font-size:0.85rem;">
+              <button onclick="toggleTokenVisibility()" style="
+                position:absolute;left:10px;top:50%;transform:translateY(-50%);
+                background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem;
+              " id="tokenEyeBtn"><i class="fas fa-eye"></i></button>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+              يبدأ بأرقام ثم نقطتان مثل: <code>110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw</code>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Chat ID <span style="color:var(--gold);">*</span></label>
+            <input type="text" class="form-input" id="tgChatId"
+              placeholder="مثال: 123456789 أو -1001234567890"
+              value="${tgSettings.chatId || ''}"
+              style="font-family:monospace;font-size:0.88rem;">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+              للمجموعات: Chat ID يبدأ بـ <code>-100</code> | للأشخاص: أرقام فقط
+            </div>
+          </div>
+
+          <!-- Message Preview -->
+          <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:18px;">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.5px;">
+              📱 معاينة الرسالة التي ستصلك
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:12px;font-size:0.8rem;line-height:1.8;color:#1a1612;direction:rtl;border:1px solid rgba(0,0,0,0.06);font-family:monospace;">
+🥃 <strong>طلب جديد — Irish Bar</strong><br>
+━━━━━━━━━━━━━━━━━━<br>
+🆔 رقم الطلب: <span style="color:#229ED9;">#A1B2C3</span><br>
+👤 العميل: أحمد محمد<br>
+📞 الهاتف: 07801234567<br>
+🕐 وقت التوصيل: أسرع وقت<br>
+📍 الموقع: كربلاء — شارع الإمام علي<br>
+━━━━━━━━━━━━━━━━━━<br>
+🛒 <strong>المنتجات:</strong><br>
+&nbsp;&nbsp;• جيمسون × 2 ← 110,000 د.ع<br>
+&nbsp;&nbsp;• غينيس × 1 ← 12,000 د.ع<br>
+━━━━━━━━━━━━━━━━━━<br>
+🚚 أجرة التوصيل: 3,000 د.ع<br>
+💰 <strong>الإجمالي: 125,000 د.ع</strong><br>
+━━━━━━━━━━━━━━━━━━<br>
+📌 <a href="#">عرض الموقع على الخارطة</a>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="saveTelegramSettings()" class="btn btn-primary" style="flex:1;min-width:140px;">
+              <i class="fas fa-save"></i> حفظ الإعدادات
+            </button>
+            <button onclick="sendTestMessage()" class="btn btn-secondary" style="flex:1;min-width:140px;" id="testMsgBtn">
+              <i class="fab fa-telegram"></i> رسالة تجريبية
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Triggers -->
+      <div class="section-card" style="margin-bottom:20px;">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-sliders-h"></i> متى تصلك الإشعارات</div>
+        </div>
+        <div class="section-card-body">
+          ${[
+            { id: 'notif_new_order',    label: 'طلب جديد',           desc: 'عند إنشاء طلب جديد',              icon: '🆕', default: true },
+            { id: 'notif_preparing',    label: 'قيد التجهيز',        desc: 'عند بدء تجهيز الطلب',             icon: '🟡', default: false },
+            { id: 'notif_completed',    label: 'طلب مكتمل',          desc: 'عند تغيير حالة الطلب إلى مكتمل',  icon: '✅', default: false },
+            { id: 'notif_cancelled',    label: 'طلب ملغي',           desc: 'عند إلغاء طلب',                   icon: '❌', default: false },
+          ].map(t => `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light);">
+              <div style="font-size:1.3rem;">${t.icon}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.9rem;">${t.label}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">${t.desc}</div>
+              </div>
+              <div class="toggle-switch ${(tgSettings[t.id] ?? t.default) ? 'on' : ''}"
+                   onclick="this.classList.toggle('on')" data-key="${t.id}"></div>
+            </div>
+          `).join('')}
+          <div style="border-bottom:none;padding-top:12px;">
+            <button onclick="saveTriggers()" class="btn btn-ghost btn-sm">
+              <i class="fas fa-save"></i> حفظ التفضيلات
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Toggle switch handler ──
+  window.toggleTgEnabled = function() {
+    const el = document.getElementById('tgToggle');
+    el.classList.toggle('on');
+    const isOn = el.classList.contains('on');
+    const banner = document.getElementById('tgStatusBanner');
+    banner.style.background = isOn ? '#f0faf5' : '#fdf8f0';
+    banner.style.borderColor = isOn ? 'rgba(45,106,79,0.25)' : 'rgba(184,146,42,0.25)';
+  };
+
+  window.toggleTokenVisibility = function() {
+    const inp = document.getElementById('tgBotToken');
+    const ico = document.getElementById('tokenEyeBtn').querySelector('i');
+    if (inp.type === 'password') { inp.type = 'text'; ico.className = 'fas fa-eye-slash'; }
+    else { inp.type = 'password'; ico.className = 'fas fa-eye'; }
+  };
+
+  window.saveTelegramSettings = async function() {
+    const botToken = document.getElementById('tgBotToken').value.trim();
+    const chatId   = document.getElementById('tgChatId').value.trim();
+    const enabled  = document.getElementById('tgToggle').classList.contains('on');
+    if (!botToken || !chatId) { showToast('الرجاء إدخال Token و Chat ID', 'warning'); return; }
+    try {
+      const { setDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      await setDoc(doc(db, 'settings', 'telegram'), { botToken, chatId, enabled });
+      showToast('✅ تم حفظ إعدادات تيليغرام', 'success');
+    } catch { showToast('حدث خطأ أثناء الحفظ', 'error'); }
+  };
+
+  window.saveTriggers = async function() {
+    const triggers = {};
+    document.querySelectorAll('.toggle-switch[data-key]').forEach(el => {
+      triggers[el.dataset.key] = el.classList.contains('on');
+    });
+    try {
+      const { setDoc, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const snap = await getDoc(doc(db, 'settings', 'telegram'));
+      const existing = snap.exists() ? snap.data() : {};
+      await setDoc(doc(db, 'settings', 'telegram'), { ...existing, ...triggers });
+      showToast('✅ تم حفظ التفضيلات', 'success');
+    } catch { showToast('حدث خطأ', 'error'); }
+  };
+
+  window.sendTestMessage = async function() {
+    const botToken = document.getElementById('tgBotToken').value.trim();
+    const chatId   = document.getElementById('tgChatId').value.trim();
+    if (!botToken || !chatId) { showToast('أدخل Token و Chat ID أولاً', 'warning'); return; }
+    const btn = document.getElementById('testMsgBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+    try {
+      const msg = `🥃 *Irish Bar — رسالة تجريبية*\n━━━━━━━━━━━━━━\n✅ تم الاتصال بنجاح!\nالإشعارات تعمل بشكل صحيح.\n━━━━━━━━━━━━━━\n_تم الإرسال من لوحة التحكم_`;
+      const res = await fetch(
+        'https://api.telegram.org/bot' + botToken + '/sendMessage',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+        }
+      );
+      const data = await res.json();
+      if (data.ok) {
+        showToast('✅ تم إرسال الرسالة التجريبية بنجاح!', 'success');
+      } else {
+        showToast('❌ خطأ: ' + (data.description || 'تحقق من البيانات'), 'error');
+      }
+    } catch (e) {
+      showToast('❌ فشل الاتصال بتيليغرام', 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fab fa-telegram"></i> رسالة تجريبية';
+  };
+
+  // ── Logout ──
+  window.handleLogout = async function() {
+    await logout();
+    window.location.href = 'auth.html';
+  };
+
+
+  // ═══════════════════════════════════════════
+  // PROMOTIONS PAGE — الإعلانات والعروض
+  // ═══════════════════════════════════════════
+  async function renderPromotionsPage(content) {
+    const { getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
+            doc, collection, orderBy, query } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    async function loadPromos() {
+      try {
+        const snap = await getDocs(query(collection(db, 'promotions'), orderBy('order','asc')));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch {
+        const snap = await getDocs(collection(db, 'promotions'));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a,b) => (a.order||0)-(b.order||0));
+      }
+    }
+
+    const promos = await loadPromos();
+
+    // Preset background colors
+    const PRESETS = [
+      { label: 'افتراضي (ذهبي)',  value: 'linear-gradient(135deg,var(--bg-card) 0%,var(--gold-pale) 100%)' },
+      { label: 'أخضر داكن',       value: 'linear-gradient(135deg,#0f2318,#1a3d28)' },
+      { label: 'أزرق داكن',       value: 'linear-gradient(135deg,#0d1b3e,#1a2f6e)' },
+      { label: 'بني دافئ',        value: 'linear-gradient(135deg,#2c1a0e,#5c3a1e)' },
+      { label: 'بنفسجي',          value: 'linear-gradient(135deg,#1a0a2e,#3d1a6e)' },
+      { label: 'أحمر عميق',       value: 'linear-gradient(135deg,#2e0a0a,#6e1a1a)' },
+      { label: 'رمادي أنيق',      value: 'linear-gradient(135deg,#1a1a2e,#2d2d44)' },
+      { label: 'ذهبي فاخر',       value: 'linear-gradient(135deg,#b8920a,#e8c020)' },
+      { label: 'لون مخصص',        value: 'custom' },
+    ];
+
+    function promoCard(p) {
+      const isImg = p.type === 'image' && p.imageUrl;
+      const bg = p.bgColor || 'linear-gradient(135deg,var(--bg-card),var(--gold-pale))';
+      const isGrad = bg.startsWith('linear') || bg.startsWith('radial');
+      return `<div style="border:1.5px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg-card);margin-bottom:14px;">
+        <!-- Preview -->
+        <div style="height:100px;position:relative;overflow:hidden;
+          ${isImg ? '' : (isGrad ? `background:${bg}` : `background-color:${bg}`)};
+          ${isImg ? '' : ''}">
+          ${isImg
+            ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:16px;">
+                <div style="font-family:var(--font-display);font-weight:800;font-size:1rem;
+                  color:${p.textColor||'var(--gold-dark)'};margin-bottom:4px;">${p.title||'بدون عنوان'}</div>
+                ${p.subtitle ? `<div style="font-size:0.78rem;color:${p.textColor||'var(--gold-dark)'};opacity:0.75;">${p.subtitle}</div>` : ''}
+                ${p.badge ? `<div style="display:inline-block;margin-top:8px;background:var(--gold);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;">${p.badge}</div>` : ''}
+              </div>`}
+        </div>
+        <!-- Info row -->
+        <div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${p.title || '—'}
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
+              ${p.type==='image'?'🖼 صورة':'📝 نص'} · ترتيب: ${p.order??0}
+            </div>
+          </div>
+          <span style="padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0;
+            background:${p.active?'rgba(45,106,79,0.12)':'rgba(180,60,60,0.1)'};
+            color:${p.active?'var(--green)':'#c0392b'};">
+            ${p.active?'🟢 نشط':'🔴 مخفي'}
+          </span>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button onclick="openEditPromo('${p.id}')" class="btn btn-ghost btn-sm" title="تعديل">
+              <i class="fas fa-edit" style="color:var(--gold-dark);"></i>
+            </button>
+            <button onclick="togglePromoStatus('${p.id}',${p.active})" class="btn btn-ghost btn-sm" title="${p.active?'إخفاء':'إظهار'}">
+              <i class="fas fa-${p.active?'eye-slash':'eye'}" style="color:${p.active?'#e67e22':'var(--green)'};"></i>
+            </button>
+            <button onclick="deletePromoConfirm('${p.id}','${(p.title||'').replace(/'/g,"\\'")}')" class="btn btn-ghost btn-sm" title="حذف">
+              <i class="fas fa-trash" style="color:#c0392b;"></i>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    content.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:4px;">
+          <i class="fas fa-ad" style="color:var(--gold);margin-left:8px;"></i>الإعلانات والعروض
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.83rem;">
+          تظهر في البنر الرئيسي بالواجهة — يمكن إضافة أكثر من بنر يتناوب تلقائياً كل 4 ثواني
+        </p>
+      </div>
+
+      <!-- Add Button -->
+      <div style="margin-bottom:18px;">
+        <button onclick="togglePromoForm()" class="btn btn-primary" id="promoFormToggleBtn">
+          <i class="fas fa-plus"></i> إضافة إعلان / عرض جديد
+        </button>
+      </div>
+
+      <!-- Add Form -->
+      <div id="promoFormSection" style="display:none;margin-bottom:22px;">
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-title" id="promoFormTitle"><i class="fas fa-plus-circle"></i> إعلان جديد</div>
+          </div>
+          <div class="section-card-body">
+            <input type="hidden" id="promoEditId">
+
+            <!-- Type selector -->
+            <div style="display:flex;gap:10px;margin-bottom:18px;">
+              <button id="typeBtn_text" onclick="setPromoType('text')"
+                class="btn btn-primary btn-sm" style="flex:1;">
+                📝 عرض نصي
+              </button>
+              <button id="typeBtn_image" onclick="setPromoType('image')"
+                class="btn btn-ghost btn-sm" style="flex:1;">
+                🖼 إعلان بصورة
+              </button>
+            </div>
+
+            <!-- Common fields -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">العنوان الرئيسي</label>
+                <input type="text" class="form-input" id="promoTitle" placeholder="مثال: عرض اليوم الفقط!">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">النص الفرعي</label>
+                <input type="text" class="form-input" id="promoSubtitle" placeholder="وصف مختصر للعرض">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">بادج / تصنيف (اختياري)</label>
+                <input type="text" class="form-input" id="promoBadge" placeholder="مثال: خصم 20%">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">الترتيب</label>
+                <input type="number" class="form-input" id="promoOrder" value="1" min="1">
+              </div>
+            </div>
+
+            <!-- TEXT fields -->
+            <div id="promoTextFields">
+              <div style="font-weight:700;font-size:0.88rem;margin-bottom:12px;color:var(--gold-dark);">
+                🎨 تخصيص الشكل
+              </div>
+              <div class="form-group">
+                <label class="form-label">لون / تدرج الخلفية</label>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;" id="bgPresets">
+                  ${PRESETS.map((p,i) => `
+                    <button onclick="selectBgPreset(${i})" id="preset_${i}"
+                      style="padding:6px 12px;border-radius:20px;font-size:0.78rem;font-weight:600;
+                        border:1.5px solid ${i===0?'var(--gold)':'var(--border)'};
+                        background:${i===0?'var(--gold-pale)':'var(--bg-elevated)'};
+                        color:var(--text-primary);cursor:pointer;">
+                      ${p.label}
+                    </button>`).join('')}
+                </div>
+                <!-- Custom color picker (shown when "لون مخصص" selected) -->
+                <div id="customColorPicker" style="display:none;margin-top:8px;">
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <div>
+                      <label class="form-label" style="font-size:0.75rem;">لون الخلفية</label>
+                      <input type="color" id="promoBgColor" value="#1a1a2e"
+                        style="width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size:0.75rem;">لون ثانوي (تدرج)</label>
+                      <input type="color" id="promoBgColor2" value="#2d2d44"
+                        style="width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+                    </div>
+                    <button onclick="applyCustomGradient()" class="btn btn-ghost btn-sm">
+                      <i class="fas fa-eye"></i> معاينة
+                    </button>
+                  </div>
+                </div>
+                <input type="hidden" id="promoBgValue" value="${PRESETS[0].value}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">لون النص</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  ${['var(--gold-dark)','#ffffff','#1a1a1a','var(--gold)','#f0e8d0'].map(c => `
+                    <div onclick="selectTextColor('${c}')" id="tc_${c.replace(/[^a-z0-9]/gi,'_')}"
+                      style="width:32px;height:32px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+                        background:${c.startsWith('var') ? (c.includes('dark')?'#8b6914':'#c9a227') : c};
+                        transition:border 0.2s;">
+                    </div>`).join('')}
+                </div>
+                <input type="hidden" id="promoTextColor" value="var(--gold-dark)">
+              </div>
+              <div class="form-group">
+                <label class="form-label">الإيموجي الزخرفي (خلفية خفيفة)</label>
+                <input type="text" class="form-input" id="promoEmoji" value="🍀" placeholder="🍀"
+                  style="width:80px;">
+              </div>
+              <!-- Live preview -->
+              <div style="margin-top:4px;margin-bottom:16px;">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">معاينة مباشرة:</div>
+                <div id="promoBgPreview" style="border-radius:14px;padding:20px;min-height:80px;
+                  position:relative;overflow:hidden;transition:all 0.3s;
+                  background:linear-gradient(135deg,var(--bg-card) 0%,var(--gold-pale) 100%);">
+                  <div style="position:absolute;left:-10px;top:-10px;font-size:5rem;opacity:0.06;" id="previewEmoji">🍀</div>
+                  <div style="font-family:var(--font-display);font-weight:800;font-size:1.1rem;
+                    color:var(--gold-dark);" id="previewTitle">العنوان هنا</div>
+                  <div style="font-size:0.82rem;opacity:0.75;margin-top:4px;
+                    color:var(--gold-dark);" id="previewSub">النص الفرعي</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE fields -->
+            <div id="promoImageFields" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">صورة الإعلان</label>
+                <div id="promoImgArea" style="border:2px dashed var(--border);border-radius:14px;
+                  padding:24px;text-align:center;cursor:pointer;background:var(--bg-elevated);"
+                  onclick="document.getElementById('promoImgFile').click()">
+                  <div id="promoImgPlaceholder">
+                    <i class="fas fa-image" style="font-size:2rem;color:var(--gold);display:block;margin-bottom:8px;"></i>
+                    <span style="color:var(--text-muted);font-size:0.85rem;">اضغط لاختيار صورة البنر</span>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">الأبعاد المثالية: 800×200 px</div>
+                  </div>
+                  <div id="promoImgUploading" style="display:none;color:var(--gold);">
+                    <i class="fas fa-spinner fa-spin"></i> جاري الرفع...
+                  </div>
+                  <div id="promoImgPreview" style="display:none;">
+                    <img id="promoImgPreviewEl" src="" style="max-height:150px;border-radius:10px;max-width:100%;">
+                    <div style="font-size:0.75rem;color:var(--green);margin-top:6px;">✅ تم رفع الصورة</div>
+                  </div>
+                </div>
+                <input type="file" id="promoImgFile" accept="image/*" style="display:none"
+                  onchange="handlePromoImageUpload(this)">
+                <input type="hidden" id="promoImgUrl">
+              </div>
+            </div>
+
+            <!-- Link (optional) -->
+            <div class="form-group">
+              <label class="form-label">رابط عند الضغط (اختياري)</label>
+              <input type="url" class="form-input" id="promoLink" dir="ltr" placeholder="https://...">
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:10px;">
+              <button onclick="submitPromo()" class="btn btn-primary" id="savePromoBtn" style="flex:1;">
+                <i class="fas fa-save"></i> <span id="savePromoLabel">حفظ الإعلان</span>
+              </button>
+              <button onclick="resetPromoForm()" class="btn btn-ghost">
+                <i class="fas fa-times"></i> إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-list"></i> الإعلانات الحالية (${promos.length})</div>
+        </div>
+        <div class="section-card-body" id="promosListBody">
+          ${!promos.length
+            ? `<div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="font-size:3rem;margin-bottom:12px;">📢</div>
+                <div style="font-weight:600;">لا توجد إعلانات بعد</div>
+               </div>`
+            : promos.map(promoCard).join('')}
+        </div>
+      </div>
+    `;
+
+    // ── State ──
+    let currentPromoType = 'text';
+    let selectedBgPreset = 0;
+    let selectedTextColor = 'var(--gold-dark)';
+
+    // ── Type toggle ──
+    window.setPromoType = function(type) {
+      currentPromoType = type;
+      document.getElementById('promoTextFields').style.display  = type==='text'  ? '' : 'none';
+      document.getElementById('promoImageFields').style.display = type==='image' ? '' : 'none';
+      document.getElementById('typeBtn_text').className  = `btn btn-sm ${type==='text'  ? 'btn-primary' : 'btn-ghost'} `;
+      document.getElementById('typeBtn_image').className = `btn btn-sm ${type==='image' ? 'btn-primary' : 'btn-ghost'} `;
+    };
+
+    // ── BG Preset ──
+    window.selectBgPreset = function(i) {
+      selectedBgPreset = i;
+      PRESETS.forEach((_, j) => {
+        const btn = document.getElementById('preset_' + j);
+        if (!btn) return;
+        btn.style.borderColor = j===i ? 'var(--gold)' : 'var(--border)';
+        btn.style.background  = j===i ? 'var(--gold-pale)' : 'var(--bg-elevated)';
+      });
+      const isCustom = PRESETS[i].value === 'custom';
+      document.getElementById('customColorPicker').style.display = isCustom ? '' : 'none';
+      if (!isCustom) {
+        document.getElementById('promoBgValue').value = PRESETS[i].value;
+        updatePromoBgPreview();
+      }
+    };
+
+    window.applyCustomGradient = function() {
+      const c1 = document.getElementById('promoBgColor').value;
+      const c2 = document.getElementById('promoBgColor2').value;
+      const grad = `linear-gradient(135deg,${c1},${c2})`;
+      document.getElementById('promoBgValue').value = grad;
+      updatePromoBgPreview();
+    };
+
+    function updatePromoBgPreview() {
+      const bg  = document.getElementById('promoBgValue').value;
+      const tc  = document.getElementById('promoTextColor').value;
+      const em  = document.getElementById('promoEmoji').value || '🍀';
+      const ttl = document.getElementById('promoTitle').value || 'العنوان هنا';
+      const sub = document.getElementById('promoSubtitle').value || 'النص الفرعي';
+      const prev = document.getElementById('promoBgPreview');
+      const isGrad = bg.startsWith('linear') || bg.startsWith('radial');
+      if (prev) {
+        prev.style.background = isGrad ? bg : '';
+        prev.style.backgroundColor = isGrad ? '' : bg;
+      }
+      const pTitle = document.getElementById('previewTitle');
+      const pSub   = document.getElementById('previewSub');
+      const pEmoji = document.getElementById('previewEmoji');
+      if (pTitle) { pTitle.textContent = ttl; pTitle.style.color = tc; }
+      if (pSub)   { pSub.textContent   = sub; pSub.style.color   = tc; }
+      if (pEmoji) pEmoji.textContent = em;
+    }
+
+    // Live preview on input
+    ['promoTitle','promoSubtitle','promoEmoji'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updatePromoBgPreview);
+    });
+
+    // ── Text color ──
+    window.selectTextColor = function(c) {
+      selectedTextColor = c;
+      document.getElementById('promoTextColor').value = c;
+      updatePromoBgPreview();
+      document.querySelectorAll('[id^="tc_"]').forEach(el => {
+        el.style.borderColor = 'transparent';
+      });
+      const key = 'tc_' + c.replace(/[^a-z0-9]/gi,'_');
+      const el = document.getElementById(key);
+      if (el) el.style.borderColor = 'var(--gold)';
+    };
+    // Init first color as selected
+    const firstTcKey = 'tc_' + 'var(--gold-dark)'.replace(/[^a-z0-9]/gi,'_');
+    const firstTcEl = document.getElementById(firstTcKey);
+    if (firstTcEl) firstTcEl.style.borderColor = 'var(--gold)';
+
+    // ── Image Upload ──
+    window.handlePromoImageUpload = async function(input) {
+      const file = input.files[0];
+      if (!file) return;
+      document.getElementById('promoImgPlaceholder').style.display = 'none';
+      document.getElementById('promoImgUploading').style.display = 'block';
+      try {
+        const webpBlob = await compressToWebP(file, 0.85);
+        const formData = new FormData();
+        formData.append('image', webpBlob, 'banner.webp');
+        const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
+          method: 'POST', body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('promoImgUrl').value = data.data.url;
+          document.getElementById('promoImgPreviewEl').src = data.data.url;
+          document.getElementById('promoImgUploading').style.display = 'none';
+          document.getElementById('promoImgPreview').style.display = 'block';
+          document.getElementById('promoImgArea').style.borderColor = 'var(--green-light)';
+        } else throw new Error();
+      } catch {
+        document.getElementById('promoImgUploading').style.display = 'none';
+        document.getElementById('promoImgPlaceholder').style.display = 'block';
+        showToast('فشل رفع الصورة', 'error');
+      }
+    };
+
+    // ── Form toggle ──
+    window.togglePromoForm = function() {
+      const s = document.getElementById('promoFormSection');
+      s.style.display = s.style.display === 'none' ? 'block' : 'none';
+      resetPromoForm();
+    };
+
+    window.resetPromoForm = function() {
+      document.getElementById('promoEditId').value   = '';
+      document.getElementById('promoTitle').value    = '';
+      document.getElementById('promoSubtitle').value = '';
+      document.getElementById('promoBadge').value    = '';
+      document.getElementById('promoOrder').value    = promos.length + 1;
+      document.getElementById('promoLink').value     = '';
+      document.getElementById('promoEmoji').value    = '🍀';
+      document.getElementById('promoImgUrl').value   = '';
+      document.getElementById('promoImgPreview').style.display   = 'none';
+      document.getElementById('promoImgPlaceholder').style.display = 'block';
+      document.getElementById('promoImgArea').style.borderColor  = '';
+      document.getElementById('promoFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> إعلان جديد';
+      document.getElementById('savePromoLabel').textContent = 'حفظ الإعلان';
+      setPromoType('text');
+      selectBgPreset(0);
+      selectTextColor('var(--gold-dark)');
+      updatePromoBgPreview();
+    };
+
+    // ── Submit ──
+    window.submitPromo = async function() {
+      const btn = document.getElementById('savePromoBtn');
+      const editId = document.getElementById('promoEditId').value;
+      const title  = document.getElementById('promoTitle').value.trim();
+      if (!title) { showToast('أدخل عنواناً للإعلان', 'warning'); return; }
+      if (currentPromoType === 'image' && !document.getElementById('promoImgUrl').value) {
+        showToast('ارفع صورة أولاً', 'warning'); return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+      const data = {
+        type:      currentPromoType,
+        title,
+        subtitle:  document.getElementById('promoSubtitle').value.trim(),
+        badge:     document.getElementById('promoBadge').value.trim(),
+        order:     parseInt(document.getElementById('promoOrder').value) || 1,
+        link:      document.getElementById('promoLink').value.trim(),
+        active:    true,
+        updatedAt: new Date().toISOString(),
+      };
+      if (currentPromoType === 'text') {
+        data.bgColor   = document.getElementById('promoBgValue').value;
+        data.textColor = document.getElementById('promoTextColor').value;
+        data.emoji     = document.getElementById('promoEmoji').value || '🍀';
+      } else {
+        data.imageUrl  = document.getElementById('promoImgUrl').value;
+      }
+
+      try {
+        if (editId) {
+          await updateDoc(doc(db, 'promotions', editId), data);
+          showToast('✅ تم تحديث الإعلان', 'success');
+        } else {
+          data.createdAt = new Date().toISOString();
+          await addDoc(collection(db, 'promotions'), data);
+          showToast('✅ تم إضافة الإعلان', 'success');
+        }
+        document.getElementById('promoFormSection').style.display = 'none';
+        await renderPromotionsPage(content);
+      } catch (e) { showToast('حدث خطأ: ' + e.message, 'error'); }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> <span id="savePromoLabel">حفظ الإعلان</span>';
+    };
+
+    // ── Edit ──
+    window.openEditPromo = function(id) {
+      const p = promos.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('promoEditId').value   = id;
+      document.getElementById('promoTitle').value    = p.title    || '';
+      document.getElementById('promoSubtitle').value = p.subtitle || '';
+      document.getElementById('promoBadge').value    = p.badge    || '';
+      document.getElementById('promoOrder').value    = p.order    ?? 1;
+      document.getElementById('promoLink').value     = p.link     || '';
+      document.getElementById('promoEmoji').value    = p.emoji    || '🍀';
+      document.getElementById('promoFormTitle').innerHTML = '<i class="fas fa-edit"></i> تعديل الإعلان';
+      document.getElementById('savePromoLabel').textContent = 'حفظ التعديلات';
+      setPromoType(p.type || 'text');
+      if (p.type === 'image' && p.imageUrl) {
+        document.getElementById('promoImgUrl').value = p.imageUrl;
+        document.getElementById('promoImgPreviewEl').src = p.imageUrl;
+        document.getElementById('promoImgPreview').style.display = 'block';
+        document.getElementById('promoImgPlaceholder').style.display = 'none';
+      }
+      if (p.type !== 'image' && p.bgColor) {
+        // Check if matches a preset
+        const pi = PRESETS.findIndex(pr => pr.value === p.bgColor);
+        if (pi >= 0) selectBgPreset(pi);
+        else {
+          // Custom
+          selectBgPreset(PRESETS.length - 1);
+          document.getElementById('promoBgValue').value = p.bgColor;
+        }
+      }
+      if (p.textColor) selectTextColor(p.textColor);
+      document.getElementById('promoFormSection').style.display = 'block';
+      document.getElementById('promoFormSection').scrollIntoView({ behavior: 'smooth' });
+      updatePromoBgPreview();
+    };
+
+    // ── Toggle status ──
+    window.togglePromoStatus = async function(id, currentActive) {
+      try {
+        await updateDoc(doc(db, 'promotions', id), { active: !currentActive });
+        showToast(currentActive ? '🙈 تم إخفاء الإعلان' : '👁 تم إظهار الإعلان', 'success');
+        await renderPromotionsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+    };
+
+    // ── Delete ──
+    window.deletePromoConfirm = async function(id, title) {
+      if (!confirm(`حذف الإعلان "${title}"؟ لا يمكن التراجع.`)) return;
+      try {
+        await deleteDoc(doc(db, 'promotions', id));
+        showToast('🗑 تم حذف الإعلان', 'success');
+        await renderPromotionsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+    };
+
+    updatePromoBgPreview();
+  }
+
+
+  // ═══════════════════════════════════════════
+  // AGENTS PAGE — إدارة الوكلاء
+  // ═══════════════════════════════════════════
+  async function renderAgentsPage(content) {
+    const { getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, doc, collection } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    // Global default commission rate
+    let defaultCommissionRate = 35;
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'agents'));
+      if (snap.exists() && snap.data().commissionRate != null)
+        defaultCommissionRate = snap.data().commissionRate;
+    } catch {}
+
+    // Load agents + orders + products in parallel
+    async function loadAll() {
+      const [agSnap, orSnap, prSnap] = await Promise.all([
+        getDocs(collection(db, 'agents')),
+        getDocs(collection(db, 'orders')),
+        getDocs(collection(db, 'products')),
+      ]);
+      const agents   = agSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const orders   = orSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const products = Object.fromEntries(prSnap.docs.map(d => [d.id, d.data()]));
+      return { agents, orders, products };
+    }
+
+    // Commission = sum of (sellPrice - costPrice) * agentRate for each item in each order
+    function calcAgentCommissions(agents, orders, products) {
+      const map = {};
+      for (const a of agents) map[a.id] = { count: 0, totalCommission: 0, totalProfit: 0 };
+
+      for (const o of orders) {
+        if (!o.agentId || !map[o.agentId]) continue;
+        const agent = agents.find(a => a.id === o.agentId);
+        const rate  = (agent?.commissionRate ?? defaultCommissionRate) / 100;
+        const items = o.items || [];
+        let orderProfit = 0;
+        for (const item of items) {
+          const prod   = products[item.productId] || {};
+          const sell   = (item.price    || prod.price    || 0) * (item.qty || item.quantity || 1);
+          const cost   = (item.costPrice || prod.costPrice || 0) * (item.qty || item.quantity || 1);
+          orderProfit += Math.max(0, sell - cost);
+        }
+        map[o.agentId].count++;
+        map[o.agentId].totalProfit     += orderProfit;
+        map[o.agentId].totalCommission += Math.round(orderProfit * rate);
+      }
+      return map;
+    }
+
+    const { agents, orders, products } = await loadAll();
+    const comMap = calcAgentCommissions(agents, orders, products);
+
+    function renderTable(agents) {
+      if (!agents.length) return `
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">
+          <div style="font-size:3rem;margin-bottom:12px;">🤝</div>
+          <div style="font-weight:600;">لا يوجد وكلاء بعد</div>
+          <div style="font-size:0.83rem;margin-top:6px;">أضف أول وكيل من النموذج أدناه</div>
+        </div>`;
+      return `<div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <thead>
+            <tr style="background:var(--gold-pale);text-align:right;">
+              <th style="padding:10px 12px;border-radius:12px 0 0 0;">الوكيل</th>
+              <th style="padding:10px 12px;">الهاتف</th>
+              <th style="padding:10px 12px;text-align:center;">عمولته%</th>
+              <th style="padding:10px 12px;text-align:center;">الطلبات</th>
+              <th style="padding:10px 12px;">هامش ربح طلباته</th>
+              <th style="padding:10px 12px;">إجمالي عمولته</th>
+              <th style="padding:10px 12px;text-align:center;">الحالة</th>
+              <th style="padding:10px 12px;border-radius:0 12px 0 0;text-align:center;">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${agents.map(a => {
+              const cm   = comMap[a.id] || { count: 0, totalCommission: 0, totalProfit: 0 };
+              const rate = a.commissionRate ?? defaultCommissionRate;
+              return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
+                <td style="padding:11px 12px;font-weight:700;">${a.name || '—'}</td>
+                <td style="padding:11px 12px;direction:ltr;text-align:right;">${a.phone || '—'}</td>
+                <td style="padding:11px 12px;text-align:center;">
+                  <span style="background:var(--gold-pale);color:var(--gold-dark);padding:3px 10px;border-radius:20px;font-weight:800;">${rate}%</span>
+                </td>
+                <td style="padding:11px 12px;text-align:center;">
+                  <span style="background:#f0f0f0;padding:3px 10px;border-radius:20px;font-weight:700;">${cm.count}</span>
+                </td>
+                <td style="padding:11px 12px;color:var(--text-secondary);">${cm.totalProfit.toLocaleString('ar-IQ')} د.ع</td>
+                <td style="padding:11px 12px;font-weight:800;color:var(--green);">${cm.totalCommission.toLocaleString('ar-IQ')} د.ع</td>
+                <td style="padding:11px 12px;text-align:center;">
+                  <span style="padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;
+                    background:${a.active!==false?'rgba(45,106,79,0.12)':'rgba(180,60,60,0.1)'};
+                    color:${a.active!==false?'var(--green)':'#c0392b'};">
+                    ${a.active!==false?'🟢 نشط':'🔴 متوقف'}
+                  </span>
+                </td>
+                <td style="padding:11px 12px;text-align:center;">
+                  <div style="display:flex;gap:4px;justify-content:center;">
+                    <button onclick="openEditAgent('${a.id}')" class="btn btn-ghost btn-sm" title="تعديل"><i class="fas fa-edit" style="color:var(--gold-dark);"></i></button>
+                    <button onclick="toggleAgentStatus('${a.id}',${a.active!==false})" class="btn btn-ghost btn-sm" title="${a.active!==false?'إيقاف':'تفعيل'}"><i class="fas fa-${a.active!==false?'pause-circle':'play-circle'}" style="color:${a.active!==false?'#e67e22':'var(--green)'};"></i></button>
+                    <button onclick="deleteAgentConfirm('${a.id}','${(a.name||'').replace(/'/g,"\\'")}')" class="btn btn-ghost btn-sm" title="حذف"><i class="fas fa-trash" style="color:#c0392b;"></i></button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }
+
+    content.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:4px;">
+          <i class="fas fa-user-tie" style="color:var(--gold);margin-left:8px;"></i>إدارة الوكلاء
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.83rem;">
+          العمولة تُحسَب من <strong style="color:var(--gold-dark);">هامش الربح</strong> (سعر البيع − سعر الشراء) × نسبة الوكيل.
+          النسبة الافتراضية: <strong>${defaultCommissionRate}%</strong>
+          — <a href="#" onclick="navigateTo('setup');return false;" style="color:var(--gold);">تغيير الافتراضية</a>
+        </p>
+      </div>
+
+      <!-- Table -->
+      <div class="section-card" style="margin-bottom:20px;">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-users"></i> قائمة الوكلاء</div>
+        </div>
+        <div class="section-card-body">${renderTable(agents)}</div>
+      </div>
+
+      <!-- Add Agent -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-user-plus"></i> إضافة وكيل جديد</div>
+        </div>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">اسم الوكيل *</label>
+              <input type="text" class="form-input" id="agentName" placeholder="محمد أحمد">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">رقم الهاتف *</label>
+              <input type="text" class="form-input" id="agentPhone" placeholder="07XXXXXXXXX" dir="ltr">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:6px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">خط العرض *</label>
+              <input type="number" step="0.00001" class="form-input" id="agentLat" placeholder="32.61234" dir="ltr">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">خط الطول *</label>
+              <input type="number" step="0.00001" class="form-input" id="agentLng" placeholder="44.00123" dir="ltr">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">نسبة عمولته (%)</label>
+              <input type="number" min="1" max="99" class="form-input" id="agentCommRate"
+                placeholder="${defaultCommissionRate}" dir="ltr">
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">فارغ = تطبيق الافتراضية</div>
+            </div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:6px;align-items:center;margin-bottom:16px;">
+            <i class="fas fa-lightbulb" style="color:var(--gold);"></i>
+            افتح Google Maps ← اضغط على موقع الوكيل ← انسخ الإحداثيات
+          </div>
+          <button onclick="submitAddAgent()" class="btn btn-primary btn-block" id="addAgentBtn">
+            <i class="fas fa-plus"></i> إضافة الوكيل
+          </button>
+        </div>
+      </div>
+
+      <!-- Edit Modal -->
+      <div id="editAgentModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box" style="max-width:460px;">
+          <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-user-edit"></i> تعديل بيانات الوكيل</div>
+            <button class="modal-close" onclick="document.getElementById('editAgentModal').style.display='none'">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editAgentId">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">الاسم</label>
+                <input type="text" class="form-input" id="editAgentName">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">الهاتف</label>
+                <input type="text" class="form-input" id="editAgentPhone" dir="ltr">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">خط العرض</label>
+                <input type="number" step="0.00001" class="form-input" id="editAgentLat" dir="ltr">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">خط الطول</label>
+                <input type="number" step="0.00001" class="form-input" id="editAgentLng" dir="ltr">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">العمولة (%)</label>
+                <input type="number" min="1" max="99" class="form-input" id="editAgentCommRate" dir="ltr">
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = افتراضية</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="document.getElementById('editAgentModal').style.display='none'">إلغاء</button>
+            <button class="btn btn-primary" id="saveEditAgentBtn" onclick="submitEditAgent()">
+              <i class="fas fa-save"></i> حفظ
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    window.submitAddAgent = async function() {
+      const btn   = document.getElementById('addAgentBtn');
+      const name  = document.getElementById('agentName').value.trim();
+      const phone = document.getElementById('agentPhone').value.trim();
+      const lat   = parseFloat(document.getElementById('agentLat').value);
+      const lng   = parseFloat(document.getElementById('agentLng').value);
+      const commRaw = document.getElementById('agentCommRate').value;
+      if (!name || !phone || isNaN(lat) || isNaN(lng)) {
+        showToast('يرجى تعبئة جميع الحقول المطلوبة', 'warning'); return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
+      try {
+        const agentData = { name, phone, lat, lng, active: true, createdAt: new Date().toISOString() };
+        if (commRaw !== '') agentData.commissionRate = parseFloat(commRaw);
+        await addDoc(collection(db, 'agents'), agentData);
+        showToast('✅ تم إضافة الوكيل', 'success');
+        await renderAgentsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-plus"></i> إضافة الوكيل';
+    };
+
+    window.openEditAgent = function(id) {
+      const a = agents.find(x => x.id === id);
+      if (!a) return;
+      document.getElementById('editAgentId').value       = id;
+      document.getElementById('editAgentName').value     = a.name  || '';
+      document.getElementById('editAgentPhone').value    = a.phone || '';
+      document.getElementById('editAgentLat').value      = a.lat   || '';
+      document.getElementById('editAgentLng').value      = a.lng   || '';
+      document.getElementById('editAgentCommRate').value = a.commissionRate ?? '';
+      document.getElementById('editAgentModal').style.display = 'flex';
+    };
+
+    window.submitEditAgent = async function() {
+      const btn = document.getElementById('saveEditAgentBtn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      try {
+        const id      = document.getElementById('editAgentId').value;
+        const commRaw = document.getElementById('editAgentCommRate').value;
+        const data = {
+          name:  document.getElementById('editAgentName').value.trim(),
+          phone: document.getElementById('editAgentPhone').value.trim(),
+          lat:   parseFloat(document.getElementById('editAgentLat').value),
+          lng:   parseFloat(document.getElementById('editAgentLng').value),
+          updatedAt: new Date().toISOString()
+        };
+        if (commRaw !== '') data.commissionRate = parseFloat(commRaw);
+        else delete data.commissionRate;
+        await updateDoc(doc(db, 'agents', id), data);
+        document.getElementById('editAgentModal').style.display = 'none';
+        showToast('✅ تم تحديث الوكيل', 'success');
+        await renderAgentsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+    };
+
+    window.toggleAgentStatus = async function(id, currentlyActive) {
+      try {
+        await updateDoc(doc(db, 'agents', id), { active: !currentlyActive, updatedAt: new Date().toISOString() });
+        showToast(currentlyActive ? '⏸ تم إيقاف الوكيل' : '▶ تم تفعيل الوكيل', 'success');
+        await renderAgentsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+    };
+
+    window.deleteAgentConfirm = async function(id, name) {
+      if (!confirm(`هل أنت متأكد من حذف الوكيل "${name}"؟`)) return;
+      try {
+        await deleteDoc(doc(db, 'agents', id));
+        showToast('🗑 تم حذف الوكيل', 'success');
+        await renderAgentsPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+    };
+  }
+
+
+  // ═══════════════════════════════════════════
+  // PURCHASES PAGE — قوائم الشراء
+  // ═══════════════════════════════════════════
+  async function renderPurchasesPage(content) {
+    const { getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, doc, collection, orderBy, query } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    // Iraqi governorates
+    const GOVERNORATES = ['بغداد','البصرة','نينوى','أربيل','النجف','كربلاء','الأنبار','ديالى','صلاح الدين','واسط','ميسان','ذي قار','المثنى','القادسية','بابل','كركوك','السليمانية','دهوك'];
+
+    async function loadPurchases() {
+      try {
+        const snap = await getDocs(query(collection(db, 'purchases'), orderBy('createdAt','desc')));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch { return []; }
+    }
+
+    async function loadProducts() {
+      try {
+        const snap = await getDocs(collection(db, 'products'));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch { return []; }
+    }
+
+    const [purchases, allProducts] = await Promise.all([loadPurchases(), loadProducts()]);
+
+    // Totals summary
+    const totalSpent    = purchases.reduce((s,p) => s + (p.grandTotal||0), 0);
+    const totalExpenses = purchases.reduce((s,p) => s + (p.extraExpenses||0), 0);
+    const totalInvoices = purchases.length;
+
+    function renderPurchaseRow(p) {
+      const itemsCount = (p.items||[]).reduce((s,i) => s+(i.qty||1),0);
+      return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background=''">
+        <td style="padding:11px 12px;font-weight:700;color:var(--gold-dark);">#${p.invoiceNumber||'—'}</td>
+        <td style="padding:11px 12px;">
+          <div style="font-weight:600;">${p.supplierName||'—'}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">${p.supplierPhone||''}</div>
+        </td>
+        <td style="padding:11px 12px;">${p.governorate||'—'}</td>
+        <td style="padding:11px 12px;text-align:center;">
+          <span style="background:var(--gold-pale);color:var(--gold-dark);padding:3px 8px;border-radius:12px;font-weight:700;">${itemsCount}</span>
+        </td>
+        <td style="padding:11px 12px;">${(p.extraExpenses||0).toLocaleString('ar-IQ')} د.ع</td>
+        <td style="padding:11px 12px;font-weight:800;color:var(--green);">${(p.grandTotal||0).toLocaleString('ar-IQ')} د.ع</td>
+        <td style="padding:11px 12px;font-size:0.78rem;color:var(--text-muted);">${p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-IQ') : '—'}</td>
+        <td style="padding:11px 12px;text-align:center;">
+          <div style="display:flex;gap:4px;justify-content:center;">
+            <button onclick="viewPurchaseDetail('${p.id}')" class="btn btn-ghost btn-sm" title="عرض"><i class="fas fa-eye" style="color:var(--gold-dark);"></i></button>
+            <button onclick="deletePurchaseConfirm('${p.id}','${(p.invoiceNumber||'').replace(/'/g,"\\'")}'))" class="btn btn-ghost btn-sm" title="حذف"><i class="fas fa-trash" style="color:#c0392b;"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }
+
+    content.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:4px;">
+          <i class="fas fa-file-invoice" style="color:var(--gold);margin-left:8px;"></i>قوائم الشراء
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.83rem;">سجّل كل فاتورة شراء مع تفاصيل المورد والمنتجات والمصاريف</p>
+      </div>
+
+      <!-- Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;">
+        <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:16px;padding:16px;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:800;color:var(--gold-dark);">${totalInvoices}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">إجمالي الفواتير</div>
+        </div>
+        <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:16px;padding:16px;text-align:center;">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--green);">${totalSpent.toLocaleString('ar-IQ')}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">إجمالي المشتريات (د.ع)</div>
+        </div>
+        <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:16px;padding:16px;text-align:center;">
+          <div style="font-size:1.2rem;font-weight:800;color:#e67e22;">${totalExpenses.toLocaleString('ar-IQ')}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">إجمالي المصاريف (د.ع)</div>
+        </div>
+      </div>
+
+      <!-- Add New Button -->
+      <div style="margin-bottom:18px;">
+        <button onclick="document.getElementById('addPurchaseSection').style.display=document.getElementById('addPurchaseSection').style.display==='none'?'block':'none'"
+          class="btn btn-primary">
+          <i class="fas fa-plus"></i> إضافة قائمة شراء جديدة
+        </button>
+      </div>
+
+      <!-- Add Purchase Form -->
+      <div id="addPurchaseSection" style="display:none;">
+        <div class="section-card" style="margin-bottom:22px;">
+          <div class="section-card-header">
+            <div class="section-card-title"><i class="fas fa-file-medical"></i> فاتورة شراء جديدة</div>
+          </div>
+          <div class="section-card-body">
+
+            <!-- Supplier Info -->
+            <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:14px;padding:16px;margin-bottom:18px;">
+              <div style="font-weight:700;margin-bottom:14px;font-size:0.9rem;"><i class="fas fa-truck" style="color:var(--gold);margin-left:6px;"></i>بيانات المورد</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">اسم المورد *</label>
+                  <input type="text" class="form-input" id="puSupplier" placeholder="شركة / شخص">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">رقم الهاتف</label>
+                  <input type="text" class="form-input" id="puPhone" dir="ltr" placeholder="07XXXXXXXXX">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">المحافظة</label>
+                  <select class="form-input" id="puGov" style="background:var(--bg-elevated);">
+                    <option value="">— اختر —</option>
+                    ${GOVERNORATES.map(g=>`<option value="${g}">${g}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">رقم القائمة / الفاتورة *</label>
+                  <input type="text" class="form-input" id="puInvoiceNum" dir="ltr" placeholder="INV-2024-001">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">تاريخ الشراء</label>
+                  <input type="date" class="form-input" id="puDate" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+                <label class="form-label">ملاحظات / تفاصيل إضافية</label>
+                <textarea class="form-textarea" id="puNotes" rows="2" placeholder="أي تفاصيل إضافية..."></textarea>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <div style="background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <div style="font-weight:700;font-size:0.9rem;"><i class="fas fa-boxes" style="color:var(--gold);margin-left:6px;"></i>المنتجات المشتراة</div>
+                <button onclick="addPurchaseItemRow()" class="btn btn-ghost btn-sm" style="color:var(--gold-dark);">
+                  <i class="fas fa-plus"></i> إضافة صف
+                </button>
+              </div>
+              <div id="puItemsContainer">
+                <!-- rows added dynamically -->
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                <div style="font-size:0.9rem;color:var(--text-secondary);">
+                  مجموع المنتجات: <strong id="puItemsSubtotal" style="color:var(--gold-dark);">0 د.ع</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expenses & Total -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">مصاريف إضافية (نقل، جمرك، تفريغ...) (د.ع)</label>
+                <input type="number" class="form-input" id="puExtraExpenses" value="0" min="0"
+                  oninput="recalcPurchaseTotal()">
+              </div>
+              <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center;">
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">الإجمالي الكلي للفاتورة</div>
+                <div id="puGrandTotal" style="font-size:1.4rem;font-weight:900;color:var(--gold-dark);">0 د.ع</div>
+              </div>
+            </div>
+
+            <button onclick="submitPurchase()" class="btn btn-primary btn-block" id="savePurchaseBtn">
+              <i class="fas fa-save"></i> حفظ قائمة الشراء
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Purchases Table -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title"><i class="fas fa-list"></i> سجل الفواتير (${totalInvoices})</div>
+        </div>
+        <div class="section-card-body" id="purchasesTableBody">
+          ${!purchases.length ? `
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">
+              <div style="font-size:3rem;margin-bottom:12px;">📋</div>
+              <div style="font-weight:600;">لا توجد فواتير بعد</div>
+            </div>` : `
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="background:var(--gold-pale);text-align:right;">
+                  <th style="padding:10px 12px;border-radius:12px 0 0 0;">رقم الفاتورة</th>
+                  <th style="padding:10px 12px;">المورد</th>
+                  <th style="padding:10px 12px;">المحافظة</th>
+                  <th style="padding:10px 12px;text-align:center;">الوحدات</th>
+                  <th style="padding:10px 12px;">مصاريف إضافية</th>
+                  <th style="padding:10px 12px;">الإجمالي</th>
+                  <th style="padding:10px 12px;">التاريخ</th>
+                  <th style="padding:10px 12px;border-radius:0 12px 0 0;text-align:center;">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>${purchases.map(renderPurchaseRow).join('')}</tbody>
+            </table>
+          </div>`}
+        </div>
+      </div>
+
+      <!-- Detail Modal -->
+      <div id="purchaseDetailModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box" style="max-width:580px;">
+          <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-file-invoice"></i> تفاصيل الفاتورة</div>
+            <button class="modal-close" onclick="document.getElementById('purchaseDetailModal').style.display='none'">✕</button>
+          </div>
+          <div class="modal-body" id="purchaseDetailBody"></div>
+        </div>
+      </div>
+    `;
+
+    // ── Product row template ──
+    let puRowCount = 0;
+    window.addPurchaseItemRow = function(item) {
+      puRowCount++;
+      const rowId = 'puRow_' + puRowCount;
+      const productOptions = allProducts.map(p =>
+        `<option value="${p.id}" data-cost="${p.costPrice||0}"
+          ${item && item.productId===p.id ? 'selected' : ''}>
+          ${p.name}
+        </option>`).join('');
+
+      const row = document.createElement('div');
+      row.id = rowId;
+      row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end;';
+      row.innerHTML = `
+        <div>
+          <label class="form-label" style="font-size:0.78rem;">المنتج</label>
+          <select class="form-input" id="${rowId}_prod" onchange="onPuProductChange('${rowId}')" style="font-size:0.85rem;">
+            <option value="">— اختر منتج —</option>
+            ${productOptions}
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.78rem;">سعر الشراء (د.ع)</label>
+          <input type="number" class="form-input" id="${rowId}_cost" min="0" placeholder="0"
+            value="${item ? item.unitCost : ''}" oninput="recalcPurchaseTotal()" style="font-size:0.85rem;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.78rem;">الكمية</label>
+          <input type="number" class="form-input" id="${rowId}_qty" min="1" value="${item ? item.qty : 1}"
+            oninput="recalcPurchaseTotal()" style="font-size:0.85rem;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.78rem;">&nbsp;</label>
+          <button onclick="document.getElementById('${rowId}').remove();recalcPurchaseTotal();"
+            class="btn btn-ghost btn-sm" style="color:#c0392b;border:1px solid #e0b0b0;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>`;
+      document.getElementById('puItemsContainer').appendChild(row);
+      recalcPurchaseTotal();
+    };
+
+    window.onPuProductChange = function(rowId) {
+      const sel  = document.getElementById(rowId + '_prod');
+      const opt  = sel.options[sel.selectedIndex];
+      const cost = opt ? (opt.dataset.cost || 0) : 0;
+      const inp  = document.getElementById(rowId + '_cost');
+      if (inp && !inp.value) inp.value = cost;
+      recalcPurchaseTotal();
+    };
+
+    window.recalcPurchaseTotal = function() {
+      const rows = document.querySelectorAll('[id^="puRow_"]');
+      let subtotal = 0;
+      rows.forEach(row => {
+        const cost = parseFloat(row.querySelector('[id$="_cost"]')?.value) || 0;
+        const qty  = parseFloat(row.querySelector('[id$="_qty"]')?.value)  || 1;
+        subtotal += cost * qty;
+      });
+      const extra = parseFloat(document.getElementById('puExtraExpenses')?.value) || 0;
+      const grand = subtotal + extra;
+      const sub = document.getElementById('puItemsSubtotal');
+      const tot = document.getElementById('puGrandTotal');
+      if (sub) sub.textContent = subtotal.toLocaleString('ar-IQ') + ' د.ع';
+      if (tot) tot.textContent = grand.toLocaleString('ar-IQ') + ' د.ع';
+    };
+
+    window.submitPurchase = async function() {
+      const btn          = document.getElementById('savePurchaseBtn');
+      const supplierName = document.getElementById('puSupplier').value.trim();
+      const invoiceNum   = document.getElementById('puInvoiceNum').value.trim();
+      if (!supplierName || !invoiceNum) {
+        showToast('اسم المورد ورقم الفاتورة مطلوبان', 'warning'); return;
+      }
+
+      const rows = document.querySelectorAll('[id^="puRow_"]');
+      const items = [];
+      rows.forEach(row => {
+        const prodSel = row.querySelector('[id$="_prod"]');
+        const productId = prodSel ? prodSel.value : '';
+        const productName = prodSel ? (prodSel.options[prodSel.selectedIndex]?.text || '') : '';
+        const unitCost = parseFloat(row.querySelector('[id$="_cost"]')?.value) || 0;
+        const qty      = parseInt(row.querySelector('[id$="_qty"]')?.value)    || 1;
+        if (productId) items.push({ productId, productName: productName.trim(), unitCost, qty, lineTotal: unitCost * qty });
+      });
+
+      if (!items.length) { showToast('أضف منتجاً واحداً على الأقل', 'warning'); return; }
+
+      const extraExpenses = parseFloat(document.getElementById('puExtraExpenses').value) || 0;
+      const itemsSubtotal = items.reduce((s,i) => s + i.lineTotal, 0);
+      const grandTotal    = itemsSubtotal + extraExpenses;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+      try {
+        const purchaseDoc = {
+          invoiceNumber:  invoiceNum,
+          supplierName,
+          supplierPhone:  document.getElementById('puPhone').value.trim(),
+          governorate:    document.getElementById('puGov').value,
+          purchaseDate:   document.getElementById('puDate').value,
+          notes:          document.getElementById('puNotes').value.trim(),
+          items,
+          itemsSubtotal,
+          extraExpenses,
+          grandTotal,
+          createdAt: new Date().toISOString()
+        };
+        const ref = await addDoc(collection(db, 'purchases'), purchaseDoc);
+
+        // Update costPrice on each product in Firestore
+        const { doc: firestoreDoc, updateDoc: firestoreUpdate } =
+          await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        for (const item of items) {
+          try {
+            await firestoreUpdate(firestoreDoc(db, 'products', item.productId), {
+              costPrice: item.unitCost,
+              lastUpdatedCost: new Date().toISOString()
+            });
+          } catch {}
+        }
+
+        showToast('✅ تم حفظ قائمة الشراء وتحديث أسعار الشراء للمنتجات', 'success');
+        document.getElementById('addPurchaseSection').style.display = 'none';
+        await renderPurchasesPage(content);
+      } catch (err) { showToast('حدث خطأ: ' + err.message, 'error'); }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> حفظ قائمة الشراء';
+    };
+
+    window.viewPurchaseDetail = function(id) {
+      const p = purchases.find(x => x.id === id);
+      if (!p) return;
+      const body = document.getElementById('purchaseDetailBody');
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div><span style="font-size:0.78rem;color:var(--text-muted);">رقم الفاتورة</span><div style="font-weight:700;color:var(--gold-dark);">#${p.invoiceNumber||'—'}</div></div>
+          <div><span style="font-size:0.78rem;color:var(--text-muted);">تاريخ الشراء</span><div style="font-weight:600;">${p.purchaseDate||'—'}</div></div>
+          <div><span style="font-size:0.78rem;color:var(--text-muted);">المورد</span><div style="font-weight:600;">${p.supplierName||'—'}</div></div>
+          <div><span style="font-size:0.78rem;color:var(--text-muted);">الهاتف</span><div dir="ltr" style="text-align:right;">${p.supplierPhone||'—'}</div></div>
+          <div><span style="font-size:0.78rem;color:var(--text-muted);">المحافظة</span><div>${p.governorate||'—'}</div></div>
+          ${p.notes ? `<div style="grid-column:1/-1;"><span style="font-size:0.78rem;color:var(--text-muted);">ملاحظات</span><div style="font-size:0.85rem;">${p.notes}</div></div>` : ''}
+        </div>
+        <div style="border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+            <thead><tr style="background:var(--gold-pale);">
+              <th style="padding:8px 12px;text-align:right;">المنتج</th>
+              <th style="padding:8px 12px;text-align:center;">الكمية</th>
+              <th style="padding:8px 12px;text-align:right;">سعر الوحدة</th>
+              <th style="padding:8px 12px;text-align:right;">الإجمالي</th>
+            </tr></thead>
+            <tbody>
+              ${(p.items||[]).map(i=>`<tr style="border-top:1px solid var(--border);">
+                <td style="padding:8px 12px;">${i.productName||i.productId}</td>
+                <td style="padding:8px 12px;text-align:center;">${i.qty}</td>
+                <td style="padding:8px 12px;">${(i.unitCost||0).toLocaleString('ar-IQ')} د.ع</td>
+                <td style="padding:8px 12px;font-weight:700;">${(i.lineTotal||0).toLocaleString('ar-IQ')} د.ع</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;background:var(--bg-elevated);border-radius:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+            <span>مجموع المنتجات</span><strong>${(p.itemsSubtotal||0).toLocaleString('ar-IQ')} د.ع</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+            <span>مصاريف إضافية</span><strong style="color:#e67e22;">${(p.extraExpenses||0).toLocaleString('ar-IQ')} د.ع</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1rem;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+            <span style="font-weight:700;">الإجمالي الكلي</span>
+            <strong style="color:var(--green);font-size:1.1rem;">${(p.grandTotal||0).toLocaleString('ar-IQ')} د.ع</strong>
+          </div>
+        </div>`;
+      document.getElementById('purchaseDetailModal').style.display = 'flex';
+    };
+
+    window.deletePurchaseConfirm = async function(id, num) {
+      if (!confirm(`حذف الفاتورة #${num}؟ لا يمكن التراجع.`)) return;
+      try {
+        await deleteDoc(doc(db, 'purchases', id));
+        showToast('🗑 تم حذف الفاتورة', 'success');
+        await renderPurchasesPage(content);
+      } catch { showToast('حدث خطأ', 'error'); }
+    };
+
+    // Add first empty row automatically
+    addPurchaseItemRow();
+  }
+
+
+  // ═══════════════════════════════════════════
+  // SETUP PAGE — إعدادات النظام
+  // ═══════════════════════════════════════════
+  async function renderSetupPage(content) {
+    const { getDoc, setDoc, doc } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    // Load all settings in parallel
+    let general = {}, payment = {}, agentsSettings = {}, tg = {}, delivery = {};
+    try {
+      const [g, p, a, t, d] = await Promise.all([
+        getDoc(doc(db, 'settings', 'general')),
+        getDoc(doc(db, 'settings', 'payment')),
+        getDoc(doc(db, 'settings', 'agents')),
+        getDoc(doc(db, 'settings', 'telegram')),
+        getDoc(doc(db, 'settings', 'delivery')),
+      ]);
+      if (g.exists()) general        = g.data();
+      if (p.exists()) payment        = p.data();
+      if (a.exists()) agentsSettings = a.data();
+      if (t.exists()) tg             = t.data();
+      if (d.exists()) delivery       = d.data();
+    } catch {}
+
+    content.innerHTML = `
+      <div style="margin-bottom:22px;">
+        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:4px;">
+          <i class="fas fa-cog" style="color:var(--gold);margin-left:8px;"></i>إعدادات النظام
+        </h2>
+        <p style="color:var(--text-muted);font-size:0.85rem;">جميع المفاتيح والإعدادات تُخزَّن بأمان في قاعدة البيانات</p>
+      </div>
+
+      <!-- 1. ImgBB -->
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <span style="font-size:1.1rem;">🖼</span> مفتاح ImgBB لرفع الصور
+          </div>
+        </div>
+        <div class="section-card-body">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">API Key</label>
+            <div style="position:relative;">
+              <input type="password" class="form-input" id="setupImgbbKey"
+                value="${general.imgbbKey || ''}"
+                placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                dir="ltr" style="padding-left:44px;">
+              <button onclick="toggleVisibility('setupImgbbKey')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
+                <i class="fas fa-eye" id="eyeImgbb"></i>
+              </button>
+            </div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+            <i class="fas fa-info-circle" style="color:var(--gold);"></i>
+            سجّل مجاناً على <a href="https://imgbb.com" target="_blank" style="color:var(--gold);">imgbb.com</a> ← My Profile ← API
+          </div>
+          <button onclick="saveSetupSection('imgbb')" class="btn btn-primary btn-sm" id="saveImgbbBtn">
+            <i class="fas fa-save"></i> حفظ مفتاح ImgBB
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Telegram -->
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fab fa-telegram" style="color:#229ED9;"></i> تيليغرام — إشعارات الطلبات
+          </div>
+          <span style="font-size:0.78rem;padding:3px 10px;border-radius:20px;font-weight:700;
+            background:${tg.enabled ? 'rgba(45,106,79,0.12)' : 'rgba(180,60,60,0.1)'};
+            color:${tg.enabled ? 'var(--green)' : '#c0392b'};">
+            ${tg.enabled ? '🟢 مفعّل' : '🔴 معطّل'}
+          </span>
+        </div>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Bot Token</label>
+              <input type="password" class="form-input" id="setupTgToken"
+                value="${tg.botToken || ''}" placeholder="123456:ABC-DEF..." dir="ltr">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Chat ID</label>
+              <input type="text" class="form-input" id="setupTgChatId"
+                value="${tg.chatId || ''}" placeholder="-100xxxxxxxxx" dir="ltr">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button onclick="saveSetupSection('telegram')" class="btn btn-primary btn-sm" id="saveTgBtn">
+              <i class="fas fa-save"></i> حفظ
+            </button>
+            <button onclick="navigateTo('notifications')" class="btn btn-ghost btn-sm">
+              <i class="fas fa-sliders-h"></i> إعدادات متقدمة
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Payment Gateway -->
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fas fa-credit-card" style="color:var(--gold);"></i> بوابة الدفع الإلكتروني
+          </div>
+        </div>
+        <div class="section-card-body">
+          <!-- Gateway selector -->
+          <div class="form-group">
+            <label class="form-label">بوابة الدفع</label>
+            <select class="form-input" id="setupPaymentGateway" onchange="togglePaymentFields()" style="background:var(--bg-elevated);">
+              <option value="stripe"   ${(payment.gateway||'stripe')==='stripe'   ? 'selected':''}>Stripe</option>
+              <option value="paypal"   ${payment.gateway==='paypal'   ? 'selected':''}>PayPal</option>
+              <option value="tap"      ${payment.gateway==='tap'      ? 'selected':''}>Tap Payments (الخليج)</option>
+              <option value="paytabs"  ${payment.gateway==='paytabs'  ? 'selected':''}>PayTabs</option>
+              <option value="manual"   ${payment.gateway==='manual'   ? 'selected':''}>دفع يدوي فقط (بدون بوابة)</option>
+            </select>
+          </div>
+
+          <!-- Stripe fields -->
+          <div id="payFields_stripe" style="${(payment.gateway||'stripe')==='stripe' ? '' : 'display:none'}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Publishable Key (pk_)</label>
+                <input type="text" class="form-input" id="setupStripePublic"
+                  value="${payment.stripePublicKey || ''}" placeholder="pk_live_..." dir="ltr">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Secret Key (sk_)</label>
+                <div style="position:relative;">
+                  <input type="password" class="form-input" id="setupStripeSecret"
+                    value="${payment.stripeSecretKey || ''}" placeholder="sk_live_..." dir="ltr" style="padding-left:44px;">
+                  <button onclick="toggleVisibility('setupStripeSecret')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PayPal fields -->
+          <div id="payFields_paypal" style="${payment.gateway==='paypal' ? '' : 'display:none'}">
+            <div class="form-group">
+              <label class="form-label">Client ID</label>
+              <input type="text" class="form-input" id="setupPaypalClientId"
+                value="${payment.paypalClientId || ''}" placeholder="AXxx..." dir="ltr">
+            </div>
+          </div>
+
+          <!-- Tap fields -->
+          <div id="payFields_tap" style="${payment.gateway==='tap' ? '' : 'display:none'}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Public Key</label>
+                <input type="text" class="form-input" id="setupTapPublic"
+                  value="${payment.tapPublicKey || ''}" placeholder="pk_live_..." dir="ltr">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Secret Key</label>
+                <div style="position:relative;">
+                  <input type="password" class="form-input" id="setupTapSecret"
+                    value="${payment.tapSecretKey || ''}" placeholder="sk_live_..." dir="ltr" style="padding-left:44px;">
+                  <button onclick="toggleVisibility('setupTapSecret')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PayTabs fields -->
+          <div id="payFields_paytabs" style="${payment.gateway==='paytabs' ? '' : 'display:none'}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Profile ID</label>
+                <input type="text" class="form-input" id="setupPaytabsProfile"
+                  value="${payment.paytabsProfileId || ''}" placeholder="xxxxxx" dir="ltr">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Server Key</label>
+                <div style="position:relative;">
+                  <input type="password" class="form-input" id="setupPaytabsKey"
+                    value="${payment.paytabsServerKey || ''}" placeholder="SXXXXX..." dir="ltr" style="padding-left:44px;">
+                  <button onclick="toggleVisibility('setupPaytabsKey')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <button onclick="saveSetupSection('payment')" class="btn btn-primary btn-sm" id="savePaymentBtn">
+              <i class="fas fa-save"></i> حفظ مفاتيح الدفع
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Agent Commission -->
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fas fa-hand-holding-usd" style="color:var(--gold);"></i> نسبة عمولة الوكيل
+          </div>
+        </div>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">نسبة الوكيل (%)</label>
+              <input type="number" min="1" max="99" class="form-input" id="setupCommissionRate"
+                value="${agentsSettings.commissionRate ?? 35}"
+                oninput="updateCommissionPreview()">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">النسبة التي يأخذها الوكيل من أجرة التوصيل</div>
+            </div>
+            <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center;">
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">معاينة — أجرة 3,000 د.ع:</div>
+              <div style="display:flex;justify-content:space-between;font-size:0.88rem;margin-bottom:4px;">
+                <span>🤝 حصة الوكيل</span>
+                <strong id="previewAgentShare" style="color:var(--green);">1,050 د.ع</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
+                <span>🏪 حصة المنصة</span>
+                <strong id="previewPlatformShare" style="color:var(--gold-dark);">1,950 د.ع</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coverage radius -->
+          <div class="form-group">
+            <label class="form-label">نطاق تغطية الوكيل (كيلومتر)</label>
+            <input type="number" min="1" max="50" class="form-input" id="setupCoverageKm"
+              value="${agentsSettings.coverageKm ?? 8}"
+              placeholder="8">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+              الطلبات ضمن هذا النطاق تُحسَب ضمن تغطية الوكيل
+            </div>
+          </div>
+
+          <button onclick="saveSetupSection('agents')" class="btn btn-primary btn-sm" id="saveAgentsBtn">
+            <i class="fas fa-save"></i> حفظ إعدادات العمولة
+          </button>
+        </div>
+      </div>
+
+      <!-- 5. Center Location -->
+      <div class="section-card" style="margin-bottom:18px;">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <i class="fas fa-store" style="color:var(--gold);"></i> موقع مركز المتجر
+          </div>
+        </div>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">خط العرض (Latitude)</label>
+              <input type="number" step="0.00001" class="form-input" id="setupCenterLat"
+                value="${delivery.centerLat || 32.6136}" dir="ltr">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">خط الطول (Longitude)</label>
+              <input type="number" step="0.00001" class="form-input" id="setupCenterLng"
+                value="${delivery.centerLng || 44.0092}" dir="ltr">
+            </div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+            <i class="fas fa-lightbulb" style="color:var(--gold);"></i>
+            يُستخدم لحساب مسافة التوصيل لكل طلب تلقائياً
+          </div>
+          <button onclick="saveSetupSection('center')" class="btn btn-primary btn-sm" id="saveCenterBtn">
+            <i class="fas fa-save"></i> حفظ موقع المركز
+          </button>
+        </div>
+      </div>
+    `;
+
+    // ── Helper: toggle password visibility ──
+    window.toggleVisibility = function(id) {
+      const inp = document.getElementById(id);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    };
+
+    // ── Helper: toggle payment fields ──
+    window.togglePaymentFields = function() {
+      const gw = document.getElementById('setupPaymentGateway').value;
+      ['stripe','paypal','tap','paytabs'].forEach(k => {
+        const el = document.getElementById('payFields_' + k);
+        if (el) el.style.display = gw === k ? '' : 'none';
+      });
+    };
+
+    // ── Commission preview ──
+    window.updateCommissionPreview = function() {
+      const rate = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
+      const fee  = 3000;
+      const agentShare    = Math.round(fee * rate / 100);
+      const platformShare = fee - agentShare;
+      document.getElementById('previewAgentShare').textContent    = agentShare.toLocaleString('ar-IQ') + ' د.ع';
+      document.getElementById('previewPlatformShare').textContent = platformShare.toLocaleString('ar-IQ') + ' د.ع';
+    };
+
+    // ── Save sections ──
+    window.saveSetupSection = async function(section) {
+      const btnId = { imgbb:'saveImgbbBtn', telegram:'saveTgBtn', payment:'savePaymentBtn', agents:'saveAgentsBtn', center:'saveCenterBtn' }[section];
+      const btn = document.getElementById(btnId);
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+      try {
+        if (section === 'imgbb') {
+          const key = document.getElementById('setupImgbbKey').value.trim();
+          await setDoc(doc(db, 'settings', 'general'), { imgbbKey: key }, { merge: true });
+          IMGBB_KEY = key; // update in-memory key immediately
+        }
+        else if (section === 'telegram') {
+          const botToken = document.getElementById('setupTgToken').value.trim();
+          const chatId   = document.getElementById('setupTgChatId').value.trim();
+          await setDoc(doc(db, 'settings', 'telegram'), { botToken, chatId }, { merge: true });
+        }
+        else if (section === 'payment') {
+          const gateway = document.getElementById('setupPaymentGateway').value;
+          const data = { gateway };
+          if (gateway === 'stripe') {
+            data.stripePublicKey = document.getElementById('setupStripePublic').value.trim();
+            data.stripeSecretKey = document.getElementById('setupStripeSecret').value.trim();
+          } else if (gateway === 'paypal') {
+            data.paypalClientId = document.getElementById('setupPaypalClientId').value.trim();
+          } else if (gateway === 'tap') {
+            data.tapPublicKey = document.getElementById('setupTapPublic').value.trim();
+            data.tapSecretKey = document.getElementById('setupTapSecret').value.trim();
+          } else if (gateway === 'paytabs') {
+            data.paytabsProfileId  = document.getElementById('setupPaytabsProfile').value.trim();
+            data.paytabsServerKey  = document.getElementById('setupPaytabsKey').value.trim();
+          }
+          await setDoc(doc(db, 'settings', 'payment'), data);
+        }
+        else if (section === 'agents') {
+          const commissionRate = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
+          const coverageKm     = parseFloat(document.getElementById('setupCoverageKm').value) || 8;
+          await setDoc(doc(db, 'settings', 'agents'), { commissionRate, coverageKm });
+        }
+        else if (section === 'center') {
+          const centerLat = parseFloat(document.getElementById('setupCenterLat').value);
+          const centerLng = parseFloat(document.getElementById('setupCenterLng').value);
+          if (isNaN(centerLat) || isNaN(centerLng)) { showToast('إحداثيات غير صحيحة', 'warning'); return; }
+          await setDoc(doc(db, 'settings', 'delivery'), { centerLat, centerLng }, { merge: true });
+        }
+        btn.innerHTML = '<i class="fas fa-check"></i> تم الحفظ ✅';
+        setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+        return;
+      } catch { showToast('حدث خطأ أثناء الحفظ', 'error'); }
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    };
+
+    updateCommissionPreview();
+  }
+
+  // ── Sidebar Controls ──
+  window.toggleSidebar = function() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+  };
+  window.closeSidebar = function() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  };
+
+</script>
+</body>
+</html>

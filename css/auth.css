@@ -1,0 +1,100 @@
+/* ============================================
+   Irish Bar — Auth Page (Crystal White)
+   ============================================ */
+
+.auth-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 20px; position: relative; overflow: hidden;
+}
+
+.auth-page::before {
+  content: ''; position: fixed; top: -20%; right: -20%;
+  width: 60vmax; height: 60vmax;
+  background: radial-gradient(circle, rgba(184,146,42,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-page::after {
+  content: ''; position: fixed; bottom: -10%; left: -10%;
+  width: 50vmax; height: 50vmax;
+  background: radial-gradient(circle, rgba(45,106,79,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.auth-container { width: 100%; max-width: 440px; position: relative; z-index: 1; }
+
+.auth-brand { text-align: center; margin-bottom: 32px; }
+.auth-brand-icon {
+  width: 76px; height: 76px;
+  background: linear-gradient(135deg, var(--green), var(--gold-dark));
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.1rem; margin: 0 auto 16px;
+  box-shadow: 0 8px 30px rgba(184,146,42,0.25), var(--shadow-inset);
+}
+.auth-brand-name {
+  font-family: var(--font-display); font-size: 2.4rem; font-weight: 900;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.auth-brand-tagline {
+  font-size: 0.78rem; color: var(--text-muted);
+  letter-spacing: 2.5px; text-transform: uppercase;
+  font-family: var(--font-serif); font-style: italic;
+}
+
+.auth-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl); padding: 30px 26px;
+  box-shadow: var(--shadow-lg), var(--shadow-inset);
+  position: relative; overflow: hidden;
+}
+.auth-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+}
+
+.auth-card-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-bottom: 5px; }
+.auth-card-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; }
+
+.auth-tabs {
+  display: flex; background: var(--bg-secondary);
+  border-radius: var(--radius-full); padding: 4px;
+  margin-bottom: 24px; border: 1px solid var(--border);
+}
+.auth-tab-btn {
+  flex: 1; padding: 10px; border-radius: var(--radius-full);
+  border: none; background: transparent; color: var(--text-muted);
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: var(--transition-fast);
+}
+.auth-tab-btn.active {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+  color: #fff; box-shadow: 0 2px 12px rgba(184,146,42,0.3);
+}
+
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+
+.form-input-wrapper { position: relative; }
+.form-input-icon {
+  position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%); color: var(--text-muted);
+  font-size: 0.9rem; pointer-events: none;
+}
+.form-input-wrapper .form-input { padding-right: 44px; }
+
+.auth-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: var(--text-muted); }
+.auth-footer a { color: var(--gold-dark); text-decoration: none; font-weight: 700; }
+.auth-footer a:hover { text-decoration: underline; }
+
+.ornament {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; opacity: 0.3; font-size: 0.6rem;
+  letter-spacing: 3px; margin: 22px 0 0; color: var(--gold);
+}
+.ornament::before, .ornament::after { content: '◆ ◆ ◆'; letter-spacing: 4px; }
+
+@media (max-width: 480px) {
+  .auth-card { padding: 24px 18px; }
+  .auth-brand-name { font-size: 2rem; }
+}

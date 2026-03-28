@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Irish Bar — تسجيل الدخول</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader">
+  <div class="loader-logo">Irish Bar</div>
+  <div class="loader-sub">Premium Irish Selection</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<div class="auth-page">
+  <div class="auth-container">
+
+    <!-- Brand -->
+    <div class="auth-brand">
+      <div class="auth-brand-icon"><i class="fas fa-martini-glass" style="font-size:2rem;color:var(--gold-light);"></i></div>
+      <div class="auth-brand-name">Irish Bar</div>
+      <div class="auth-brand-tagline">The Finest Irish Experience</div>
+    </div>
+
+    <!-- Card -->
+    <div class="auth-card">
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="loginTabBtn" onclick="switchTab('login')">تسجيل الدخول</button>
+        <button class="auth-tab-btn" id="registerTabBtn" onclick="switchTab('register')">حساب جديد</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <div class="auth-card-title">أهلاً بعودتك</div>
+        <div class="auth-card-subtitle">سجّل دخولك للمتابعة</div>
+
+        <form class="auth-form" id="loginFormEl" novalidate>
+          <div class="form-group">
+            <label class="form-label">البريد الإلكتروني</label>
+            <div class="form-input-wrapper">
+              <i class="fas fa-envelope form-input-icon"></i>
+              <input type="email" class="form-input" id="loginEmail"
+                     placeholder="example@email.com" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">كلمة المرور</label>
+            <div class="form-input-wrapper">
+              <i class="fas fa-lock form-input-icon"></i>
+              <input type="password" class="form-input" id="loginPassword"
+                     placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginBtn">
+            <i class="fas fa-sign-in-alt"></i>
+            تسجيل الدخول
+          </button>
+        </form>
+      </div>
+
+      <!-- Register Form -->
+      <div id="registerForm" style="display:none;">
+        <div class="auth-card-title">إنشاء حساب</div>
+        <div class="auth-card-subtitle">انضم إلى تجربة Irish Bar</div>
+
+        <form class="auth-form" id="registerFormEl" novalidate>
+          <div class="form-group">
+            <label class="form-label">الاسم الكامل</label>
+            <div class="form-input-wrapper">
+              <i class="fas fa-user form-input-icon"></i>
+              <input type="text" class="form-input" id="regName"
+                     placeholder="اسمك الكامل" required autocomplete="name">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">البريد الإلكتروني</label>
+            <div class="form-input-wrapper">
+              <i class="fas fa-envelope form-input-icon"></i>
+              <input type="email" class="form-input" id="regEmail"
+                     placeholder="example@email.com" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">كلمة المرور</label>
+            <div class="form-input-wrapper">
+              <i class="fas fa-lock form-input-icon"></i>
+              <input type="password" class="form-input" id="regPassword"
+                     placeholder="8 أحرف على الأقل" required minlength="8" autocomplete="new-password">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="registerBtn">
+            <i class="fas fa-user-plus"></i>
+            إنشاء الحساب
+          </button>
+        </form>
+      </div>
+
+      <div class="ornament"></div>
+    </div>
+
+    <!-- Footer note -->
+    <div class="auth-footer" style="margin-top:16px;">
+      بالمتابعة، أنت توافق على <a href="#">شروط الخدمة</a> و<a href="#">سياسة الخصوصية</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { login, register, onAuthChange } from '../js/auth.js';
+  import { showToast, hideLoader } from '../js/ui.js';
+
+  // Check if already logged in
+  onAuthChange((user, profile) => {
+    hideLoader();
+    if (user && profile) {
+      window.location.href = getDashboardUrl(profile.role);
+    }
+  });
+
+  function getDashboardUrl(role) {
+    if (role === 'admin' || role === 'manager') return 'dashboard.html';
+    return '../index.html';
+  }
+
+  // Tab switching
+  window.switchTab = function(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('loginForm').style.display    = isLogin ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = isLogin ? 'none' : 'block';
+    document.getElementById('loginTabBtn').classList.toggle('active', isLogin);
+    document.getElementById('registerTabBtn').classList.toggle('active', !isLogin);
+  };
+
+  // Login
+  document.getElementById('loginFormEl').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...';
+    try {
+      await login({
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value
+      });
+      showToast('مرحباً بك!', 'success');
+    } catch (err) {
+      showToast(getFirebaseError(err.code), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> تسجيل الدخول';
+    }
+  });
+
+  // Register
+  document.getElementById('registerFormEl').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإنشاء...';
+    try {
+      await register({
+        name: document.getElementById('regName').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value
+      });
+      showToast('تم إنشاء حسابك بنجاح!', 'success');
+    } catch (err) {
+      showToast(getFirebaseError(err.code), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> إنشاء الحساب';
+    }
+  });
+
+  function getFirebaseError(code) {
+    const errors = {
+      'auth/user-not-found':      'البريد الإلكتروني غير مسجل',
+      'auth/wrong-password':      'كلمة المرور غير صحيحة',
+      'auth/email-already-in-use':'البريد الإلكتروني مستخدم مسبقاً',
+      'auth/weak-password':       'كلمة المرور ضعيفة جداً',
+      'auth/invalid-email':       'البريد الإلكتروني غير صحيح',
+      'auth/too-many-requests':   'محاولات كثيرة، حاول لاحقاً'
+    };
+    return errors[code] || 'حدث خطأ، حاول مجدداً';
+  }
+</script>
+</body>
+</html>

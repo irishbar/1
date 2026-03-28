@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Irish Bar — المتجر</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/store.css">
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader">
+  <div class="loader-logo">IRISH BAR</div>
+  <div class="loader-sub">PREMIUM IRISH SELECTION</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ── Header ── -->
+<header class="site-header">
+  <a class="header-logo" href="index.html">
+    <div class="header-logo-icon"><i class="fas fa-martini-glass" style="font-size:1.1rem;color:#fff;"></i></div>
+    <div style="min-width:0;">
+      <div class="header-logo-text">IRISH BAR</div>
+      <div class="header-logo-subtitle">PREMIUM IRISH SELECTION</div>
+    </div>
+  </a>
+  <div class="header-actions">
+    <button class="icon-btn" id="userBtn" title="حسابي" onclick="goToProfile()">
+      <i class="fas fa-user"></i>
+    </button>
+    <button class="cart-btn" id="cartBtn" onclick="openCartDrawer()">
+      <i class="fas fa-shopping-bag"></i>
+      <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── Promo Banner ── -->
+<div id="promoBannerWrap" style="padding:16px 16px 0;"></div>
+
+<!-- ── Search ── -->
+<div class="search-wrapper">
+  <div class="search-box">
+    <i class="fas fa-search"></i>
+    <input type="text" class="search-input" id="searchInput"
+           placeholder="ابحث عن منتج..." oninput="handleSearch(this.value)">
+  </div>
+</div>
+
+<!-- ── Categories ── -->
+<div class="categories-section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div class="section-label" style="margin-bottom:0;">الفئات</div>
+    <button id="categoriesToggleBtn" onclick="toggleCategories()"
+      style="display:flex;align-items:center;gap:7px;background:var(--gold-pale);border:1.5px solid var(--gold-border);
+             color:var(--gold-dark);font-family:var(--font-body);font-size:0.83rem;font-weight:700;
+             padding:7px 14px;border-radius:30px;cursor:pointer;transition:all 0.2s;white-space:nowrap;">
+      <i class="fas fa-th-large" id="categoriesToggleIcon"></i>
+      <span id="categoriesToggleLabel">عرض الفئات</span>
+    </button>
+  </div>
+  <div class="categories-scroll" id="categoriesContainer"
+    style="max-height:0;overflow:hidden;transition:max-height 0.35s ease,opacity 0.25s ease;opacity:0;"></div>
+</div>
+
+<!-- ── Products ── -->
+<div class="products-section">
+  <div class="section-label" id="productsLabel" style="display:none;">المنتجات</div>
+  <div id="productsGrid"></div>
+</div>
+
+<!-- ── Cart Drawer ── -->
+<div class="cart-drawer-overlay" id="cartOverlay" onclick="closeCartDrawer()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-drawer-handle"></div>
+  <div class="cart-drawer-header">
+    <div class="cart-drawer-title">
+      <i class="fas fa-shopping-bag"></i>
+      سلة المشتريات
+    </div>
+    <button class="icon-btn" onclick="closeCartDrawer()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div class="cart-items-list" id="cartItemsList"></div>
+  <div class="cart-drawer-footer">
+    <div class="cart-total-row">
+      <span class="cart-total-label">المجموع الكلي</span>
+      <span class="cart-total-value" id="cartTotalVal">0 د.ع</span>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" onclick="openCheckout()" id="checkoutBtn">
+      <i class="fas fa-truck"></i>
+      متابعة الطلب
+    </button>
+  </div>
+</div>
+
+<!-- ── Checkout Modal ── -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <i class="fas fa-truck"></i>
+      معلومات التوصيل والدفع
+    </div>
+
+    <div class="checkout-summary" id="checkoutSummary"></div>
+
+    <form id="checkoutForm" novalidate>
+      <!-- Personal Info -->
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل <span style="color:var(--gold-dark);">*</span></label>
+        <input type="text" class="form-input" id="chName" placeholder="اسمك الكامل" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف <span style="color:var(--gold-dark);">*</span></label>
+        <input type="tel" class="form-input" id="chPhone" placeholder="07XXXXXXXXX" required autocomplete="tel" inputmode="numeric" maxlength="11">
+      </div>
+
+      <!-- Location -->
+      <div class="form-group">
+        <label class="form-label">موقع التوصيل <span style="color:var(--gold-dark);">*</span></label>
+        <div class="location-chip" onclick="openMapModal()">
+          <i class="fas fa-map-marker-alt"></i>
+          <span class="location-chip-text" id="locationChipText">اضغط لتحديد موقعك على الخارطة</span>
+          <span class="location-chip-change">تحديد</span>
+        </div>
+      </div>
+
+      <!-- Agent Coverage Alert (shown after location selected) -->
+      <div id="agentCoverageAlert" style="display:none;"></div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">ملاحظات إضافية (اختياري)</label>
+        <textarea class="form-textarea" id="chAddress" rows="2" placeholder="أي تفاصيل إضافية..."></textarea>
+      </div>
+
+      <!-- Delivery Time -->
+      <div class="form-group">
+        <label class="form-label">وقت التوصيل</label>
+        <select class="form-select" id="chDelivery">
+          <option value="اسرع وقت">🚀 أسرع وقت ممكن</option>
+          <option value="10:00-12:00">🕙 10:00 ص – 12:00 ظ</option>
+          <option value="12:00-14:00">🕛 12:00 ظ – 2:00 م</option>
+          <option value="14:00-16:00">🕑 2:00 م – 4:00 م</option>
+          <option value="16:00-18:00">🕓 4:00 م – 6:00 م</option>
+          <option value="18:00-20:00">🕕 6:00 م – 8:00 م</option>
+        </select>
+      </div>
+
+      <!-- ── Payment Method ── -->
+      <div class="form-group">
+        <label class="form-label">طريقة الدفع <span style="color:var(--gold-dark);">*</span></label>
+        <div class="payment-methods">
+          <div class="payment-method-card selected" data-method="cash" onclick="selectPayment('cash')">
+            <span class="payment-method-icon">💵</span>
+            <span class="payment-method-label">دفع عند الاستلام</span>
+          </div>
+          <div class="payment-method-card" data-method="zaincash" onclick="selectPayment('zaincash')">
+            <span class="payment-method-icon">📱</span>
+            <span class="payment-method-label">ZainCash</span>
+          </div>
+          <div class="payment-method-card" data-method="card" onclick="selectPayment('card')">
+            <span class="payment-method-icon">💳</span>
+            <span class="payment-method-label">بطاقة ائتمانية</span>
+          </div>
+        </div>
+
+        <!-- ZainCash Fields -->
+        <div id="zaincash-fields" style="display:none;">
+          <div style="background:rgba(26,86,219,0.06);border:1.5px solid rgba(26,86,219,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
+            <div style="font-size:0.82rem;font-weight:700;color:#1a56db;margin-bottom:8px;"><i class="fas fa-mobile-alt" style="margin-left:6px;"></i>ZainCash — دفع إلكتروني</div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label class="form-label">رقم ZainCash</label>
+              <input type="tel" class="form-input" id="zaincashPhone" placeholder="07XXXXXXXXX" inputmode="numeric">
+            </div>
+            <div style="font-size:0.76rem;color:var(--text-muted);">سيتم إرسال طلب دفع إلى رقمك عبر تطبيق ZainCash</div>
+          </div>
+        </div>
+
+        <!-- Credit Card Fields -->
+        <div id="card-fields" style="display:none;">
+          <div style="background:rgba(45,106,79,0.06);border:1.5px solid rgba(45,106,79,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--green);margin-bottom:10px;"><i class="fas fa-credit-card" style="margin-left:6px;"></i>بطاقة ائتمانية</div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label class="form-label">رقم البطاقة</label>
+              <input type="text" class="form-input" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" oninput="formatCardNumber(this)">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">تاريخ الانتهاء</label>
+                <input type="text" class="form-input" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">CVV</label>
+                <input type="text" class="form-input" id="cardCvv" placeholder="XXX" maxlength="3" inputmode="numeric">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Totals ── -->
+      <div class="totals-box">
+        <div class="totals-row">
+          <span class="totals-row-label">مجموع المنتجات</span>
+          <span class="totals-row-value" id="summaryProductsTotal">0 د.ع</span>
+        </div>
+        <div class="totals-row">
+          <span class="totals-row-label">أجرة التوصيل</span>
+          <span class="totals-row-value" style="color:var(--gold);" id="summaryDeliveryFee">—</span>
+        </div>
+        <!-- Profit split (shown when agent is assigned) -->
+        <div id="profitSplitRow" style="display:none;">
+          <div class="totals-divider"></div>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">توزيع رسوم التوصيل</div>
+          <div class="profit-split">
+            <div class="profit-split-item platform">
+              <span class="profit-split-label">المنصة (65%)</span>
+              <span class="profit-split-value" id="platformShare">—</span>
+            </div>
+            <div class="profit-split-item agent">
+              <span class="profit-split-label">الوكيل (35%)</span>
+              <span class="profit-split-value" id="agentShare">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="totals-divider"></div>
+        <div class="totals-row">
+          <span class="totals-grand-label">المجموع الكلي</span>
+          <span class="totals-grand-value" id="summaryGrandTotal">0 د.ع</span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block" id="placeOrderBtn">
+        <i class="fas fa-check-circle"></i>
+        تأكيد الطلب
+      </button>
+      <button type="button" class="btn btn-ghost btn-block" style="margin-top:10px;"
+              onclick="closeModal('checkoutModal')">إلغاء</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── Product Detail Modal ── -->
+<div class="modal-overlay" id="productDetailModal" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal-box" style="max-height:88vh;overflow-y:auto;">
+    <div class="modal-handle"></div>
+    <div id="productDetailContent"></div>
+  </div>
+</div>
+
+<!-- ── Order Confirmed Modal ── -->
+<div class="modal-overlay" id="orderConfirmedModal">
+  <div class="modal-box">
+    <div class="order-confirmed-modal">
+      <div class="order-confirmed-icon success-icon">🎉</div>
+      <div class="order-confirmed-title">تم استلام طلبك بنجاح!</div>
+      <div class="order-number-chip" id="confirmedOrderNum">#000000</div>
+      <div class="order-confirmed-sub" id="confirmedPaymentNote"></div>
+      <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-primary btn-lg btn-block" onclick="closeModal('orderConfirmedModal')">
+          <i class="fas fa-shopping-bag"></i> متابعة التسوق
+        </button>
+        <button class="btn btn-ghost btn-block" onclick="goToProfile()">
+          <i class="fas fa-list"></i> عرض طلباتي
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── No Coverage Modal ── -->
+<div class="modal-overlay" id="noCoverageModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="no-coverage-modal-content">
+      <span class="no-coverage-icon">📍</span>
+      <div class="no-coverage-title">لا يوجد وكيل في منطقتك</div>
+      <div class="no-coverage-body">
+        نعتذر، لا يوجد وكيل مباشر في منطقتك حالياً.<br>
+        ولكن يمكنك الطلب من أقرب منطقة متوفرة مع احتساب تكلفة توصيل إضافية.
+      </div>
+      <div class="nearest-agent-box" id="nearestAgentBox">
+        <div class="nearest-agent-label">أقرب وكيل متاح</div>
+        <div class="nearest-agent-name" id="nearestAgentName">—</div>
+        <div class="nearest-agent-dist" id="nearestAgentDist">—</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-primary btn-lg btn-block" id="proceedAnywayBtn" onclick="proceedWithoutAgent()">
+          <i class="fas fa-truck"></i> متابعة الطلب (مع رسوم إضافية)
+        </button>
+        <button class="btn btn-ghost btn-block" onclick="closeModal('noCoverageModal')">
+          <i class="fas fa-times"></i> إلغاء
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Floating Cart Button ── -->
+<button class="floating-cart-btn" id="floatingCartBtn" onclick="openCartDrawer()" style="display:none;">
+  <i class="fas fa-shopping-bag"></i>
+  <span class="floating-cart-badge" id="floatingCartBadge">0</span>
+  <span class="floating-cart-total" id="floatingCartTotal"></span>
+</button>
+
+<!-- ── Map Modal ── -->
+<div class="map-modal-overlay" id="mapModal">
+  <div class="map-modal-box">
+    <div class="map-modal-handle"></div>
+    <div class="map-modal-header">
+      <div class="map-modal-title">
+        <i class="fas fa-map-marker-alt"></i>
+        حدد موقعك للتوصيل
+      </div>
+      <button class="icon-btn" onclick="closeMapModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="map-crystal-wrap">
+      <div id="deliveryMap"></div>
+      <button class="map-gps-btn" onclick="goToMyLocation()" title="موقعي الحالي">
+        <i class="fas fa-crosshairs"></i>
+      </button>
+      <div class="map-distance-badge" id="distanceBadge">
+        <i class="fas fa-route"></i> <span id="distanceText">—</span>
+      </div>
+    </div>
+
+    <!-- Agent Info (shown after location selected) -->
+    <div class="map-agent-row" id="mapAgentRow" style="display:none;">
+      <i class="fas fa-store"></i>
+      <div class="map-agent-text" id="mapAgentText">جاري البحث عن أقرب وكيل...</div>
+    </div>
+
+    <div class="map-address-row">
+      <i class="fas fa-location-dot"></i>
+      <div class="map-address-text" id="mapAddressText">اسحب الخارطة لتحديد موقعك</div>
+    </div>
+
+    <div class="map-fee-row">
+      <span class="map-fee-label"><i class="fas fa-motorcycle" style="margin-left:6px;color:var(--gold);"></i>أجرة التوصيل</span>
+      <span class="map-fee-value" id="mapFeeVal">—</span>
+    </div>
+
+    <button class="map-confirm-btn" id="mapConfirmBtn" onclick="confirmLocation()" disabled>
+      <i class="fas fa-check"></i> تأكيد الموقع
+    </button>
+  </div>
+</div>
+
+<!-- ── Payment Processing Modal ── -->
+<div class="modal-overlay" id="paymentProcessingModal">
+  <div class="modal-box" style="text-align:center;padding:40px 20px;">
+    <div style="font-size:3rem;margin-bottom:16px;">💳</div>
+    <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:800;margin-bottom:8px;">جاري معالجة الدفع...</div>
+    <div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">الرجاء الانتظار، لا تغلق الصفحة</div>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+  import { onAuthChange } from './js/auth.js';
+  import {
+    fetchCategories, fetchProducts,
+    getCart, addToCart, updateCartQty, clearCart, getCartTotal, getCartCount,
+    fetchDeliverySettings, calcDeliveryFee, calcDistance
+  } from './js/store.js';
+  import { createOrder } from './js/orders.js';
+  import { showToast, openModal, closeModal, hideLoader, formatPrice } from './js/ui.js';
+  import {
+    fetchAgents, findNearestAgent, getCoverageStatus,
+    calcProfitSplit, AGENT_COVERAGE_KM
+  } from './js/agents.js';
+
+  window.closeModal = closeModal;
+
+  // ── State ──
+  let currentUser      = null;
+  let currentProfile   = null;
+  let categories       = [];
+  let allProducts      = [];
+  let activeCatId      = 'all';
+  let deliverySettings = null;
+  let agents           = [];
+  let selectedLocation = null; // { lat, lng, fee, address, agent, covered }
+  let selectedPayment  = 'cash';
+  let leafletMap       = null;
+  let marker           = null;
+  let agentMarkers     = [];
+  let pendingNoCoverageLocation = null;
+
+  // ── Init ──
+  onAuthChange(async (user, profile) => {
+    currentUser    = user;
+    currentProfile = profile;
+    await loadStore();
+    hideLoader();
+    renderCart();
+  });
+
+  async function loadStore() {
+    try {
+      [categories, allProducts, deliverySettings, agents] = await Promise.all([
+        fetchCategories(),
+        fetchProducts(),
+        fetchDeliverySettings(),
+        fetchAgents()
+      ]);
+      renderCategories();
+      renderAllByCategory();
+      loadPromoBanner(); // ← بنر ديناميكي
+    } catch (e) {
+      showToast('تعذّر تحميل المنتجات', 'error');
+      hideLoader();
+    }
+  }
+
+  // ── Categories ──
+  let categoriesOpen = false;
+
+  function renderCategories() {
+    const el = document.getElementById('categoriesContainer');
+    el.innerHTML =
+      `<button class="category-pill active" data-id="all" onclick="selectCategory('all')">
+        <i class="fas fa-th-large"></i> الكل
+       </button>` +
+      categories.map(c => `
+        <button class="category-pill" data-id="${c.id}" onclick="selectCategory('${c.id}')">
+          <span>${c.icon || '🍺'}</span> ${c.name}
+        </button>
+      `).join('');
+    // keep closed on initial render
+    el.style.maxHeight = '0';
+    el.style.opacity   = '0';
+    categoriesOpen = false;
+    updateToggleBtn();
+  }
+
+  window.toggleCategories = function() {
+    categoriesOpen = !categoriesOpen;
+    const el = document.getElementById('categoriesContainer');
+    if (categoriesOpen) {
+      el.style.maxHeight = el.scrollHeight + 80 + 'px';
+      el.style.opacity   = '1';
+    } else {
+      el.style.maxHeight = '0';
+      el.style.opacity   = '0';
+    }
+    updateToggleBtn();
+  };
+
+  function updateToggleBtn() {
+    const icon  = document.getElementById('categoriesToggleIcon');
+    const label = document.getElementById('categoriesToggleLabel');
+    const btn   = document.getElementById('categoriesToggleBtn');
+    if (!icon || !label) return;
+    if (categoriesOpen) {
+      icon.className  = 'fas fa-times';
+      label.textContent = 'إخفاء الفئات';
+      btn.style.background = 'var(--gold-border)';
+    } else {
+      icon.className  = 'fas fa-th-large';
+      label.textContent = 'عرض الفئات';
+      btn.style.background = 'var(--gold-pale)';
+    }
+  }
+
+  window.selectCategory = function(catId) {
+    activeCatId = catId;
+    document.querySelectorAll('.category-pill').forEach(el =>
+      el.classList.toggle('active', el.dataset.id === catId)
+    );
+    // Auto-close the panel after selection
+    const cont = document.getElementById('categoriesContainer');
+    cont.style.maxHeight = '0';
+    cont.style.opacity   = '0';
+    categoriesOpen = false;
+    updateToggleBtn();
+    const label = document.getElementById('productsLabel');
+    if (catId === 'all') {
+      label.style.display = 'none';
+      renderAllByCategory();
+    } else {
+      const cat = categories.find(c => c.id === catId);
+      label.style.display = 'block';
+      label.textContent = cat ? cat.name : 'المنتجات';
+      const filtered = allProducts.filter(p => p.categoryId === catId);
+      document.getElementById('productsGrid').innerHTML =
+        `<div class="products-grid">${renderProductCards(filtered)}</div>`;
+    }
+  };
+
+  function renderAllByCategory() {
+    const grid = document.getElementById('productsGrid');
+    if (!categories.length) { grid.innerHTML = emptyState(); return; }
+    let html = '';
+    categories.forEach(cat => {
+      const prods = allProducts.filter(p => p.categoryId === cat.id);
+      if (!prods.length) return;
+      html += `
+        <div class="cat-section-title">
+          <span class="cat-icon">${cat.icon || '🍺'}</span>
+          <span>${cat.name}</span>
+        </div>
+        <div class="cat-section-divider"></div>
+        <div class="products-grid">${renderProductCards(prods)}</div>
+      `;
+    });
+    const noCat = allProducts.filter(p => !p.categoryId);
+    if (noCat.length) html += `<div class="products-grid">${renderProductCards(noCat)}</div>`;
+    grid.innerHTML = html || emptyState();
+  }
+
+  function emptyState() {
+    return `<div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+      <div style="font-size:3rem;margin-bottom:12px;">🍺</div>
+      <div style="font-size:clamp(0.85rem,2.5vw,1rem);">لا توجد منتجات حالياً</div>
+    </div>`;
+  }
+
+  function renderProductCards(products) {
+    if (!products.length) return '';
+    return products.map(p => {
+      const safeP = JSON.stringify(p).replace(/"/g, '&quot;');
+      return `
+        <div class="product-card ${p.available === false ? 'product-unavailable' : ''}"
+             onclick="openProductModal(${safeP})">
+          <div class="product-emoji">
+            ${p.imageUrl
+              ? `<img src="${p.imageUrl}" alt="${p.name}" loading="lazy">`
+              : (p.emoji || '🍺')
+            }
+          </div>
+          <div class="product-name">${p.name}</div>
+          ${p.description ? `<div class="product-desc">${p.description}</div>` : ''}
+          <div class="product-price">${formatPrice(p.price)}</div>
+          ${p.available === false
+            ? `<div style="font-size:0.73rem;color:var(--text-muted);text-align:center;padding:0 8px;">غير متاح حالياً</div>`
+            : `<button class="product-add-btn" onclick="event.stopPropagation();handleAddToCart('${p.id}')">
+                 <i class="fas fa-plus"></i> أضف للسلة
+               </button>`
+          }
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Search ──
+  window.handleSearch = function(q) {
+    const term = q.trim().toLowerCase();
+    const label = document.getElementById('productsLabel');
+    if (!term) {
+      label.style.display = 'none';
+      if (activeCatId === 'all') { renderAllByCategory(); return; }
+      selectCategory(activeCatId); return;
+    }
+    label.style.display = 'block';
+    label.textContent = `نتائج البحث: "${q}"`;
+    const results = allProducts.filter(p =>
+      p.name.toLowerCase().includes(term) ||
+      (p.description || '').toLowerCase().includes(term)
+    );
+    document.getElementById('productsGrid').innerHTML =
+      results.length
+        ? `<div class="products-grid">${renderProductCards(results)}</div>`
+        : emptyState();
+  };
+
+  // ── Cart ──
+  window.handleAddToCart = function(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return;
+    addToCart(product);
+    renderCart();
+    showToast(`تمت الإضافة: ${product.name}`, 'success');
+    const badge = document.getElementById('cartBadge');
+    badge.style.transform = 'scale(1.6)';
+    setTimeout(() => badge.style.transform = '', 250);
+  };
+
+  // ── Product Detail Modal ──
+  window.openProductModal = function(p) {
+    const inCart = getCart().find(i => i.id === p.id);
+    document.getElementById('productDetailContent').innerHTML = `
+      <div style="text-align:center;">
+        <div class="product-detail-image">
+          ${p.imageUrl
+            ? `<img src="${p.imageUrl}" alt="${p.name}">`
+            : `<span class="product-detail-emoji">${p.emoji || '🍺'}</span>`
+          }
+        </div>
+        <div class="product-detail-name">${p.name}</div>
+        ${p.description ? `<div class="product-detail-desc">${p.description}</div>` : ''}
+        <div class="product-detail-price">${formatPrice(p.price)}</div>
+        ${p.available === false
+          ? `<div style="color:var(--text-muted);padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);">غير متاح حالياً</div>`
+          : `<button class="btn btn-primary btn-lg btn-block" onclick="handleAddToCart('${p.id}');closeProductModal();">
+               <i class="fas fa-shopping-bag"></i>
+               أضف للسلة ${inCart ? '('+inCart.quantity+' في السلة)' : ''}
+             </button>`
+        }
+        <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeProductModal()">إغلاق</button>
+      </div>
+    `;
+    document.getElementById('productDetailModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeProductModal = function() {
+    document.getElementById('productDetailModal').classList.remove('active');
+    document.body.style.overflow = '';
+  };
+
+  function renderCart() {
+    const cart  = getCart();
+    const count = getCartCount(cart);
+    const total = getCartTotal(cart);
+    const badge = document.getElementById('cartBadge');
+    badge.textContent = count;
+    badge.classList.toggle('visible', count > 0);
+    const fab = document.getElementById('floatingCartBtn');
+    if (fab) {
+      fab.style.display = count > 0 ? 'flex' : 'none';
+      document.getElementById('floatingCartBadge').textContent = count;
+      document.getElementById('floatingCartTotal').textContent = formatPrice(total);
+    }
+    document.getElementById('cartTotalVal').textContent = formatPrice(total);
+    const list = document.getElementById('cartItemsList');
+    if (!cart.length) {
+      list.innerHTML = `<div class="empty-cart">
+        <i class="fas fa-shopping-bag"></i>
+        <div>سلتك فارغة</div>
+        <div style="font-size:0.83rem;margin-top:4px;">أضف منتجات لتبدأ طلبك</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <div class="cart-item-icon">
+          ${item.imageUrl
+            ? `<img src="${item.imageUrl}" alt="${item.name}">`
+            : (item.emoji || '🍺')}
+        </div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-unit">${formatPrice(item.price)} / قطعة</div>
+        </div>
+        <div class="cart-item-subtotal">${formatPrice(item.price * item.quantity)}</div>
+        <div class="cart-item-controls">
+          <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity - 1})">−</button>
+          <span class="qty-display">${item.quantity}</span>
+          <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity + 1})">+</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.changeQty = function(id, qty) { updateCartQty(id, qty); renderCart(); };
+
+  window.openCartDrawer = function() {
+    renderCart();
+    document.getElementById('cartOverlay').classList.add('open');
+    document.getElementById('cartDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeCartDrawer = function() {
+    document.getElementById('cartOverlay').classList.remove('open');
+    document.getElementById('cartDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  // ── Payment Selection ──
+  window.selectPayment = function(method) {
+    selectedPayment = method;
+    document.querySelectorAll('.payment-method-card').forEach(el =>
+      el.classList.toggle('selected', el.dataset.method === method)
+    );
+    document.getElementById('zaincash-fields').style.display = method === 'zaincash' ? 'block' : 'none';
+    document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
+  };
+
+  // ── Card number formatter ──
+  window.formatCardNumber = function(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 16);
+    el.value = v.match(/.{1,4}/g)?.join(' ') || v;
+  };
+  window.formatExpiry = function(el) {
+    let v = el.value.replace(/\D/g, '').slice(0, 4);
+    if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+    el.value = v;
+  };
+
+  // ── Checkout ──
+  window.openCheckout = function() {
+    const cart = getCart();
+    if (!cart.length) { showToast('السلة فارغة', 'warning'); return; }
+    closeCartDrawer();
+    if (currentProfile) document.getElementById('chName').value = currentProfile.name || '';
+    updateCheckoutTotals();
+    openModal('checkoutModal');
+  };
+
+  function updateCheckoutTotals() {
+    const cart     = getCart();
+    const products = getCartTotal(cart);
+    const fee      = selectedLocation ? selectedLocation.fee : 0;
+
+    document.getElementById('summaryProductsTotal').textContent = formatPrice(products);
+    document.getElementById('summaryDeliveryFee').textContent   = selectedLocation
+      ? formatPrice(fee)
+      : 'حدد موقعك';
+    document.getElementById('summaryGrandTotal').textContent    = selectedLocation
+      ? formatPrice(products + fee)
+      : formatPrice(products);
+
+    // Show profit split if agent assigned
+    const splitRow = document.getElementById('profitSplitRow');
+    if (selectedLocation?.agent && fee > 0) {
+      const { agentShare, platformShare } = calcProfitSplit(fee);
+      document.getElementById('agentShare').textContent    = formatPrice(agentShare);
+      document.getElementById('platformShare').textContent = formatPrice(platformShare);
+      splitRow.style.display = 'block';
+    } else {
+      splitRow.style.display = 'none';
+    }
+
+    // Summary items
+    document.getElementById('checkoutSummary').innerHTML =
+      cart.map(i => `
+        <div class="checkout-summary-item">
+          <span>${i.emoji || '🍺'} ${i.name} × ${i.quantity}</span>
+          <span>${formatPrice(i.price * i.quantity)}</span>
+        </div>
+      `).join('');
+
+    // Agent coverage alert
+    updateAgentCoverageAlert();
+  }
+
+  function updateAgentCoverageAlert() {
+    const el = document.getElementById('agentCoverageAlert');
+    if (!selectedLocation) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    if (selectedLocation.covered && selectedLocation.agent) {
+      el.innerHTML = `
+        <div class="coverage-alert" style="margin-bottom:16px;">
+          <div class="coverage-alert-title">
+            <i class="fas fa-store"></i> وكيل متاح في منطقتك
+          </div>
+          <div class="coverage-alert-body">
+            الوكيل: <strong>${selectedLocation.agent.name || 'وكيل محلي'}</strong><br>
+            المسافة: <strong>${selectedLocation.distance?.toFixed(1)} كم</strong>
+          </div>
+        </div>
+      `;
+    } else {
+      el.innerHTML = `
+        <div class="coverage-alert no-agent" style="margin-bottom:16px;">
+          <div class="coverage-alert-title no-agent">
+            <i class="fas fa-exclamation-triangle"></i> لا يوجد وكيل في منطقتك
+          </div>
+          <div class="coverage-alert-body">
+            سيتم توصيل طلبك من أقرب منطقة متاحة مع رسوم توصيل إضافية.
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // ── Order Submission ──
+  document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name  = document.getElementById('chName').value.trim();
+    const phone = document.getElementById('chPhone').value.trim();
+    if (!name)  { showToast('الرجاء إدخال الاسم الكامل', 'warning'); document.getElementById('chName').focus(); return; }
+    if (!phone) { showToast('الرجاء إدخال رقم الهاتف', 'warning'); document.getElementById('chPhone').focus(); return; }
+    if (!/^07\d{9}$/.test(phone)) { showToast('رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 11 رقم', 'warning'); document.getElementById('chPhone').focus(); return; }
+    if (!selectedLocation) { showToast('الرجاء تحديد موقعك على الخارطة', 'warning'); return; }
+
+    // Payment validation
+    if (selectedPayment === 'zaincash') {
+      const zp = document.getElementById('zaincashPhone').value.trim();
+      if (!zp || !/^07\d{9}$/.test(zp)) {
+        showToast('الرجاء إدخال رقم ZainCash صحيح', 'warning');
+        return;
+      }
+    }
+    if (selectedPayment === 'card') {
+      const cn = document.getElementById('cardNumber').value.replace(/\s/g,'');
+      const ex = document.getElementById('cardExpiry').value;
+      const cv = document.getElementById('cardCvv').value;
+      if (cn.length < 16) { showToast('رقم البطاقة غير صحيح', 'warning'); return; }
+      if (!ex || ex.length < 5) { showToast('تاريخ انتهاء البطاقة غير صحيح', 'warning'); return; }
+      if (cv.length < 3) { showToast('رمز CVV غير صحيح', 'warning'); return; }
+    }
+
+    const btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+
+    try {
+      // Simulate payment processing for non-cash
+      if (selectedPayment !== 'cash') {
+        closeModal('checkoutModal');
+        openModal('paymentProcessingModal');
+        await new Promise(r => setTimeout(r, 2200)); // simulate gateway
+        closeModal('paymentProcessingModal');
+        // Payment success — re-open checkout flow to place order
+      }
+
+      const cart = getCart();
+      const { agentShare, platformShare } = calcProfitSplit(selectedLocation.fee);
+      const order = await createOrder({
+        customerId:    currentUser?.uid || 'guest',
+        customerName:  document.getElementById('chName').value,
+        phone:         document.getElementById('chPhone').value,
+        address:       document.getElementById('chAddress').value,
+        deliveryTime:  document.getElementById('chDelivery').value,
+        location:      { lat: selectedLocation.lat, lng: selectedLocation.lng },
+        deliveryFee:   selectedLocation.fee,
+        paymentMethod: selectedPayment,
+        paymentStatus: selectedPayment === 'cash' ? 'pending' : 'paid',
+        agentId:       selectedLocation.agent?.id || null,
+        agentName:     selectedLocation.agent?.name || null,
+        agentShare:    selectedLocation.agent ? agentShare : 0,
+        platformShare: selectedLocation.agent ? platformShare : selectedLocation.fee,
+        items:         cart,
+        total:         getCartTotal(cart) + selectedLocation.fee
+      });
+
+      clearCart();
+      renderCart();
+      closeModal('checkoutModal');
+      document.getElementById('checkoutForm').reset();
+      selectedLocation = null;
+      selectedPayment = 'cash';
+      selectPayment('cash');
+      document.getElementById('locationChipText').textContent = 'اضغط لتحديد موقعك على الخارطة';
+      document.getElementById('agentCoverageAlert').style.display = 'none';
+
+      // Show success modal
+      const shortId = '#' + order.id.slice(-6).toUpperCase();
+      document.getElementById('confirmedOrderNum').textContent = shortId;
+      const payLabels = { cash: 'سيتم استلام المبلغ عند التوصيل 💵', zaincash: 'تم الدفع بنجاح عبر ZainCash 📱', card: 'تم الدفع بنجاح بالبطاقة الائتمانية 💳' };
+      document.getElementById('confirmedPaymentNote').textContent = payLabels[selectedPayment] || '';
+      openModal('orderConfirmedModal');
+
+    } catch (err) {
+      console.error(err);
+      showToast('حدث خطأ، حاول مجدداً', 'error');
+      closeModal('paymentProcessingModal');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد الطلب';
+  });
+
+  // ── Map Modal ──
+  window.openMapModal = function() {
+    document.getElementById('mapModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => initMap(), 300);
+  };
+  window.closeMapModal = function() {
+    document.getElementById('mapModal').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  function initMap() {
+    if (leafletMap) { leafletMap.invalidateSize(); return; }
+    const cLat = deliverySettings?.centerLat || 32.6136;
+    const cLng = deliverySettings?.centerLng || 44.0092;
+
+    leafletMap = L.map('deliveryMap', { center: [cLat, cLng], zoom: 14, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(leafletMap);
+    L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
+
+    // Custom user marker icon
+    const userIcon = L.divIcon({
+      html: `<div style="
+        width:36px;height:36px;
+        background:linear-gradient(135deg,#b8922a,#d4aa45);
+        border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        border:3px solid #fff;
+        box-shadow:0 4px 16px rgba(184,146,42,0.4);
+      "></div>`,
+      iconSize: [36, 36], iconAnchor: [18, 36], className: ''
+    });
+
+    marker = L.marker([cLat, cLng], { icon: userIcon, draggable: true }).addTo(leafletMap);
+    marker.on('dragend', () => updateMapLocation(marker.getLatLng()));
+    leafletMap.on('click', (e) => { marker.setLatLng(e.latlng); updateMapLocation(e.latlng); });
+
+    // Plot agent markers
+    plotAgentMarkers();
+
+    if (selectedLocation) {
+      const ll = L.latLng(selectedLocation.lat, selectedLocation.lng);
+      marker.setLatLng(ll);
+      leafletMap.setView(ll, 15);
+      updateMapLocation(ll);
+    }
+  }
+
+  function plotAgentMarkers() {
+    agentMarkers.forEach(m => m.remove());
+    agentMarkers = [];
+    if (!agents || !leafletMap) return;
+    agents.forEach(a => {
+      if (!a.lat || !a.lng || a.active === false) return;
+      const aIcon = L.divIcon({
+        html: `<div title="${a.name||'وكيل'}" style="
+          width:32px;height:32px;
+          background:linear-gradient(135deg,#2d6a4f,#40916c);
+          border-radius:50%;
+          border:3px solid #fff;
+          box-shadow:0 4px 14px rgba(45,106,79,0.4);
+          display:flex;align-items:center;justify-content:center;
+          font-size:14px;color:#fff;
+        ">🏪</div>`,
+        iconSize: [32, 32], iconAnchor: [16, 16], className: ''
+      });
+      const m = L.marker([a.lat, a.lng], { icon: aIcon }).addTo(leafletMap);
+      m.bindPopup(`<strong>${a.name || 'وكيل'}</strong><br>${a.address || ''}`);
+      // Draw coverage circle
+      L.circle([a.lat, a.lng], {
+        radius: 8000, // 8km in meters
+        color: 'rgba(45,106,79,0.5)',
+        fillColor: 'rgba(45,106,79,0.08)',
+        fillOpacity: 1,
+        weight: 1.5,
+        dashArray: '6 4'
+      }).addTo(leafletMap);
+      agentMarkers.push(m);
+    });
+  }
+
+  function updateMapLocation(latlng) {
+    const { lat, lng } = latlng;
+    const fee  = calcDeliveryFee(lat, lng, deliverySettings);
+    const dist = getDistance(lat, lng);
+
+    document.getElementById('distanceBadge').style.display = 'flex';
+    document.getElementById('distanceText').textContent = dist.toFixed(1) + ' كم';
+    document.getElementById('mapFeeVal').textContent = formatPrice(fee);
+    document.getElementById('mapAddressText').textContent = `خط العرض: ${lat.toFixed(5)} | خط الطول: ${lng.toFixed(5)}`;
+    document.getElementById('mapConfirmBtn').disabled = false;
+
+    // Check agent coverage
+    const status = getCoverageStatus(lat, lng, agents);
+    const agentRow  = document.getElementById('mapAgentRow');
+    const agentText = document.getElementById('mapAgentText');
+    agentRow.style.display = 'flex';
+    if (status.covered && status.nearest) {
+      agentText.innerHTML = `وكيل متاح: <strong>${status.nearest.name || 'وكيل محلي'}</strong> (${status.distance?.toFixed(1)} كم)`;
+    } else if (status.nearest) {
+      agentText.innerHTML = `⚠️ لا يوجد وكيل في منطقتك. أقرب وكيل: <strong>${status.nearest.name || 'وكيل'}</strong> (${status.distance?.toFixed(1)} كم)`;
+    } else {
+      agentText.textContent = 'لا يوجد وكلاء متاحون حالياً';
+    }
+
+    // Reverse geocode
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.display_name) {
+          const short = d.display_name.split(',').slice(0,3).join('، ');
+          document.getElementById('mapAddressText').textContent = short;
+        }
+      }).catch(() => {});
+
+    window._pendingLocation = {
+      lat, lng, fee,
+      covered: status.covered,
+      agent: status.nearest,
+      distance: status.distance
+    };
+  }
+
+  function getDistance(lat, lng) {
+    const cLat = deliverySettings?.centerLat || 32.6136;
+    const cLng = deliverySettings?.centerLng || 44.0092;
+    return calcDistance(lat, lng, cLat, cLng);
+  }
+
+  window.goToMyLocation = function() {
+    if (!navigator.geolocation) { showToast('المتصفح لا يدعم GPS', 'error'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      marker.setLatLng(ll);
+      leafletMap.setView(ll, 16);
+      updateMapLocation(ll);
+    }, () => showToast('تعذّر تحديد موقعك', 'error'));
+  };
+
+  window.confirmLocation = function() {
+    if (!window._pendingLocation) return;
+    const loc = window._pendingLocation;
+
+    // No agent coverage — show warning modal
+    if (!loc.covered && agents.length > 0) {
+      pendingNoCoverageLocation = loc;
+      // Populate nearest agent info
+      if (loc.agent) {
+        document.getElementById('nearestAgentName').textContent = loc.agent.name || 'وكيل';
+        document.getElementById('nearestAgentDist').textContent = loc.distance?.toFixed(1) + ' كم';
+      }
+      closeMapModal();
+      openModal('noCoverageModal');
+      return;
+    }
+
+    applySelectedLocation(loc);
+  };
+
+  function applySelectedLocation(loc) {
+    selectedLocation = {
+      ...loc,
+      address: document.getElementById('mapAddressText').textContent
+    };
+    document.getElementById('locationChipText').textContent = '📍 ' + selectedLocation.address;
+    updateCheckoutTotals();
+    closeMapModal();
+    closeModal('noCoverageModal');
+    showToast('✅ تم تحديد الموقع', 'success');
+  }
+
+  // User chooses to proceed even without agent coverage
+  window.proceedWithoutAgent = function() {
+    if (pendingNoCoverageLocation) {
+      applySelectedLocation({ ...pendingNoCoverageLocation, covered: false });
+      pendingNoCoverageLocation = null;
+    }
+  };
+
+  // ── Profile ──
+  window.goToProfile = function() {
+    window.location.href = currentProfile ? 'pages/dashboard.html' : 'pages/auth.html';
+  };
+
+  document.getElementById('checkoutModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('checkoutModal')) closeModal('checkoutModal');
+  });
+  document.getElementById('orderConfirmedModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('orderConfirmedModal')) closeModal('orderConfirmedModal');
+  });
+
+  // ═══════════════════════════════════════════
+  // PROMO BANNER — يحمّل من Firestore
+  // ═══════════════════════════════════════════
+  let _bannerTimer = null;
+  let _bannerIndex = 0;
+  let _bannerItems = [];
+
+  async function loadPromoBanner() {
+    const wrap = document.getElementById('promoBannerWrap');
+    if (!wrap) return;
+    try {
+      const { getDocs, collection, query, where, orderBy } =
+        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const { db } = await import('./js/firebase-config.js');
+      const snap = await getDocs(
+        query(collection(db, 'promotions'),
+          where('active', '==', true),
+          orderBy('order', 'asc'))
+      );
+      _bannerItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch {
+      // Fallback: load without orderBy (no composite index needed)
+      try {
+        const { getDocs, collection, query, where } =
+          await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const { db } = await import('./js/firebase-config.js');
+        const snap = await getDocs(query(collection(db, 'promotions'), where('active', '==', true)));
+        _bannerItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+      } catch { _bannerItems = []; }
+    }
+
+    if (!_bannerItems.length) {
+      // Fallback to default hero
+      wrap.innerHTML = `
+        <div class="store-hero-inner" style="padding:28px 24px;border-radius:var(--radius-xl);
+          background:linear-gradient(135deg,var(--bg-card) 0%,var(--gold-pale) 100%);
+          border:1px solid var(--border-card);box-shadow:var(--shadow-md);overflow:hidden;position:relative;">
+          <div style="position:absolute;left:-14px;top:-14px;font-size:8rem;opacity:0.04;transform:rotate(15deg);pointer-events:none;">🍀</div>
+          <h1 style="font-family:var(--font-display);font-weight:900;font-size:clamp(1.5rem,5vw,2.6rem);
+            background:linear-gradient(135deg,var(--gold-dark),var(--gold));-webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;">تجربة أيرلندية أصيلة</h1>
+          <p style="color:var(--text-secondary);font-size:0.9rem;">أفخر المشروبات الأيرلندية، مُوصَّلة إلى بابك</p>
+        </div>`;
+      return;
+    }
+
+    _bannerIndex = 0;
+    renderBannerSlide(wrap);
+    if (_bannerItems.length > 1) startBannerTimer(wrap);
+  }
+
+  function renderBannerSlide(wrap) {
+    const item = _bannerItems[_bannerIndex];
+    if (!item) return;
+    const dots = _bannerItems.length > 1
+      ? `<div style="display:flex;justify-content:center;gap:6px;margin-top:10px;">
+          ${_bannerItems.map((_, i) => `
+            <div onclick="jumpBannerTo(${i})" style="width:${i===_bannerIndex?'20px':'7px'};height:7px;
+              border-radius:999px;cursor:pointer;transition:all 0.3s;
+              background:${i===_bannerIndex?'var(--gold)':'rgba(184,146,42,0.3)'};">
+            </div>`).join('')}
+         </div>` : '';
+
+    if (item.type === 'image' && item.imageUrl) {
+      wrap.innerHTML = `
+        <div class="promo-banner-img" onclick="${item.link ? `window.open('${item.link}','_blank')` : ''}"
+          style="cursor:${item.link?'pointer':'default'};">
+          <img src="${item.imageUrl}" alt="${item.title||''}"
+            style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-xl);
+                   display:block;box-shadow:var(--shadow-md);">
+          ${item.title ? `
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 18px 14px;
+            background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);
+            border-radius:0 0 var(--radius-xl) var(--radius-xl);">
+            <div style="color:#fff;font-family:var(--font-display);font-weight:800;font-size:1.1rem;">${item.title}</div>
+            ${item.subtitle ? `<div style="color:rgba(255,255,255,0.85);font-size:0.8rem;margin-top:3px;">${item.subtitle}</div>` : ''}
+          </div>` : ''}
+        </div>
+        ${dots}`;
+    } else {
+      // Text banner
+      const bg   = item.bgColor   || 'linear-gradient(135deg,var(--bg-card) 0%,var(--gold-pale) 100%)';
+      const tc   = item.textColor || 'var(--gold-dark)';
+      const isGrad = bg.startsWith('linear-gradient') || bg.startsWith('radial-gradient');
+      wrap.innerHTML = `
+        <div class="promo-banner-text" style="
+          ${isGrad ? `background:${bg}` : `background-color:${bg}`};
+          border-radius:var(--radius-xl);padding:24px 22px;
+          border:1px solid var(--border-card);box-shadow:var(--shadow-md);
+          overflow:hidden;position:relative;cursor:${item.link?'pointer':'default'};"
+          onclick="${item.link ? `window.open('${item.link}','_blank')` : ''}">
+          <div style="position:absolute;left:-14px;top:-14px;font-size:7rem;opacity:0.05;
+            transform:rotate(15deg);pointer-events:none;">${item.emoji || '🍀'}</div>
+          ${item.title ? `<div style="font-family:var(--font-display);font-weight:900;
+            font-size:clamp(1.3rem,4.5vw,2rem);color:${tc};margin-bottom:6px;line-height:1.2;">
+            ${item.title}</div>` : ''}
+          ${item.subtitle ? `<div style="color:${tc};opacity:0.75;font-size:0.88rem;font-weight:500;">
+            ${item.subtitle}</div>` : ''}
+          ${item.badge ? `<div style="display:inline-block;margin-top:10px;background:var(--gold);
+            color:#fff;font-size:0.78rem;font-weight:700;padding:4px 12px;border-radius:20px;">
+            ${item.badge}</div>` : ''}
+        </div>
+        ${dots}`;
+    }
+  }
+
+  function startBannerTimer(wrap) {
+    if (_bannerTimer) clearInterval(_bannerTimer);
+    _bannerTimer = setInterval(() => {
+      _bannerIndex = (_bannerIndex + 1) % _bannerItems.length;
+      renderBannerSlide(wrap);
+    }, 4000);
+  }
+
+  window.jumpBannerTo = function(i) {
+    _bannerIndex = i;
+    const wrap = document.getElementById('promoBannerWrap');
+    renderBannerSlide(wrap);
+    if (_bannerItems.length > 1) startBannerTimer(wrap);
+  };
+</script>
+</body>
+</html>

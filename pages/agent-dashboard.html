@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Irish Bar — لوحة الوكيل</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏪</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    body { background: var(--bg-secondary); }
+    .agent-page {
+      min-height: 100vh;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 0 60px;
+    }
+    /* Top Bar */
+    .agent-topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-light);
+      height: 64px; padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 1px 20px rgba(184,146,42,0.06);
+    }
+    .agent-topbar-title {
+      font-family: var(--font-display);
+      font-size: clamp(0.95rem, 3vw, 1.1rem);
+      font-weight: 800;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .agent-topbar-title i { color: var(--green); }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; color: var(--gold-dark); font-weight: 600;
+      text-decoration: none; padding: 8px 12px;
+      border-radius: var(--radius-full);
+      transition: var(--transition);
+    }
+    .back-btn:hover { background: var(--gold-glow); }
+
+    /* Header Card */
+    .agent-header-card {
+      margin: 16px 16px 0;
+      background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 100%);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      color: #fff;
+      position: relative; overflow: hidden;
+    }
+    .agent-header-card::before {
+      content: '🏪';
+      position: absolute; left: -10px; top: -10px;
+      font-size: 7rem; opacity: 0.06; transform: rotate(-15deg);
+    }
+    .agent-header-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(212,170,69,0.8), transparent);
+    }
+    .agent-header-name {
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 4vw, 1.5rem);
+      font-weight: 900; margin-bottom: 4px;
+    }
+    .agent-header-sub {
+      font-size: clamp(0.76rem, 2vw, 0.84rem);
+      opacity: 0.75; display: flex; align-items: center; gap: 8px;
+    }
+    .agent-online-dot {
+      width: 8px; height: 8px;
+      background: #4ade80; border-radius: 50%;
+      animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 12px; margin: 16px 16px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      box-shadow: var(--shadow-sm);
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 3px 3px 0 0;
+    }
+    .stat-card.gold::before { background: linear-gradient(90deg, var(--gold-light), var(--gold-dark)); }
+    .stat-card.green::before { background: linear-gradient(90deg, #40916c, #2d6a4f); }
+    .stat-card.blue::before { background: linear-gradient(90deg, #60a5fa, #1a56db); }
+    .stat-card.purple::before { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+    .stat-value {
+      font-family: var(--font-en-body);
+      font-size: clamp(1.3rem, 4.5vw, 1.7rem);
+      font-weight: 900; margin-bottom: 4px;
+      display: block;
+    }
+    .stat-card.gold .stat-value { color: var(--gold-dark); }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.blue .stat-value { color: var(--blue); }
+    .stat-card.purple .stat-value { color: #7c3aed; }
+    .stat-label {
+      font-size: clamp(0.68rem, 1.8vw, 0.76rem);
+      color: var(--text-muted); font-weight: 600;
+    }
+    .stat-icon {
+      position: absolute; top: 14px; left: 14px;
+      font-size: 1.5rem; opacity: 0.12;
+    }
+
+    /* Section */
+    .section { margin: 20px 16px 0; }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
+      font-weight: 800; color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title i { color: var(--gold); }
+
+    /* Map Card */
+    .map-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .map-card-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .map-card-title {
+      font-weight: 700;
+      font-size: clamp(0.86rem, 2.2vw, 0.92rem);
+      display: flex; align-items: center; gap: 8px; color: var(--text-primary);
+    }
+    .map-card-title i { color: var(--green); }
+    #agentMap { height: 250px; }
+    .map-card-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border-light);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .agent-location-text {
+      font-size: clamp(0.78rem, 2vw, 0.84rem);
+      color: var(--text-secondary);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .agent-location-text i { color: var(--green); flex-shrink: 0; margin-top: 3px; }
+    #agentLocationAddr { flex: 1; word-break: break-word; }
+
+    .coverage-radius-info {
+      background: rgba(45,106,79,0.06);
+      border: 1px solid rgba(45,106,79,0.18);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: clamp(0.75rem, 1.9vw, 0.82rem);
+      color: var(--text-secondary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .coverage-radius-info i { color: var(--green); }
+
+    /* Commission Card */
+    .commission-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .commission-formula {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    .formula-box {
+      background: var(--bg-secondary);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px; text-align: center; min-width: 90px;
+    }
+    .formula-box.highlight {
+      background: linear-gradient(135deg, rgba(45,106,79,0.08), rgba(45,106,79,0.04));
+      border-color: rgba(45,106,79,0.3);
+    }
+    .formula-label { font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .formula-value { font-family: var(--font-en-body); font-weight: 800; font-size: 1rem; color: var(--text-primary); }
+    .formula-value.green { color: var(--green); }
+    .formula-value.gold  { color: var(--gold-dark); }
+    .formula-sep { font-size: 1.3rem; color: var(--text-muted); }
+
+    /* Orders List */
+    .order-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-xs);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .order-item-info { flex: 1; min-width: 0; }
+    .order-item-id { font-family: var(--font-en-body); font-weight: 800; font-size: 0.82rem; color: var(--gold-dark); margin-bottom: 4px; }
+    .order-item-name { font-weight: 700; font-size: clamp(0.82rem,2.2vw,0.9rem); margin-bottom: 3px; word-break: break-word; }
+    .order-item-meta { font-size: 0.74rem; color: var(--text-muted); }
+    .order-item-commission {
+      font-family: var(--font-en-body); font-weight: 900;
+      font-size: clamp(0.85rem,2.5vw,1rem);
+      color: var(--green); white-space: nowrap;
+    }
+
+    .empty-state {
+      text-align: center; padding: 32px 16px; color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2.5rem; opacity: 0.2; margin-bottom: 10px; display: block; }
+    .empty-state div { font-size: clamp(0.82rem, 2.2vw, 0.9rem); }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="agent-page">
+
+  <!-- Top Bar -->
+  <div class="agent-topbar">
+    <a class="back-btn" href="../index.html">
+      <i class="fas fa-arrow-right"></i> المتجر
+    </a>
+    <div class="agent-topbar-title">
+      <i class="fas fa-store"></i> لوحة الوكيل
+    </div>
+    <button class="icon-btn" onclick="saveLocation()" title="حفظ الموقع">
+      <i class="fas fa-save"></i>
+    </button>
+  </div>
+
+  <!-- Header Card -->
+  <div class="agent-header-card">
+    <div class="agent-header-name" id="agentName">الوكيل</div>
+    <div class="agent-header-sub">
+      <span class="agent-online-dot"></span>
+      <span id="agentStatusText">متصل — الموقع محدد</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card gold">
+      <span class="stat-icon">📦</span>
+      <span class="stat-value" id="statOrders">0</span>
+      <span class="stat-label">إجمالي الطلبات</span>
+    </div>
+    <div class="stat-card green">
+      <span class="stat-icon">💰</span>
+      <span class="stat-value" id="statCommission">0</span>
+      <span class="stat-label">عمولتك (د.ع)</span>
+    </div>
+    <div class="stat-card blue">
+      <span class="stat-icon">🗺️</span>
+      <span class="stat-value" id="statCoverage">8 كم</span>
+      <span class="stat-label">نطاق التغطية</span>
+    </div>
+    <div class="stat-card purple">
+      <span class="stat-icon">⭐</span>
+      <span class="stat-value" id="statRate">35%</span>
+      <span class="stat-label">نسبة العمولة</span>
+    </div>
+  </div>
+
+  <!-- Agent Map (set your location) -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-map-marker-alt"></i> موقعك كمخزن افتراضي</div>
+    <div class="map-card">
+      <div class="map-card-header">
+        <div class="map-card-title">
+          <i class="fas fa-store"></i> حدد موقعك على الخارطة
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="goToMyGPS()">
+          <i class="fas fa-crosshairs"></i> موقعي
+        </button>
+      </div>
+      <div id="agentMap"></div>
+      <div class="map-card-footer">
+        <div class="coverage-radius-info">
+          <i class="fas fa-circle-notch"></i>
+          نطاق تغطيتك: <strong>8 كيلومتر</strong> حول موقعك — أي طلب داخل هذا النطاق سيُوجَّه إليك
+        </div>
+        <div class="agent-location-text">
+          <i class="fas fa-location-dot"></i>
+          <span id="agentLocationAddr">اسحب الخارطة لتحديد موقعك</span>
+        </div>
+        <button class="btn btn-primary btn-block" id="saveLocationBtn" onclick="saveLocation()">
+          <i class="fas fa-save"></i> حفظ الموقع
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Formula -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-chart-pie"></i> معادلة توزيع الأرباح</div>
+    <div class="commission-card">
+      <p style="font-size:clamp(0.8rem,2.2vw,0.86rem);color:var(--text-secondary);margin-bottom:12px;line-height:1.65;">
+        من كل طلب يصلك، تحصل على <strong>35%</strong> من رسوم التوصيل كعمولة، والباقي يذهب للمنصة.
+      </p>
+      <div class="commission-formula">
+        <div class="formula-box">
+          <span class="formula-label">رسوم التوصيل</span>
+          <span class="formula-value">مثال: 5,000</span>
+        </div>
+        <div class="formula-sep">=</div>
+        <div class="formula-box highlight">
+          <span class="formula-label">عمولتك (35%)</span>
+          <span class="formula-value green">1,750 د.ع</span>
+        </div>
+        <div class="formula-sep">+</div>
+        <div class="formula-box">
+          <span class="formula-label">المنصة (65%)</span>
+          <span class="formula-value gold">3,250 د.ع</span>
+        </div>
+      </div>
+
+      <!-- Dynamic calculator -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">حساب العمولة</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="calcInput" class="form-input" style="flex:1;min-width:120px;"
+                 placeholder="رسوم التوصيل (د.ع)" oninput="calcCommission(this.value)">
+          <div style="min-width:120px;">
+            <div style="font-size:0.72rem;color:var(--text-muted);">عمولتك</div>
+            <div style="font-family:var(--font-en-body);font-size:1.1rem;font-weight:900;color:var(--green);" id="calcResult">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-list"></i> طلباتك الأخيرة</div>
+    <div id="agentOrdersList">
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <div>لا توجد طلبات بعد</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+  import { onAuthChange } from '../js/auth.js';
+  import { showToast, formatPrice } from '../js/ui.js';
+  import { saveAgentLocation, fetchAgents, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
+  import { fetchAllOrders } from '../js/orders.js';
+
+  let currentUser = null;
+  let agentMap = null;
+  let agentMarker = null;
+  let coverageCircle = null;
+  let agentLat = null, agentLng = null;
+  let agentAddress = '';
+
+  window.showToast = showToast;
+
+  onAuthChange(async (user, profile) => {
+    currentUser = user;
+    if (!user) { window.location.href = '../pages/auth.html'; return; }
+    document.getElementById('agentName').textContent = profile?.name || user.email || 'الوكيل';
+    initAgentMap();
+    await loadAgentData();
+  });
+
+  function initAgentMap() {
+    if (agentMap) return;
+    const cLat = 32.6136, cLng = 44.0092;
+    agentMap = L.map('agentMap', { center: [cLat, cLng], zoom: 13, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '©OSM' }).addTo(agentMap);
+    L.control.zoom({ position: 'bottomright' }).addTo(agentMap);
+
+    const icon = L.divIcon({
+      html: `<div style="width:36px;height:36px;background:linear-gradient(135deg,#2d6a4f,#40916c);border-radius:50%;border:3px solid #fff;box-shadow:0 4px 14px rgba(45,106,79,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">🏪</div>`,
+      iconSize: [36,36], iconAnchor: [18,18], className: ''
+    });
+    agentMarker = L.marker([cLat, cLng], { icon, draggable: true }).addTo(agentMap);
+    coverageCircle = L.circle([cLat, cLng], {
+      radius: AGENT_COVERAGE_KM * 1000,
+      color: 'rgba(45,106,79,0.6)',
+      fillColor: 'rgba(45,106,79,0.06)',
+      fillOpacity: 1, weight: 2, dashArray: '8 5'
+    }).addTo(agentMap);
+
+    agentMarker.on('dragend', () => onMapMove(agentMarker.getLatLng()));
+    agentMap.on('click', (e) => { agentMarker.setLatLng(e.latlng); onMapMove(e.latlng); });
+  }
+
+  function onMapMove(latlng) {
+    agentLat = latlng.lat; agentLng = latlng.lng;
+    coverageCircle.setLatLng(latlng);
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`)
+      .then(r=>r.json()).then(d => {
+        agentAddress = d.display_name?.split(',').slice(0,3).join('، ') || '';
+        document.getElementById('agentLocationAddr').textContent = agentAddress || `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+      }).catch(()=>{
+        document.getElementById('agentLocationAddr').textContent = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+      });
+  }
+
+  window.goToMyGPS = function() {
+    navigator.geolocation?.getCurrentPosition(pos => {
+      const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      agentMarker.setLatLng(ll);
+      agentMap.setView(ll, 15);
+      onMapMove(ll);
+    }, () => showToast('تعذّر تحديد موقعك', 'error'));
+  };
+
+  window.saveLocation = async function() {
+    if (!agentLat || !agentLng) { showToast('الرجاء تحديد موقعك أولاً', 'warning'); return; }
+    const btn = document.getElementById('saveLocationBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+    try {
+      await saveAgentLocation(currentUser.uid, {
+        lat: agentLat, lng: agentLng,
+        address: agentAddress,
+        name: document.getElementById('agentName').textContent,
+        phone: currentUser.phoneNumber || ''
+      });
+      showToast('✅ تم حفظ موقعك بنجاح', 'success');
+      document.getElementById('agentStatusText').textContent = 'متصل — الموقع محدث';
+    } catch (e) { showToast('خطأ في حفظ الموقع', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ الموقع';
+  };
+
+  window.calcCommission = function(val) {
+    const fee = parseFloat(val) || 0;
+    const commission = Math.round(fee * AGENT_COMMISSION_RATE);
+    document.getElementById('calcResult').textContent = fee > 0 ? commission.toLocaleString('en-US') + ' د.ع' : '—';
+  };
+
+  async function loadAgentData() {
+    try {
+      const orders = await fetchAllOrders();
+      const myOrders = orders.filter(o => o.agentId === currentUser?.uid);
+      const totalCommission = myOrders.reduce((s, o) => s + (o.agentShare || 0), 0);
+      document.getElementById('statOrders').textContent = myOrders.length;
+      document.getElementById('statCommission').textContent = totalCommission.toLocaleString('en-US');
+      renderAgentOrders(myOrders);
+    } catch (e) { console.error(e); }
+  }
+
+  function renderAgentOrders(orders) {
+    const el = document.getElementById('agentOrdersList');
+    if (!orders.length) {
+      el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><div>لا توجد طلبات بعد</div></div>`;
+      return;
+    }
+    el.innerHTML = orders.slice(0, 20).map(o => `
+      <div class="order-item">
+        <div class="order-item-info">
+          <div class="order-item-id">#${o.id.slice(-6).toUpperCase()}</div>
+          <div class="order-item-name">${o.customerName}</div>
+          <div class="order-item-meta">${o.phone} · ${o.deliveryTime || ''} · <span class="badge badge-${getBadgeClass(o.status)}">${o.status}</span></div>
+        </div>
+        <div class="order-item-commission">+${(o.agentShare||0).toLocaleString('en-US')} د.ع</div>
+      </div>
+    `).join('');
+  }
+
+  function getBadgeClass(s) {
+    return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
+  }
+
+  function showToast(msg, type='info', dur=3000) {
+    const tc = document.getElementById('toast-container');
+    const icons = { success:'✅', error:'❌', info:'🍀', warning:'⚠️' };
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+    tc.appendChild(t);
+    setTimeout(() => { t.classList.add('hide'); setTimeout(()=>t.remove(),300); }, dur);
+  }
+</script>
+</body>
+</html>
