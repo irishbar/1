@@ -348,6 +348,25 @@
     </div>
   </div>
 
+  <!-- Telegram Settings -->
+  <div class="section">
+    <div class="section-title"><i class="fab fa-telegram"></i> إعدادات تيليجرام</div>
+    <div class="commission-card" style="padding:16px;">
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
+        أدخل <strong>Chat ID</strong> الخاص بك على تيليجرام لاستقبال إشعار فوري عند كل طلب جديد في منطقتك.
+        يمكنك معرفة Chat ID عبر البوت
+        <a href="https://t.me/userinfobot" target="_blank" style="color:var(--blue);">@userinfobot</a>.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="text" id="telegramIdInput" class="form-input" style="flex:1;"
+          placeholder="مثال: 123456789" dir="ltr">
+        <button id="saveTelegramBtn" class="btn btn-primary btn-sm" onclick="saveTelegramId()" style="white-space:nowrap;">
+          <i class="fas fa-save"></i> حفظ
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Recent Orders -->
   <div class="section">
     <div class="section-title"><i class="fas fa-list"></i> طلباتك الأخيرة</div>
@@ -365,10 +384,17 @@
 <script type="module">
   import { onAuthChange } from '../js/auth.js';
   import { showToast, formatPrice } from '../js/ui.js';
-  import { saveAgentLocation, fetchAgents, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
+  import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
   import { fetchAllOrders } from '../js/orders.js';
+  import { db } from '../js/firebase-config.js';
+
+  const { collection, getDocs, doc, getDoc, updateDoc, query, where, setDoc } =
+    await (async () => {
+      return await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    })();
 
   let currentUser = null;
+  let agentDoc = null; // the agent Firestore document for this user
   let agentMap = null;
   let agentMarker = null;
   let coverageCircle = null;
@@ -377,17 +403,56 @@
 
   window.showToast = showToast;
 
+  // Find agent document linked to the logged-in user
+  async function findMyAgent(uid) {
+    try {
+      // Primary: agent has userId === uid
+      const q = query(collection(db, 'agents'), where('userId', '==', uid));
+      const snap = await getDocs(q);
+      if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
+      // Fallback: legacy where agent document id === uid
+      const legacySnap = await getDoc(doc(db, 'agents', uid));
+      if (legacySnap.exists()) return { id: legacySnap.id, ...legacySnap.data() };
+    } catch {}
+    return null;
+  }
+
   onAuthChange(async (user, profile) => {
     currentUser = user;
     if (!user) { window.location.href = '../pages/auth.html'; return; }
-    document.getElementById('agentName').textContent = profile?.name || user.email || 'الوكيل';
-    initAgentMap();
+
+    // Find agent record
+    agentDoc = await findMyAgent(user.uid);
+
+    const displayName = agentDoc?.name || profile?.name || user.email || 'الوكيل';
+    document.getElementById('agentName').textContent = displayName;
+
+    // Show governorate/district in header if available
+    if (agentDoc?.governorate) {
+      const sub = document.getElementById('agentStatusText');
+      const loc = [agentDoc.governorate, agentDoc.district].filter(Boolean).join(' ← ');
+      sub.textContent = `متصل — ${loc}`;
+    }
+
+    // Update stats
+    const agentCoverage = agentDoc?.coverageKm ?? AGENT_COVERAGE_KM;
+    const agentRate     = agentDoc?.commissionRate ?? Math.round(AGENT_COMMISSION_RATE * 100);
+    document.getElementById('statCoverage').textContent = agentCoverage + ' كم';
+    document.getElementById('statRate').textContent     = agentRate + '%';
+
+    // Populate Telegram ID if already set
+    if (agentDoc?.telegramId) {
+      document.getElementById('telegramIdInput').value = agentDoc.telegramId;
+    }
+
+    initAgentMap(agentDoc);
     await loadAgentData();
   });
 
-  function initAgentMap() {
+  function initAgentMap(agent) {
     if (agentMap) return;
-    const cLat = 32.6136, cLng = 44.0092;
+    const cLat = agent?.lat || 32.6136;
+    const cLng = agent?.lng || 44.0092;
     agentMap = L.map('agentMap', { center: [cLat, cLng], zoom: 13, zoomControl: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '©OSM' }).addTo(agentMap);
     L.control.zoom({ position: 'bottomright' }).addTo(agentMap);
@@ -397,12 +462,18 @@
       iconSize: [36,36], iconAnchor: [18,18], className: ''
     });
     agentMarker = L.marker([cLat, cLng], { icon, draggable: true }).addTo(agentMap);
+    const agentCoverage = agent?.coverageKm ?? AGENT_COVERAGE_KM;
     coverageCircle = L.circle([cLat, cLng], {
-      radius: AGENT_COVERAGE_KM * 1000,
+      radius: agentCoverage * 1000,
       color: 'rgba(45,106,79,0.6)',
       fillColor: 'rgba(45,106,79,0.06)',
       fillOpacity: 1, weight: 2, dashArray: '8 5'
     }).addTo(agentMap);
+
+    if (agent?.lat) {
+      agentLat = agent.lat; agentLng = agent.lng;
+      document.getElementById('agentLocationAddr').textContent = agent.address || `${cLat.toFixed(5)}, ${cLng.toFixed(5)}`;
+    }
 
     agentMarker.on('dragend', () => onMapMove(agentMarker.getLatLng()));
     agentMap.on('click', (e) => { agentMarker.setLatLng(e.latlng); onMapMove(e.latlng); });
@@ -431,16 +502,17 @@
 
   window.saveLocation = async function() {
     if (!agentLat || !agentLng) { showToast('الرجاء تحديد موقعك أولاً', 'warning'); return; }
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل بعد، تواصل مع الإدارة', 'warning'); return; }
     const btn = document.getElementById('saveLocationBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
     try {
-      await saveAgentLocation(currentUser.uid, {
+      await updateDoc(doc(db, 'agents', agentDoc.id), {
         lat: agentLat, lng: agentLng,
         address: agentAddress,
-        name: document.getElementById('agentName').textContent,
-        phone: currentUser.phoneNumber || ''
+        updatedAt: new Date().toISOString()
       });
+      agentDoc.lat = agentLat; agentDoc.lng = agentLng;
       showToast('✅ تم حفظ موقعك بنجاح', 'success');
       document.getElementById('agentStatusText').textContent = 'متصل — الموقع محدث';
     } catch (e) { showToast('خطأ في حفظ الموقع', 'error'); }
@@ -448,16 +520,35 @@
     btn.innerHTML = '<i class="fas fa-save"></i> حفظ الموقع';
   };
 
+  window.saveTelegramId = async function() {
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل بعد', 'warning'); return; }
+    const val = document.getElementById('telegramIdInput').value.trim();
+    const btn = document.getElementById('saveTelegramBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+      await updateDoc(doc(db, 'agents', agentDoc.id), {
+        telegramId: val, updatedAt: new Date().toISOString()
+      });
+      agentDoc.telegramId = val;
+      showToast('✅ تم حفظ Telegram ID', 'success');
+    } catch { showToast('خطأ في الحفظ', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+  };
+
   window.calcCommission = function(val) {
-    const fee = parseFloat(val) || 0;
-    const commission = Math.round(fee * AGENT_COMMISSION_RATE);
+    const fee  = parseFloat(val) || 0;
+    const rate = agentDoc?.commissionRate != null ? agentDoc.commissionRate / 100 : AGENT_COMMISSION_RATE;
+    const commission = Math.round(fee * rate);
     document.getElementById('calcResult').textContent = fee > 0 ? commission.toLocaleString('en-US') + ' د.ع' : '—';
   };
 
   async function loadAgentData() {
+    if (!agentDoc) return;
     try {
       const orders = await fetchAllOrders();
-      const myOrders = orders.filter(o => o.agentId === currentUser?.uid);
+      const myOrders = orders.filter(o => o.agentId === agentDoc.id);
       const totalCommission = myOrders.reduce((s, o) => s + (o.agentShare || 0), 0);
       document.getElementById('statOrders').textContent = myOrders.length;
       document.getElementById('statCommission').textContent = totalCommission.toLocaleString('en-US');
@@ -477,6 +568,7 @@
           <div class="order-item-id">#${o.id.slice(-6).toUpperCase()}</div>
           <div class="order-item-name">${o.customerName}</div>
           <div class="order-item-meta">${o.phone} · ${o.deliveryTime || ''} · <span class="badge badge-${getBadgeClass(o.status)}">${o.status}</span></div>
+          ${o.location ? `<div class="order-item-meta"><a href="https://www.google.com/maps?q=${o.location.lat},${o.location.lng}" target="_blank" style="color:var(--blue);">📍 عرض الموقع</a></div>` : ''}
         </div>
         <div class="order-item-commission">+${(o.agentShare||0).toLocaleString('en-US')} د.ع</div>
       </div>
