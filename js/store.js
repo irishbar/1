@@ -83,8 +83,8 @@ export function calcDeliveryFee(userLat, userLng, settings) {
             Math.cos(userLat * Math.PI/180) *
             Math.sin(dLng/2)**2;
   const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const fee = Math.ceil(km) * (settings.pricePerKm || 1000);
-  return Math.max(fee, settings.minFee || 1000);
+  const fee = Math.ceil(km) * (settings.pricePerKm ?? 1000);
+  return Math.max(fee, settings.minFee ?? 1000);
 }
 
 export function calcDistance(lat1, lng1, lat2, lng2) {
