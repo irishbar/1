@@ -3259,23 +3259,22 @@
 
     // ── Commission preview ──
     window.updateCommissionPreview = function() {
-      const agentType  = document.getElementById('setupAgentCommType')?.value || 'percent';
-      const agentVal   = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
-      const platType   = document.getElementById('setupPlatformType')?.value || 'percent';
-      const platRaw    = document.getElementById('setupPlatformValue')?.value;
-      const platValue  = platRaw !== '' ? parseFloat(platRaw) : NaN;
+      const agentType = document.getElementById('setupAgentCommType')?.value || 'percent';
+      const agentRaw  = document.getElementById('setupCommissionRate').value;
+      const agentVal  = agentRaw === '' ? 0 : (parseFloat(agentRaw) || 0);
+      const platType  = document.getElementById('setupPlatformType')?.value || 'percent';
+      const platRaw   = document.getElementById('setupPlatformValue')?.value;
+      const platVal   = platRaw === '' ? 0 : (parseFloat(platRaw) || 0);
       const fee = 3000;
+
       const agentShare = agentType === 'fixed'
-        ? Math.min(agentVal, fee)
+        ? agentVal
         : Math.round(fee * agentVal / 100);
-      let platformShare;
-      if (!isNaN(platValue) && platValue >= 0) {
-        platformShare = platType === 'fixed'
-          ? Math.min(platValue, fee)
-          : Math.round(fee * platValue / 100);
-      } else {
-        platformShare = fee - agentShare;
-      }
+
+      const platformShare = platType === 'fixed'
+        ? platVal
+        : Math.round(fee * platVal / 100);
+
       document.getElementById('previewAgentShare').textContent    = agentShare.toLocaleString('ar-IQ') + ' د.ع';
       document.getElementById('previewPlatformShare').textContent = platformShare.toLocaleString('ar-IQ') + ' د.ع';
     };
