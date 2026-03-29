@@ -1,6 +1,9 @@
 // ─── Constants (defaults — overridden by Firestore settings/agents) ───────────
-export let AGENT_COVERAGE_KM    = 8;
-export let AGENT_COMMISSION_RATE = 0.35; // 35%
+export let AGENT_COVERAGE_KM         = 8;
+export let AGENT_COMMISSION_RATE      = 0.35;      // 35% default (decimal)
+export let AGENT_COMMISSION_TYPE      = 'percent'; // 'percent' | 'fixed'
+export let PLATFORM_COMMISSION_TYPE   = 'percent'; // 'percent' | 'fixed'
+export let PLATFORM_COMMISSION_VALUE  = null;      // null = remainder after agent
 
 // Load dynamic settings from Firestore on startup
 import { db } from './firebase-config.js';
@@ -14,8 +17,11 @@ import {
     const snap = await getDoc(doc(db, 'settings', 'agents'));
     if (snap.exists()) {
       const d = snap.data();
-      if (d.commissionRate != null) AGENT_COMMISSION_RATE = d.commissionRate / 100;
-      if (d.coverageKm     != null) AGENT_COVERAGE_KM    = d.coverageKm;
+      if (d.commissionRate           != null) AGENT_COMMISSION_RATE     = d.commissionRate / 100;
+      if (d.commissionType           != null) AGENT_COMMISSION_TYPE     = d.commissionType;
+      if (d.coverageKm               != null) AGENT_COVERAGE_KM         = d.coverageKm;
+      if (d.platformCommissionType   != null) PLATFORM_COMMISSION_TYPE  = d.platformCommissionType;
+      if (d.platformCommissionValue  != null) PLATFORM_COMMISSION_VALUE = d.platformCommissionValue;
     }
   } catch {}
 })();
@@ -64,10 +70,26 @@ export function getCoverageStatus(userLat, userLng, agents) {
   };
 }
 
-// ─── Calculate profit split ───────────────────
-export function calcProfitSplit(deliveryFee) {
-  const agentShare    = Math.round(deliveryFee * AGENT_COMMISSION_RATE);
-  const platformShare = deliveryFee - agentShare;
+// ─── Calculate profit split (agent can be passed for per-agent override) ───────
+export function calcProfitSplit(deliveryFee, agent = null) {
+  // Per-agent commission, fall back to global default
+  const aType = agent?.commissionType ?? AGENT_COMMISSION_TYPE;
+  const aVal  = agent?.commissionRate ?? (AGENT_COMMISSION_RATE * 100); // stored as %
+  const agentShare = aType === 'fixed'
+    ? Math.min(aVal, deliveryFee)
+    : Math.round(deliveryFee * aVal / 100);
+
+  // Platform commission
+  let platformShare;
+  if (PLATFORM_COMMISSION_VALUE != null) {
+    if (PLATFORM_COMMISSION_TYPE === 'fixed') {
+      platformShare = Math.min(PLATFORM_COMMISSION_VALUE, deliveryFee);
+    } else {
+      platformShare = Math.round(deliveryFee * PLATFORM_COMMISSION_VALUE / 100);
+    }
+  } else {
+    platformShare = deliveryFee - agentShare;
+  }
   return { agentShare, platformShare };
 }
 
