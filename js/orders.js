@@ -200,11 +200,12 @@ export async function createOrder({ customerId, customerName, phone, address, de
       const agents = await fetchAgents();
       const coverage = getCoverageStatus(location.lat, location.lng, agents);
       if (coverage.covered && coverage.nearest) {
-        const agent = coverage.nearest;
-        const rate = agent.commissionRate != null
-          ? agent.commissionRate / 100
-          : AGENT_COMMISSION_RATE;
-        const agentShare = Math.round(deliveryFee * rate);
+        const agent    = coverage.nearest;
+        const commType = agent.commissionType ?? 'percent';
+        const commVal  = agent.commissionRate ?? (AGENT_COMMISSION_RATE * 100);
+        const agentShare = commType === 'fixed'
+          ? Math.min(commVal, deliveryFee)
+          : Math.round(deliveryFee * commVal / 100);
         await updateDoc(doc(db, 'orders', ref.id), { agentId: agent.id, agentShare });
         fullOrder.agentId = agent.id;
         fullOrder.agentShare = agentShare;
