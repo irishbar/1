@@ -672,7 +672,7 @@
                     <button class="apc-btn apc-edit" title="تعديل" onclick="openEditProduct('${p.id}')">
                       <i class="fas fa-pen"></i>
                     </button>
-                    <button class="apc-btn apc-del" title="حذف" onclick="handleDeleteProduct('${p.id}', '${p.name}')">
+                    <button class="apc-btn apc-del" title="حذف" data-pid="${p.id}" onclick="handleDeleteProduct(this.dataset.pid)">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -722,7 +722,9 @@
     await renderPage('products');
   };
 
-  window.handleDeleteProduct = async function(id, name) {
+  window.handleDeleteProduct = async function(id) {
+    const p = (window._allProducts || []).find(x => x.id === id);
+    const name = p?.name || id;
     if (!confirm(`هل تريد حذف "${name}"؟`)) return;
     await deleteProduct(id);
     showToast(`تم حذف ${name}`, 'success');
