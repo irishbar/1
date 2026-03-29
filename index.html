@@ -749,10 +749,6 @@
     document.getElementById('summaryDeliveryFee').textContent   = selectedLocation
       ? formatPrice(fee)
       : 'حدد موقعك';
-    document.getElementById('summaryGrandTotal').textContent    = selectedLocation
-      ? formatPrice(products + fee)
-      : formatPrice(products);
-
     // Show profit split if agent assigned
     const splitRow = document.getElementById('profitSplitRow');
     if (selectedLocation?.agent && fee > 0) {
@@ -760,6 +756,7 @@
       const { agentShare, platformShare } = calcProfitSplit(fee, agent);
       document.getElementById('agentShare').textContent    = formatPrice(agentShare);
       document.getElementById('platformShare').textContent = formatPrice(platformShare);
+      document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + agentShare + platformShare);
       // Agent label
       const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
       const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
@@ -781,6 +778,9 @@
       splitRow.style.display = 'block';
     } else {
       splitRow.style.display = 'none';
+      document.getElementById('summaryGrandTotal').textContent = selectedLocation
+        ? formatPrice(products + fee)
+        : formatPrice(products);
     }
 
     // Summary items
@@ -884,7 +884,7 @@
         agentShare:    selectedLocation.agent ? agentShare : 0,
         platformShare: selectedLocation.agent ? platformShare : selectedLocation.fee,
         items:         cart,
-        total:         getCartTotal(cart) + selectedLocation.fee
+        total:         getCartTotal(cart) + selectedLocation.fee + (selectedLocation.agent ? agentShare + platformShare : 0)
       });
 
       // Capture values before clearing state
