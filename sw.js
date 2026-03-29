@@ -3,30 +3,32 @@
    ============================================= */
 
 const CACHE_NAME     = 'irish-bar-v1';
-const OFFLINE_URL    = '/offline.html';
 
-// Static assets to cache immediately on install
+// Build absolute URLs relative to SW scope (works on GitHub Pages and any subdirectory)
+const BASE = self.registration.scope; // e.g. https://user.github.io/repo/
+const OFFLINE_URL = BASE + 'offline.html';
+
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/css/main.css',
-  '/css/store.css',
-  '/css/auth.css',
-  '/css/dashboard.css',
-  '/js/pwa.js',
-  '/js/store.js',
-  '/js/auth.js',
-  '/js/ui.js',
-  '/js/orders.js',
-  '/js/agents.js',
-  '/js/firebase-config.js',
-  '/pages/auth.html',
-  '/pages/dashboard.html',
-  '/pages/agent-dashboard.html',
+  BASE,
+  BASE + 'index.html',
+  BASE + 'offline.html',
+  BASE + 'manifest.json',
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png',
+  BASE + 'css/main.css',
+  BASE + 'css/store.css',
+  BASE + 'css/auth.css',
+  BASE + 'css/dashboard.css',
+  BASE + 'js/pwa.js',
+  BASE + 'js/store.js',
+  BASE + 'js/auth.js',
+  BASE + 'js/ui.js',
+  BASE + 'js/orders.js',
+  BASE + 'js/agents.js',
+  BASE + 'js/firebase-config.js',
+  BASE + 'pages/auth.html',
+  BASE + 'pages/dashboard.html',
+  BASE + 'pages/agent-dashboard.html',
 ];
 
 // ── Install: pre-cache all static assets ──────────────────────────────────
@@ -101,7 +103,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // For local assets (CSS, JS, images) — cache first
-  if (url.origin === self.location.origin) {
+  if (url.href.startsWith(BASE)) {
     event.respondWith(
       caches.match(request).then(cached => {
         if (cached) return cached;
