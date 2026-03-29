@@ -2,8 +2,8 @@
   "name": "Irish Bar — المتجر",
   "short_name": "Irish Bar",
   "description": "تطبيق Irish Bar للمشروبات الإيرلندية الفاخرة — طلب وتوصيل سريع",
-  "start_url": "/index.html?source=pwa",
-  "scope": "/",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
@@ -30,14 +30,14 @@
       "name": "المتجر",
       "short_name": "المتجر",
       "description": "تصفح المنتجات",
-      "url": "/index.html?shortcut=store",
+      "url": "./index.html?shortcut=store",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "حسابي",
       "short_name": "حسابي",
       "description": "تسجيل الدخول",
-      "url": "/pages/auth.html?shortcut=profile",
+      "url": "./pages/auth.html?shortcut=profile",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ],
