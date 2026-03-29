@@ -12,7 +12,7 @@ import {
   doc, query, orderBy, setDoc, getDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-(async () => {
+export const agentSettingsReady = (async () => {
   try {
     const snap = await getDoc(doc(db, 'settings', 'agents'));
     if (snap.exists()) {
@@ -72,9 +72,10 @@ export function getCoverageStatus(userLat, userLng, agents) {
 
 // ─── Calculate profit split (agent can be passed for per-agent override) ───────
 export function calcProfitSplit(deliveryFee, agent = null) {
-  // Per-agent commission, fall back to global default
-  const aType = agent?.commissionType ?? AGENT_COMMISSION_TYPE;
-  const aVal  = agent?.commissionRate ?? (AGENT_COMMISSION_RATE * 100); // stored as %
+  // Treat commissionType+commissionRate as a pair — only use agent's values if BOTH are set
+  const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
+  const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
+  const aVal  = agentHasOwn ? agent.commissionRate : (AGENT_COMMISSION_RATE * 100);
   const agentShare = aType === 'fixed'
     ? Math.min(aVal, deliveryFee)
     : Math.round(deliveryFee * aVal / 100);
