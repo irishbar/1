@@ -220,17 +220,18 @@
         </div>
         <!-- Profit split (shown when agent is assigned) -->
         <div id="profitSplitRow" style="display:none;">
-          <div class="totals-divider"></div>
-          <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">توزيع رسوم التوصيل</div>
-          <div class="profit-split">
-            <div class="profit-split-item platform">
-              <span class="profit-split-label" id="platformShareLabel">المنصة</span>
-              <span class="profit-split-value" id="platformShare">—</span>
-            </div>
-            <div class="profit-split-item agent">
-              <span class="profit-split-label" id="agentShareLabel">الوكيل</span>
-              <span class="profit-split-value" id="agentShare">—</span>
-            </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 2px;font-weight:600;">↳ توزيع أجرة التوصيل</div>
+          <div class="totals-row" style="margin-top:2px;">
+            <span class="totals-row-label" id="agentShareLabel" style="color:var(--green);font-weight:600;">
+              <i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>عمولة الوكيل
+            </span>
+            <span class="totals-row-value" style="color:var(--green);" id="agentShare">—</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-row-label" id="platformShareLabel" style="color:var(--gold-dark);font-weight:600;">
+              <i class="fas fa-building" style="margin-left:5px;font-size:0.75rem;"></i>عمولة المنصة
+            </span>
+            <span class="totals-row-value" style="color:var(--gold-dark);" id="platformShare">—</span>
           </div>
         </div>
         <div class="totals-divider"></div>
@@ -266,7 +267,33 @@
       <div class="order-confirmed-title">تم استلام طلبك بنجاح!</div>
       <div class="order-number-chip" id="confirmedOrderNum">#000000</div>
       <div class="order-confirmed-sub" id="confirmedPaymentNote"></div>
-      <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;">
+      <!-- Invoice summary -->
+      <div id="confirmedInvoice" style="display:none;width:100%;margin-top:16px;background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;text-align:right;">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;">ملخص الفاتورة</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:0.85rem;color:var(--text-secondary);">المنتجات</span>
+          <span style="font-size:0.85rem;font-weight:600;" id="ciProductsTotal">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:0.85rem;color:var(--text-secondary);">أجرة التوصيل</span>
+          <span style="font-size:0.85rem;font-weight:600;color:var(--gold);" id="ciDeliveryFee">—</span>
+        </div>
+        <div id="ciCommissionsBlock" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:0.85rem;color:var(--green);font-weight:600;" id="ciAgentLabel">عمولة الوكيل</span>
+            <span style="font-size:0.85rem;font-weight:700;color:var(--green);" id="ciAgentShare">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:0.85rem;color:var(--gold-dark);font-weight:600;" id="ciPlatformLabel">عمولة المنصة</span>
+            <span style="font-size:0.85rem;font-weight:700;color:var(--gold-dark);" id="ciPlatformShare">—</span>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.9rem;font-weight:700;">المجموع الكلي</span>
+          <span style="font-size:1rem;font-weight:900;color:var(--gold-dark);" id="ciGrandTotal">—</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
         <button class="btn btn-primary btn-lg btn-block" onclick="closeModal('orderConfirmedModal')">
           <i class="fas fa-shopping-bag"></i> متابعة التسوق
         </button>
@@ -860,6 +887,15 @@
         total:         getCartTotal(cart) + selectedLocation.fee
       });
 
+      // Capture values before clearing state
+      const invoiceProductsTotal = getCartTotal(cart);
+      const invoiceFee           = selectedLocation.fee;
+      const invoiceAgent         = selectedLocation.agent;
+      const invoiceAgentShare    = invoiceAgent ? agentShare : 0;
+      const invoicePlatformShare = invoiceAgent ? platformShare : selectedLocation.fee;
+      const invoiceGrandTotal    = invoiceProductsTotal + invoiceFee;
+      const invoicePayment       = selectedPayment;
+
       clearCart();
       renderCart();
       closeModal('checkoutModal');
@@ -874,7 +910,38 @@
       const shortId = '#' + order.id.slice(-6).toUpperCase();
       document.getElementById('confirmedOrderNum').textContent = shortId;
       const payLabels = { cash: 'سيتم استلام المبلغ عند التوصيل 💵', zaincash: 'تم الدفع بنجاح عبر ZainCash 📱', card: 'تم الدفع بنجاح بالبطاقة الائتمانية 💳' };
-      document.getElementById('confirmedPaymentNote').textContent = payLabels[selectedPayment] || '';
+      document.getElementById('confirmedPaymentNote').textContent = payLabels[invoicePayment] || '';
+
+      // Populate invoice summary
+      document.getElementById('ciProductsTotal').textContent = formatPrice(invoiceProductsTotal);
+      document.getElementById('ciDeliveryFee').textContent   = formatPrice(invoiceFee);
+      document.getElementById('ciGrandTotal').textContent    = formatPrice(invoiceGrandTotal);
+      if (invoiceAgent) {
+        // Build labels with percentages
+        const agentHasOwn2 = invoiceAgent.commissionType != null && invoiceAgent.commissionRate != null;
+        const aType2 = agentHasOwn2 ? invoiceAgent.commissionType : AGENT_COMMISSION_TYPE;
+        const aVal2  = agentHasOwn2 ? invoiceAgent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+        const aLabel = aType2 === 'fixed'
+          ? `عمولة الوكيل (${aVal2.toLocaleString('en-US')} د.ع ثابت)`
+          : `عمولة الوكيل (${aVal2}%)`;
+        let pLabel;
+        if (PLATFORM_COMMISSION_VALUE != null) {
+          pLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
+            ? `عمولة المنصة (${PLATFORM_COMMISSION_VALUE.toLocaleString('en-US')} د.ع ثابت)`
+            : `عمولة المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
+        } else {
+          pLabel = `عمولة المنصة (${100 - aVal2}%)`;
+        }
+        document.getElementById('ciAgentLabel').textContent    = aLabel;
+        document.getElementById('ciPlatformLabel').textContent = pLabel;
+        document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare);
+        document.getElementById('ciPlatformShare').textContent = formatPrice(invoicePlatformShare);
+        document.getElementById('ciCommissionsBlock').style.display = 'block';
+      } else {
+        document.getElementById('ciCommissionsBlock').style.display = 'none';
+      }
+      document.getElementById('confirmedInvoice').style.display = 'block';
+
       openModal('orderConfirmedModal');
 
     } catch (err) {
