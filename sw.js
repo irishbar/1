@@ -2,7 +2,7 @@
    Irish Bar — Service Worker (PWA Full Offline)
    ============================================= */
 
-const CACHE_NAME     = 'irish-bar-v1';
+const CACHE_NAME     = 'irish-bar-v2';
 
 // Build absolute URLs relative to SW scope (works on GitHub Pages and any subdirectory)
 const BASE = self.registration.scope; // e.g. https://user.github.io/repo/
@@ -60,50 +60,26 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET, chrome-extension, and Firebase/external API calls
+  // 1. Skip non-GET requests entirely
   if (request.method !== 'GET') return;
-  if (url.protocol === 'chrome-extension:') return;
-  if (url.hostname.includes('firebaseio.com')) return;
-  if (url.hostname.includes('googleapis.com') && url.pathname.includes('/identitytoolkit')) return;
 
-  // For navigation requests — network first, offline fallback
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(resp => {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(request, clone));
-          return resp;
-        })
-        .catch(() =>
-          caches.match(request).then(cached => cached || caches.match(OFFLINE_URL))
-        )
+  // 2. Skip non-HTTP protocols
+  if (!url.protocol.startsWith('http')) return;
+
+  // 3. Skip ALL external/third-party requests — let browser handle them directly
+  //    This includes: Firebase, Firestore, Google APIs, ImgBB, Telegram, Leaflet data, etc.
+  if (!url.href.startsWith(BASE)) {
+    // Only intercept known CDN resources we want to cache for offline use
+    const isCDN = (
+      url.hostname.includes('cdnjs.cloudflare.com') ||
+      url.hostname.includes('unpkg.com') ||
+      url.hostname.includes('fonts.googleapis.com') ||
+      url.hostname.includes('fonts.gstatic.com')
     );
-    return;
-  }
 
-  // For CDN resources (fonts, leaflet, fontawesome) — cache first, then network
-  if (
-    url.hostname.includes('cdnjs.cloudflare.com') ||
-    url.hostname.includes('unpkg.com') ||
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('fonts.gstatic.com')
-  ) {
-    event.respondWith(
-      caches.match(request).then(cached => {
-        if (cached) return cached;
-        return fetch(request).then(resp => {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(request, clone));
-          return resp;
-        }).catch(() => cached);
-      })
-    );
-    return;
-  }
+    if (!isCDN) return; // Let Firebase, Firestore, ImgBB, etc. pass through untouched
 
-  // For local assets (CSS, JS, images) — cache first
-  if (url.href.startsWith(BASE)) {
+    // Cache CDN resources (fonts, leaflet, fontawesome)
     event.respondWith(
       caches.match(request).then(cached => {
         if (cached) return cached;
@@ -113,15 +89,42 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then(c => c.put(request, clone));
           }
           return resp;
-        }).catch(() => cached || caches.match(OFFLINE_URL));
+        }).catch(() => cached || new Response('', { status: 408 }));
       })
     );
     return;
   }
 
-  // Default: network first
+  // 4. Same-origin navigation requests — network first, offline fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(resp => {
+          if (resp && resp.status === 200) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(request, clone));
+          }
+          return resp;
+        })
+        .catch(() =>
+          caches.match(request).then(cached => cached || caches.match(OFFLINE_URL))
+        )
+    );
+    return;
+  }
+
+  // 5. Same-origin static assets (CSS, JS, icons) — cache first, network fallback
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+      return fetch(request).then(resp => {
+        if (resp && resp.status === 200) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(OFFLINE_URL));
+    })
   );
 });
 
