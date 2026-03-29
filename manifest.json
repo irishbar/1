@@ -1,20 +1,45 @@
 {
-  "name": "Irish Bar",
-  "short_name": "Irish",
-  "start_url": "/index.html",
+  "name": "Irish Bar — المتجر",
+  "short_name": "Irish Bar",
+  "description": "تطبيق Irish Bar للمشروبات الإيرلندية الفاخرة — طلب وتوصيل سريع",
+  "start_url": "/index.html?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#b8922a",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["shopping", "food"],
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "المتجر",
+      "short_name": "المتجر",
+      "description": "تصفح المنتجات",
+      "url": "/index.html?shortcut=store",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "حسابي",
+      "short_name": "حسابي",
+      "description": "تسجيل الدخول",
+      "url": "/pages/auth.html?shortcut=profile",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }
