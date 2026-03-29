@@ -224,11 +224,11 @@
           <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;">توزيع رسوم التوصيل</div>
           <div class="profit-split">
             <div class="profit-split-item platform">
-              <span class="profit-split-label">المنصة (65%)</span>
+              <span class="profit-split-label" id="platformShareLabel">المنصة</span>
               <span class="profit-split-value" id="platformShare">—</span>
             </div>
             <div class="profit-split-item agent">
-              <span class="profit-split-label">الوكيل (35%)</span>
+              <span class="profit-split-label" id="agentShareLabel">الوكيل</span>
               <span class="profit-split-value" id="agentShare">—</span>
             </div>
           </div>
@@ -381,7 +381,7 @@
   import { showToast, openModal, closeModal, hideLoader, formatPrice } from './js/ui.js';
   import {
     fetchAgents, findNearestAgent, getCoverageStatus,
-    calcProfitSplit, AGENT_COVERAGE_KM
+    calcProfitSplit, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE
   } from './js/agents.js';
 
   window.closeModal = closeModal;
@@ -730,6 +730,11 @@
       const { agentShare, platformShare } = calcProfitSplit(fee);
       document.getElementById('agentShare').textContent    = formatPrice(agentShare);
       document.getElementById('platformShare').textContent = formatPrice(platformShare);
+      // Update labels with actual configured rates
+      const agentPct    = Math.round(AGENT_COMMISSION_RATE * 100);
+      const platformPct = 100 - agentPct;
+      document.getElementById('agentShareLabel').textContent    = `الوكيل (${agentPct}%)`;
+      document.getElementById('platformShareLabel').textContent = `المنصة (${platformPct}%)`;
       splitRow.style.display = 'block';
     } else {
       splitRow.style.display = 'none';
