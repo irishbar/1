@@ -2162,6 +2162,8 @@
       return agents.map(a => {
         const cm       = comMap[a.id] || { count: 0, totalCommission: 0, totalProfit: 0 };
         const rate     = a.commissionRate ?? defaultCommissionRate;
+        const commType = a.commissionType ?? 'percent';
+        const rateLabel = commType === 'fixed' ? `${rate.toLocaleString('en-US')} د.ع` : `${rate}%`;
         const coverage = a.coverageKm ?? AGENT_COVERAGE_KM_DEFAULT;
         const isActive = a.active !== false;
         return `
@@ -2198,7 +2200,7 @@
               </div>
               <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">العمولة</div>
-                <div style="font-weight:800;font-size:0.9rem;color:var(--gold-dark);">${rate}<span style="font-size:0.65rem;">%</span></div>
+                <div style="font-weight:800;font-size:0.9rem;color:var(--gold-dark);">${rateLabel}</div>
               </div>
               <div style="text-align:center;background:var(--bg-card);border-radius:10px;padding:8px 4px;">
                 <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:3px;">الطلبات</div>
@@ -2303,10 +2305,16 @@
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
             <div class="form-group" style="margin:0;">
-              <label class="form-label">نسبة عمولته (%)</label>
-              <input type="number" min="1" max="99" class="form-input" id="agentCommRate"
-                placeholder="${defaultCommissionRate}" dir="ltr">
-              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">فارغ = تطبيق الافتراضية</div>
+              <label class="form-label">عمولة الوكيل</label>
+              <div style="display:grid;grid-template-columns:110px 1fr;gap:6px;margin-bottom:3px;">
+                <select class="form-input" id="agentCommType">
+                  <option value="percent">نسبة %</option>
+                  <option value="fixed">مبلغ ثابت</option>
+                </select>
+                <input type="number" min="0" class="form-input" id="agentCommRate"
+                  placeholder="${defaultCommissionRate}" dir="ltr">
+              </div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">فارغ = تطبيق الافتراضية</div>
             </div>
             <div class="form-group" style="margin:0;">
               <label class="form-label">نطاق التغطية (كيلومتر) *</label>
@@ -2356,9 +2364,15 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
               <div class="form-group" style="margin:0;">
-                <label class="form-label">العمولة (%)</label>
-                <input type="number" min="1" max="99" class="form-input" id="editAgentCommRate" dir="ltr">
-                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = افتراضية</div>
+                <label class="form-label">عمولة الوكيل</label>
+                <div style="display:grid;grid-template-columns:100px 1fr;gap:6px;margin-bottom:2px;">
+                  <select class="form-input" id="editAgentCommType">
+                    <option value="percent">نسبة %</option>
+                    <option value="fixed">مبلغ ثابت</option>
+                  </select>
+                  <input type="number" min="0" class="form-input" id="editAgentCommRate" dir="ltr">
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);">فارغ = افتراضية</div>
               </div>
               <div class="form-group" style="margin:0;">
                 <label class="form-label">نطاق التغطية (كيلومتر)</label>
@@ -2420,7 +2434,10 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
       try {
         const agentData = { name, phone, lat, lng, coverageKm, governorate, district, active: true, createdAt: new Date().toISOString() };
-        if (commRaw !== '') agentData.commissionRate = parseFloat(commRaw);
+        if (commRaw !== '') {
+          agentData.commissionRate = parseFloat(commRaw);
+          agentData.commissionType = document.getElementById('agentCommType').value;
+        }
         if (linkedUserId) {
           agentData.userId = linkedUserId;
           // Grant agent role to the linked user
@@ -2442,7 +2459,8 @@
       document.getElementById('editAgentPhone').value        = a.phone       || '';
       document.getElementById('editAgentLat').value          = a.lat         || '';
       document.getElementById('editAgentLng').value          = a.lng         || '';
-      document.getElementById('editAgentCommRate').value     = a.commissionRate ?? '';
+      document.getElementById('editAgentCommType').value     = a.commissionType  ?? 'percent';
+      document.getElementById('editAgentCommRate').value     = a.commissionRate  ?? '';
       document.getElementById('editAgentCoverageKm').value   = a.coverageKm  ?? '';
       // Populate governorate then districts
       const govSel = document.getElementById('editAgentGov');
@@ -2472,8 +2490,13 @@
           district:    district    || '',
           updatedAt: new Date().toISOString()
         };
-        if (commRaw !== '') data.commissionRate = parseFloat(commRaw);
-        else delete data.commissionRate;
+        if (commRaw !== '') {
+          data.commissionRate = parseFloat(commRaw);
+          data.commissionType = document.getElementById('editAgentCommType').value;
+        } else {
+          delete data.commissionRate;
+          delete data.commissionType;
+        }
         if (coverageKmRaw !== '') data.coverageKm = parseFloat(coverageKmRaw);
         else delete data.coverageKm;
         // Handle linked user change
@@ -3126,11 +3149,17 @@
         <div class="section-card-body">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
             <div class="form-group" style="margin:0;">
-              <label class="form-label">نسبة الوكيل (%)</label>
-              <input type="number" min="1" max="99" class="form-input" id="setupCommissionRate"
-                value="${agentsSettings.commissionRate ?? 35}"
-                oninput="updateCommissionPreview()">
-              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">النسبة التي يأخذها الوكيل من أجرة التوصيل</div>
+              <label class="form-label">عمولة الوكيل الافتراضية</label>
+              <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;margin-bottom:4px;">
+                <select class="form-input" id="setupAgentCommType" onchange="updateCommissionPreview()">
+                  <option value="percent" ${(agentsSettings.commissionType || 'percent') === 'percent' ? 'selected' : ''}>نسبة %</option>
+                  <option value="fixed"   ${agentsSettings.commissionType === 'fixed' ? 'selected' : ''}>مبلغ ثابت (د.ع)</option>
+                </select>
+                <input type="number" min="0" class="form-input" id="setupCommissionRate"
+                  value="${agentsSettings.commissionRate ?? 35}"
+                  oninput="updateCommissionPreview()">
+              </div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">القيمة التي يأخذها الوكيل من أجرة التوصيل</div>
             </div>
             <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center;">
               <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">معاينة — أجرة 3,000 د.ع:</div>
@@ -3142,6 +3171,24 @@
                 <span>🏪 حصة المنصة</span>
                 <strong id="previewPlatformShare" style="color:var(--gold-dark);">1,950 د.ع</strong>
               </div>
+            </div>
+          </div>
+
+          <!-- Platform commission -->
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label">عمولة المنصة</label>
+            <div style="display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;">
+              <select class="form-input" id="setupPlatformType" onchange="updateCommissionPreview()">
+                <option value="percent" ${(agentsSettings.platformCommissionType || 'percent') === 'percent' ? 'selected' : ''}>نسبة %</option>
+                <option value="fixed"   ${agentsSettings.platformCommissionType === 'fixed' ? 'selected' : ''}>مبلغ ثابت (د.ع)</option>
+              </select>
+              <input type="number" min="0" class="form-input" id="setupPlatformValue"
+                value="${agentsSettings.platformCommissionValue ?? ''}"
+                placeholder="${agentsSettings.platformCommissionType === 'fixed' ? '1000' : '65'}"
+                oninput="updateCommissionPreview()">
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+              فارغ = ما تبقى من أجرة التوصيل بعد عمولة الوكيل
             </div>
           </div>
 
@@ -3210,10 +3257,23 @@
 
     // ── Commission preview ──
     window.updateCommissionPreview = function() {
-      const rate = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
-      const fee  = 3000;
-      const agentShare    = Math.round(fee * rate / 100);
-      const platformShare = fee - agentShare;
+      const agentType  = document.getElementById('setupAgentCommType')?.value || 'percent';
+      const agentVal   = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
+      const platType   = document.getElementById('setupPlatformType')?.value || 'percent';
+      const platRaw    = document.getElementById('setupPlatformValue')?.value;
+      const platValue  = platRaw !== '' ? parseFloat(platRaw) : NaN;
+      const fee = 3000;
+      const agentShare = agentType === 'fixed'
+        ? Math.min(agentVal, fee)
+        : Math.round(fee * agentVal / 100);
+      let platformShare;
+      if (!isNaN(platValue) && platValue >= 0) {
+        platformShare = platType === 'fixed'
+          ? Math.min(platValue, fee)
+          : Math.round(fee * platValue / 100);
+      } else {
+        platformShare = fee - agentShare;
+      }
       document.getElementById('previewAgentShare').textContent    = agentShare.toLocaleString('ar-IQ') + ' د.ع';
       document.getElementById('previewPlatformShare').textContent = platformShare.toLocaleString('ar-IQ') + ' د.ع';
     };
@@ -3255,9 +3315,14 @@
           await setDoc(doc(db, 'settings', 'payment'), data);
         }
         else if (section === 'agents') {
-          const commissionRate = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
-          const coverageKm     = parseFloat(document.getElementById('setupCoverageKm').value) || 8;
-          await setDoc(doc(db, 'settings', 'agents'), { commissionRate, coverageKm });
+          const commissionRate         = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
+          const commissionType         = document.getElementById('setupAgentCommType').value;
+          const coverageKm             = parseFloat(document.getElementById('setupCoverageKm').value) || 8;
+          const platformCommissionType = document.getElementById('setupPlatformType').value;
+          const platRaw                = document.getElementById('setupPlatformValue').value;
+          const data = { commissionRate, commissionType, coverageKm, platformCommissionType };
+          data.platformCommissionValue = platRaw !== '' ? parseFloat(platRaw) : null;
+          await setDoc(doc(db, 'settings', 'agents'), data);
         }
         else if (section === 'center') {
           const centerLat = parseFloat(document.getElementById('setupCenterLat').value);
