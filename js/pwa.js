@@ -6,9 +6,25 @@
   'use strict';
 
   // ── 1. Register Service Worker ─────────────────────────────────────────
+  // Detect base path automatically (works on GitHub Pages subdirectory)
+  const BASE_PATH = (function() {
+    const scripts = document.querySelectorAll('script[src]');
+    for (const s of scripts) {
+      if (s.src.includes('/js/pwa.js')) {
+        return s.src.replace('/js/pwa.js', '/');
+      }
+    }
+    // fallback: derive from current page location
+    const loc = window.location.href;
+    const idx = loc.lastIndexOf('/');
+    return loc.substring(0, idx + 1);
+  })();
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      // Use path relative to BASE_PATH so it works on any GitHub Pages URL
+      const swUrl = BASE_PATH + 'sw.js';
+      navigator.serviceWorker.register(swUrl, { scope: BASE_PATH })
         .then(reg => {
           console.log('[PWA] Service Worker registered', reg.scope);
 
@@ -71,7 +87,7 @@
     banner.setAttribute('aria-label', 'تثبيت التطبيق');
     banner.innerHTML = `
       <div class="pwa-banner-inner">
-        <img src="/icon-192.png" class="pwa-banner-icon" alt="Irish Bar">
+        <img src="${BASE_PATH}icon-192.png" class="pwa-banner-icon" alt="Irish Bar">
         <div class="pwa-banner-text">
           <div class="pwa-banner-title">ثبّت التطبيق</div>
           <div class="pwa-banner-sub">تجربة أسرع • يعمل بدون إنترنت • إشعارات فورية</div>
@@ -177,8 +193,8 @@
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification(title, {
         body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        icon: BASE_PATH + 'icon-192.png',
+        badge: BASE_PATH + 'icon-192.png',
         vibrate: [200, 100, 200],
         tag: 'irish-bar-local',
       });
