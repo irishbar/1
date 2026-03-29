@@ -381,7 +381,8 @@
   import { showToast, openModal, closeModal, hideLoader, formatPrice } from './js/ui.js';
   import {
     fetchAgents, findNearestAgent, getCoverageStatus,
-    calcProfitSplit, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE
+    calcProfitSplit, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE,
+    PLATFORM_COMMISSION_TYPE, PLATFORM_COMMISSION_VALUE
   } from './js/agents.js';
 
   window.closeModal = closeModal;
@@ -727,14 +728,27 @@
     // Show profit split if agent assigned
     const splitRow = document.getElementById('profitSplitRow');
     if (selectedLocation?.agent && fee > 0) {
-      const { agentShare, platformShare } = calcProfitSplit(fee);
+      const agent = selectedLocation.agent;
+      const { agentShare, platformShare } = calcProfitSplit(fee, agent);
       document.getElementById('agentShare').textContent    = formatPrice(agentShare);
       document.getElementById('platformShare').textContent = formatPrice(platformShare);
-      // Update labels with actual configured rates
-      const agentPct    = Math.round(AGENT_COMMISSION_RATE * 100);
-      const platformPct = 100 - agentPct;
-      document.getElementById('agentShareLabel').textContent    = `الوكيل (${agentPct}%)`;
-      document.getElementById('platformShareLabel').textContent = `المنصة (${platformPct}%)`;
+      // Agent label
+      const aType = agent?.commissionType ?? AGENT_COMMISSION_TYPE;
+      const aVal  = agent?.commissionRate ?? Math.round(AGENT_COMMISSION_RATE * 100);
+      const agentLabel = aType === 'fixed'
+        ? `الوكيل (${aVal.toLocaleString('en-US')} د.ع)`
+        : `الوكيل (${aVal}%)`;
+      document.getElementById('agentShareLabel').textContent = agentLabel;
+      // Platform label
+      let platLabel;
+      if (PLATFORM_COMMISSION_VALUE != null) {
+        platLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
+          ? `المنصة (${PLATFORM_COMMISSION_VALUE.toLocaleString('en-US')} د.ع)`
+          : `المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
+      } else {
+        platLabel = `المنصة (${100 - aVal}%)`;
+      }
+      document.getElementById('platformShareLabel').textContent = platLabel;
       splitRow.style.display = 'block';
     } else {
       splitRow.style.display = 'none';
@@ -825,7 +839,7 @@
       }
 
       const cart = getCart();
-      const { agentShare, platformShare } = calcProfitSplit(selectedLocation.fee);
+      const { agentShare, platformShare } = calcProfitSplit(selectedLocation.fee, selectedLocation.agent);
       const order = await createOrder({
         customerId:    currentUser?.uid || 'guest',
         customerName:  document.getElementById('chName').value,
