@@ -382,7 +382,7 @@
   import {
     fetchAgents, findNearestAgent, getCoverageStatus,
     calcProfitSplit, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE, AGENT_COMMISSION_TYPE,
-    PLATFORM_COMMISSION_TYPE, PLATFORM_COMMISSION_VALUE
+    PLATFORM_COMMISSION_TYPE, PLATFORM_COMMISSION_VALUE, agentSettingsReady
   } from './js/agents.js';
 
   window.closeModal = closeModal;
@@ -417,7 +417,8 @@
         fetchCategories(),
         fetchProducts(),
         fetchDeliverySettings(),
-        fetchAgents()
+        fetchAgents(),
+        agentSettingsReady
       ]);
       renderCategories();
       renderAllByCategory();
