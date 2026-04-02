@@ -200,6 +200,27 @@
         <input type="checkbox" id="apAvailable" checked style="width:auto">
         <label for="apAvailable" class="form-label" style="margin:0">متاح للبيع</label>
       </div>
+      <!-- ── تحديد وقت التوفر الزمني (اختياري) ── -->
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-clock" style="color:var(--gold);"></i>
+          وقت التوفر الزمني
+          <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — اتركه فارغاً للتوفر الدائم)</span>
+        </label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">يتوقف من الساعة</label>
+            <input type="time" class="form-input" id="apUnavailableFrom" placeholder="مثال: 00:00">
+          </div>
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">ويعود في الساعة</label>
+            <input type="time" class="form-input" id="apUnavailableUntil" placeholder="مثال: 08:00">
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;padding:6px 10px;background:var(--bg-elevated);border-radius:var(--radius-sm);border-right:3px solid var(--gold);">
+          💡 مثال: يتوقف من <strong>00:00</strong> ويعود في <strong>08:00</strong> = يتوقف من منتصف الليل حتى الثامنة صباحاً (باقي اليوم متاح)
+        </div>
+      </div>
       <button type="submit" class="btn btn-primary btn-block" id="addProductBtn">
         <i class="fas fa-plus"></i> إضافة المنتج
       </button>
@@ -298,6 +319,26 @@
       <div class="form-group" style="display:flex;align-items:center;gap:12px;">
         <input type="checkbox" id="epAvailable" style="width:18px;height:18px;accent-color:var(--gold);">
         <label for="epAvailable" class="form-label" style="margin:0;">متاح للبيع</label>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-clock" style="color:var(--gold);"></i>
+          وقت التوفر الزمني
+          <span style="color:var(--text-muted);font-size:0.78rem;">(اتركه فارغاً للتوفر الدائم)</span>
+        </label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">يتوقف من الساعة</label>
+            <input type="time" class="form-input" id="epUnavailableFrom">
+          </div>
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px;">ويعود في الساعة</label>
+            <input type="time" class="form-input" id="epUnavailableUntil">
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;padding:6px 10px;background:var(--bg-elevated);border-radius:var(--radius-sm);border-right:3px solid var(--gold);">
+          💡 مثال: يتوقف من <strong>00:00</strong> ويعود في <strong>08:00</strong> = يتوقف من منتصف الليل حتى الثامنة صباحاً (باقي اليوم متاح)
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="editProductBtn">
         <i class="fas fa-save"></i> حفظ التعديلات
@@ -698,6 +739,11 @@
                   <div class="apc-body">
                     <div class="apc-name">${p.name}</div>
                     <div class="apc-price">${formatPrice(p.price)}</div>
+                    ${(p.unavailableFrom || p.unavailableUntil) ? `
+                    <div style="font-size:0.68rem;color:#e57373;margin-top:3px;display:flex;align-items:center;gap:3px;">
+                      <i class="fas fa-moon"></i>
+                      يتوقف: ${p.unavailableFrom || '—'} → ${p.unavailableUntil || '—'}
+                    </div>` : ''}
                   </div>
                   <div class="apc-actions">
                     <button class="apc-btn apc-toggle" title="تغيير الحالة" onclick="toggleAvailability('${p.id}', ${p.available !== false})">
@@ -773,14 +819,16 @@
     try {
       const imageUrl = document.getElementById('apImageUrl').value || '';
       await addProduct({
-        name:       document.getElementById('apName').value,
-        categoryId: document.getElementById('apCategory').value,
-        price:      Number(document.getElementById('apPrice').value),
-        costPrice:  Number(document.getElementById('apCostPrice').value) || 0,
-        description:document.getElementById('apDesc').value,
-        emoji:      document.getElementById('apEmoji').value || '🍺',
+        name:           document.getElementById('apName').value,
+        categoryId:     document.getElementById('apCategory').value,
+        price:          Number(document.getElementById('apPrice').value),
+        costPrice:      Number(document.getElementById('apCostPrice').value) || 0,
+        description:    document.getElementById('apDesc').value,
+        emoji:          document.getElementById('apEmoji').value || '🍺',
         imageUrl,
-        available:  document.getElementById('apAvailable').checked
+        available:      document.getElementById('apAvailable').checked,
+        unavailableFrom:  document.getElementById('apUnavailableFrom').value || null,
+        unavailableUntil: document.getElementById('apUnavailableUntil').value || null
       });
       showToast('تم إضافة المنتج ✅', 'success');
       closeModal('addProductModal');
@@ -1217,6 +1265,8 @@
     document.getElementById('epEmoji').value      = p.emoji || '🍺';
     document.getElementById('epImageUrl').value = p.imageUrl || '';
     document.getElementById('epAvailable').checked = p.available !== false;
+    document.getElementById('epUnavailableFrom').value  = p.unavailableFrom  || '';
+    document.getElementById('epUnavailableUntil').value = p.unavailableUntil || '';
     const cats = await fetchCategories();
     document.getElementById('epCategory').innerHTML =
       cats.map(c => `<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.icon} ${c.name}</option>`).join('');
@@ -1237,8 +1287,10 @@
         costPrice:   Number(document.getElementById('epCostPrice').value) || 0,
         description: document.getElementById('epDesc').value,
         emoji:       document.getElementById('epEmoji').value || '🍺',
-        imageUrl: document.getElementById('epImageUrl').value || '',
-        available:   document.getElementById('epAvailable').checked
+        imageUrl:       document.getElementById('epImageUrl').value || '',
+        available:      document.getElementById('epAvailable').checked,
+        unavailableFrom:  document.getElementById('epUnavailableFrom').value  || null,
+        unavailableUntil: document.getElementById('epUnavailableUntil').value || null
       });
       showToast('✅ تم تحديث المنتج', 'success');
       closeModal('editProductModal');
