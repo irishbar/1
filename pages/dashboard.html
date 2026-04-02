@@ -417,7 +417,7 @@
   import { auth, db } from '../js/firebase-config.js';
   import { onAuthChange, logout } from '../js/auth.js';
   import { fetchCategories, fetchProducts, addProduct, updateProduct, deleteProduct, addCategory, fetchDeliverySettings, saveDeliverySettings } from '../js/store.js';
-  import { fetchAllOrders, fetchMyOrders, updateOrderStatus, listenToOrders, ORDER_STATUSES, getStatusBadgeClass, formatPrice } from '../js/orders.js';
+  import { fetchAllOrders, fetchMyOrders, updateOrderStatus, cancelOrder, CUSTOMER_CANCELLABLE_STATUSES, listenToOrders, ORDER_STATUSES, getStatusBadgeClass, formatPrice } from '../js/orders.js';
   import { showToast, openModal, closeModal, hideLoader, formatDate } from '../js/ui.js';
 
   window.openModal = openModal;
@@ -653,9 +653,22 @@
     `;
   }
 
-  function renderOrderCard(o) {
-    const badge = getStatusBadgeClass(o.status);
+  function renderOrderCard(o, viewerRole = 'admin') {
+    const badge     = getStatusBadgeClass(o.status);
     const itemsText = o.items?.map(i => `${i.emoji || ''} ${i.name} ×${i.quantity}`).join('، ') || '';
+    const isAdmin   = viewerRole === 'admin' || viewerRole === 'manager';
+
+    // زر الإلغاء للزبون — يظهر فقط قبل خروج السائق
+    const canCustomerCancel = viewerRole === 'customer' &&
+      CUSTOMER_CANCELLABLE_STATUSES.includes(o.status);
+
+    // تنبيه "لا يمكن الإلغاء" للزبون بعد خروج السائق
+    const cancelNote = viewerRole === 'customer' && o.status === 'في التوصيل'
+      ? `<div style="font-size:0.76rem;color:#d97706;margin-top:8px;display:flex;align-items:center;gap:6px;">
+           <i class="fas fa-motorcycle"></i> السائق في الطريق — للإلغاء تواصل مع الإدارة
+         </div>`
+      : '';
+
     return `
       <div class="order-card">
         <div class="order-card-header">
@@ -666,13 +679,31 @@
           <span class="badge ${badge}">${o.status}</span>
         </div>
         <div class="order-customer">${o.customerName}</div>
-        <div class="order-address"><i class="fas fa-phone" style="color:var(--gold);margin-left:4px;"></i>${o.phone} &nbsp;|&nbsp; <i class="fas fa-map-marker-alt" style="color:var(--gold);margin-left:4px;"></i>${o.address}</div>
+        <div class="order-address">
+          <i class="fas fa-phone" style="color:var(--gold);margin-left:4px;"></i>${o.phone}
+          &nbsp;|&nbsp;
+          <i class="fas fa-map-marker-alt" style="color:var(--gold);margin-left:4px;"></i>${o.address}
+        </div>
         <div class="order-items-preview">${itemsText}</div>
+        ${cancelNote}
         <div class="order-footer">
           <div class="order-total">${formatPrice(o.total)}</div>
-          <button class="btn btn-secondary btn-sm" onclick="openStatusModal('${o.id}', '${o.status}')">
-            <i class="fas fa-edit"></i> تحديث
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${isAdmin ? `
+              <button class="btn btn-secondary btn-sm" onclick="openStatusModal('${o.id}', '${o.status}')">
+                <i class="fas fa-edit"></i> تحديث
+              </button>
+              ${o.status !== 'ملغي' && o.status !== 'مكتمل' ? `
+                <button class="btn btn-danger btn-sm" onclick="adminCancelOrder('${o.id}')">
+                  <i class="fas fa-times"></i> إلغاء
+                </button>` : ''}
+            ` : ''}
+            ${canCustomerCancel ? `
+              <button class="btn btn-danger btn-sm" onclick="customerCancelOrder('${o.id}')">
+                <i class="fas fa-times"></i> إلغاء الطلب
+              </button>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -693,6 +724,30 @@
       closeModal('statusModal');
       await renderPage('orders');
     } catch { showToast('حدث خطأ', 'error'); }
+  };
+
+  // ── إلغاء بواسطة الأدمن (أي وقت) ───────────────────────────────────────────
+  window.adminCancelOrder = async function(orderId) {
+    if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) return;
+    try {
+      await cancelOrder(orderId, 'admin');
+      showToast('✅ تم إلغاء الطلب', 'success');
+      await renderPage('orders');
+    } catch (e) {
+      showToast(e.message || 'حدث خطأ أثناء الإلغاء', 'error');
+    }
+  };
+
+  // ── إلغاء بواسطة الزبون (قبل خروج السائق فقط) ───────────────────────────────
+  window.customerCancelOrder = async function(orderId) {
+    if (!confirm('هل أنت متأكد من إلغاء طلبك؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+    try {
+      await cancelOrder(orderId, 'customer');
+      showToast('✅ تم إلغاء طلبك بنجاح', 'success');
+      await renderPage('my-orders');
+    } catch (e) {
+      showToast(e.message || 'تعذّر إلغاء الطلب', 'error');
+    }
   };
 
   // ─────────────────────────────────────
@@ -1111,7 +1166,7 @@
     }
     content.innerHTML = `
       <h2 style="font-family:var(--font-display);color:var(--gold-light);margin-bottom:20px;">طلباتي</h2>
-      ${myOrders.map(o => renderOrderCard(o)).join('')}
+      ${myOrders.map(o => renderOrderCard(o, 'customer')).join('')}
     `;
   }
 
