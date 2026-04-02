@@ -485,6 +485,43 @@
     renderCart();
   });
 
+  // ── منطق التوقيت ──
+  // الأساس: كل المنتجات متاحة افتراضياً
+  // الاستثناء: منتج له فترة إيقاف (unavailableFrom → unavailableUntil) يتوقف في ذلك النطاق فقط
+  // مثال: unavailableFrom="00:00", unavailableUntil="08:00" → يتوقف من منتصف الليل حتى 8 صباحاً
+  function applyTimeAvailability(products) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const toMin = (str) => {
+      if (!str) return null;
+      const [h, m] = str.split(':').map(Number);
+      return h * 60 + (m || 0);
+    };
+    return products.map(p => {
+      // أُوقف يدوياً من الداشبورد → غير متاح
+      if (p.available === false) return p;
+      // لا يوجد نطاق إيقاف زمني → متاح دائماً
+      if (!p.unavailableFrom && !p.unavailableUntil) return p;
+      const from  = toMin(p.unavailableFrom);
+      const until = toMin(p.unavailableUntil);
+      let inStopWindow;
+      if (from != null && until != null) {
+        // يدعم النطاقات التي تمر بمنتصف الليل مثل 00:00 → 08:00
+        inStopWindow = from <= until
+          ? currentMinutes >= from && currentMinutes < until
+          : currentMinutes >= from || currentMinutes < until;
+      } else if (from != null) {
+        inStopWindow = currentMinutes >= from;
+      } else {
+        inStopWindow = currentMinutes < until;
+      }
+      return { ...p, available: !inStopWindow };
+    });
+  }
+      return { ...p, available: inWindow ? (p.available !== false) : false };
+    });
+  }
+
   async function loadStore() {
     try {
       [categories, allProducts, deliverySettings, agents] = await Promise.all([
@@ -494,9 +531,10 @@
         fetchAgents(),
         agentSettingsReady
       ]);
+      allProducts = applyTimeAvailability(allProducts);
       renderCategories();
       renderAllByCategory();
-      loadPromoBanner(); // ← بنر ديناميكي
+      loadPromoBanner();
     } catch (e) {
       showToast('تعذّر تحميل المنتجات', 'error');
       hideLoader();
@@ -800,9 +838,10 @@
     const splitRow = document.getElementById('profitSplitRow');
     if (selectedLocation?.agent && fee > 0) {
       const agent = selectedLocation.agent;
-      const { agentShare, platformShare } = calcProfitSplit(fee, agent);
+      const { agentShare, platformShare } = calcProfitSplit(products + fee, fee, agent);
       document.getElementById('agentShare').textContent    = formatPrice(agentShare);
       document.getElementById('platformShare').textContent = formatPrice(platformShare);
+      // المجموع الكلي = منتجات + توصيل + عمولة وكيل + عمولة منصة (كلٌّ مستقل)
       document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + agentShare + platformShare);
       // Agent label
       const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
@@ -915,7 +954,8 @@
       }
 
       const cart = getCart();
-      const { agentShare, platformShare } = calcProfitSplit(selectedLocation.fee, selectedLocation.agent);
+      const _cartTotal = getCartTotal(cart);
+      const { agentShare, platformShare } = calcProfitSplit(_cartTotal + selectedLocation.fee, selectedLocation.fee, selectedLocation.agent);
       const order = await createOrder({
         customerId:    currentUser?.uid || 'guest',
         customerName:  document.getElementById('chName').value,
@@ -931,7 +971,7 @@
         agentShare:    selectedLocation.agent ? agentShare : 0,
         platformShare: selectedLocation.agent ? platformShare : selectedLocation.fee,
         items:         cart,
-        total:         getCartTotal(cart) + selectedLocation.fee + (selectedLocation.agent ? agentShare + platformShare : 0)
+        total:         getCartTotal(cart) + selectedLocation.fee + agentShare + platformShare  // منتجات + توصيل + عمولة وكيل + عمولة منصة
       });
 
       // Capture values before clearing state
@@ -940,7 +980,7 @@
       const invoiceAgent         = selectedLocation.agent;
       const invoiceAgentShare    = invoiceAgent ? agentShare : 0;
       const invoicePlatformShare = invoiceAgent ? platformShare : selectedLocation.fee;
-      const invoiceGrandTotal    = invoiceProductsTotal + invoiceFee;
+      const invoiceGrandTotal    = invoiceProductsTotal + invoiceFee + invoiceAgentShare + invoicePlatformShare;
       const invoicePayment       = selectedPayment;
 
       clearCart();
