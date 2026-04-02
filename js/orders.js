@@ -4,9 +4,12 @@
 import { db } from './firebase-config.js';
 import {
   collection, addDoc, getDocs, doc, updateDoc, getDoc,
-  query, orderBy, where, onSnapshot
+  query, orderBy, where, onSnapshot, increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { fetchAgents, getCoverageStatus, AGENT_COMMISSION_RATE } from './agents.js';
+
+// الحالات التي يُسمح فيها للزبون بالإلغاء (قبل خروج السائق)
+export const CUSTOMER_CANCELLABLE_STATUSES = ['جديد', 'قيد التجهيز'];
 
 // ──────────────────────────────────────────
 // TELEGRAM NOTIFICATION
@@ -256,6 +259,57 @@ export async function updateOrderStatus(orderId, status) {
   await updateDoc(doc(db, 'orders', orderId), { status });
   // 🔔 Send Telegram notification for completed/cancelled
   sendStatusNotification(orderId, status);
+}
+
+// ── Cancel Order ──────────────────────────────────────────────────────────────
+// cancelledBy: 'customer' | 'admin'
+// الزبون: يُسمح له فقط قبل خروج السائق (جديد / قيد التجهيز)
+// الأدمن:  يستطيع الإلغاء في أي وقت
+export async function cancelOrder(orderId, cancelledBy = 'admin') {
+  const orderSnap = await getDoc(doc(db, 'orders', orderId));
+  if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
+  const order = { id: orderId, ...orderSnap.data() };
+
+  // التحقق من صلاحية الزبون
+  if (cancelledBy === 'customer') {
+    if (!CUSTOMER_CANCELLABLE_STATUSES.includes(order.status)) {
+      throw new Error('لا يمكن إلغاء الطلب بعد خروج السائق — تواصل مع الإدارة');
+    }
+  }
+
+  // تحديث حالة الطلب
+  await updateDoc(doc(db, 'orders', orderId), {
+    status:      'ملغي',
+    cancelledBy,
+    cancelledAt: new Date().toISOString()
+  });
+
+  // ── استرجاع رصيد السائق إن كان قد خُصم ──────────────────────────────────
+  if (order.driverId && order.driverDeduction > 0) {
+    try {
+      await updateDoc(doc(db, 'drivers', order.driverId), {
+        balance:   increment(order.driverDeduction),
+        updatedAt: new Date().toISOString()
+      });
+      // تسجيل الاسترجاع في سجل التعزيزات
+      await addDoc(collection(db, 'balance_topups'), {
+        targetId:     order.driverId,
+        targetType:   'driver_refund',
+        orderId,
+        creditAmount: order.driverDeduction,
+        paidAmount:   0,
+        note: `استرجاع — طلب ملغي #${orderId.slice(-6).toUpperCase()}`,
+        createdAt:    new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Driver refund failed:', e);
+    }
+  }
+
+  // 🔔 إشعار Telegram
+  sendStatusNotification(orderId, 'ملغي');
+
+  return order;
 }
 
 // ── Real-time Orders Listener (for admin) ──
