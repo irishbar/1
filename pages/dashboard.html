@@ -398,10 +398,18 @@
       </div>
       <div class="form-group">
         <label class="form-label">الصلاحية</label>
-        <select class="form-select" id="umRole">
+        <select class="form-select" id="umRole" onchange="toggleDriverAgentField(this.value)">
           <option value="customer">🛒 عميل</option>
+          <option value="agent">🏪 وكيل</option>
+          <option value="driver">🏍️ سائق</option>
           <option value="manager">🔧 مدير</option>
           <option value="admin">👑 مدير عام</option>
+        </select>
+      </div>
+      <div id="umDriverAgentGroup" class="form-group" style="display:none;">
+        <label class="form-label">ربط السائق بوكيل <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — يمكن ربطه لاحقاً)</span></label>
+        <select class="form-select" id="umDriverAgentId">
+          <option value="">— بدون وكيل —</option>
         </select>
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="userSubmitBtn">
@@ -413,11 +421,109 @@
   </div>
 </div>
 
+<!-- ── Add Agent Modal ── -->
+<div class="modal-overlay" id="addAgentModal">
+  <div class="modal-box" style="max-width:480px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-user-plus"></i> إضافة وكيل جديد</div>
+      <button class="modal-close" onclick="closeModal('addAgentModal')">✕</button>
+    </div>
+    <div class="modal-body" id="addAgentBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addAgentModal')">إلغاء</button>
+      <button class="btn btn-primary" id="addAgentBtn" onclick="submitAddAgent()">
+        <i class="fas fa-plus"></i> إضافة
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Agent Modal ── -->
+<div class="modal-overlay" id="editAgentModal">
+  <div class="modal-box" style="max-width:480px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-user-edit"></i> تعديل بيانات الوكيل</div>
+      <button class="modal-close" onclick="closeModal('editAgentModal')">✕</button>
+    </div>
+    <div class="modal-body" id="editAgentBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editAgentModal')">إلغاء</button>
+      <button class="btn btn-primary" id="saveEditAgentBtn" onclick="submitEditAgent()">
+        <i class="fas fa-save"></i> حفظ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Agent Balance Top-up Modal ── -->
+<div class="modal-overlay" id="topupAgentModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-wallet"></i> تعزيز رصيد الوكيل</div>
+      <button class="modal-close" onclick="closeModal('topupAgentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="topupAgentId">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">الوكيل</div>
+        <div style="font-weight:800;font-size:1rem;" id="topupAgentName">—</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">الرصيد الحالي:
+          <strong id="topupAgentCurrentBalance" style="color:var(--green);">—</strong>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المدفوع من الوكيل (د.ع)</label>
+        <input type="number" class="form-input" id="topupAgentPaid" placeholder="مثال: 8000" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الرصيد المُضاف للوكيل (د.ع)</label>
+        <input type="number" class="form-input" id="topupAgentCredit" placeholder="مثال: 100000" min="0">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">ملاحظة (اختياري)</label>
+        <input type="text" class="form-input" id="topupAgentNote" placeholder="سبب التعزيز أو رقم الباقة...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('topupAgentModal')">إلغاء</button>
+      <button class="btn btn-primary" id="topupAgentBtn" onclick="submitTopupAgent()">
+        <i class="fas fa-check-circle"></i> تأكيد التعزيز
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assign Agent Modal ── -->
+<div class="modal-overlay" id="assignAgentModal">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-user-tie"></i> تعيين وكيل للطلب</div>
+      <button class="modal-close" onclick="closeModal('assignAgentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="assignAgentOrderId">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">اختر الوكيل</label>
+        <select class="form-input" id="assignAgentSelect"></select>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
+          سيتغير حالة الطلب إلى <strong>قيد التجهيز</strong> ويُرسَل إشعار تلجرام للوكيل تلقائياً
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assignAgentModal')">إلغاء</button>
+      <button class="btn btn-primary" id="assignAgentBtn" onclick="confirmAssignAgent()">
+        <i class="fas fa-check"></i> تأكيد
+      </button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { auth, db } from '../js/firebase-config.js';
   import { onAuthChange, logout } from '../js/auth.js';
   import { fetchCategories, fetchProducts, addProduct, updateProduct, deleteProduct, addCategory, fetchDeliverySettings, saveDeliverySettings } from '../js/store.js';
-  import { fetchAllOrders, fetchMyOrders, updateOrderStatus, cancelOrder, CUSTOMER_CANCELLABLE_STATUSES, listenToOrders, ORDER_STATUSES, getStatusBadgeClass, formatPrice } from '../js/orders.js';
+  import { fetchAllOrders, fetchMyOrders, updateOrderStatus, cancelOrder, assignAgentToOrder, CUSTOMER_CANCELLABLE_STATUSES, listenToOrders, ORDER_STATUSES, getStatusBadgeClass, formatPrice, submitOrderRating } from '../js/orders.js';
   import { showToast, openModal, closeModal, hideLoader, formatDate } from '../js/ui.js';
 
   window.openModal = openModal;
@@ -658,16 +764,16 @@
     const itemsText = o.items?.map(i => `${i.emoji || ''} ${i.name} ×${i.quantity}`).join('، ') || '';
     const isAdmin   = viewerRole === 'admin' || viewerRole === 'manager';
 
-    // زر الإلغاء للزبون — يظهر فقط قبل خروج السائق
-    const canCustomerCancel = viewerRole === 'customer' &&
-      CUSTOMER_CANCELLABLE_STATUSES.includes(o.status);
+    const productsTotal = (o.items || []).reduce((s, i) => s + ((i.price || 0) * (i.quantity || 1)), 0);
+    const grandTotal    = productsTotal + (o.deliveryFee || 0) + (o.agentShare || 0) + (o.platformShare || 0);
 
-    // تنبيه "لا يمكن الإلغاء" للزبون بعد خروج السائق
+    const canCustomerCancel = viewerRole === 'customer' && CUSTOMER_CANCELLABLE_STATUSES.includes(o.status);
     const cancelNote = viewerRole === 'customer' && o.status === 'في التوصيل'
       ? `<div style="font-size:0.76rem;color:#d97706;margin-top:8px;display:flex;align-items:center;gap:6px;">
            <i class="fas fa-motorcycle"></i> السائق في الطريق — للإلغاء تواصل مع الإدارة
-         </div>`
-      : '';
+         </div>` : '';
+
+    const canAssignAgent = isAdmin && !o.agentId && o.status === 'جديد';
 
     return `
       <div class="order-card">
@@ -682,14 +788,41 @@
         <div class="order-address">
           <i class="fas fa-phone" style="color:var(--gold);margin-left:4px;"></i>${o.phone}
           &nbsp;|&nbsp;
-          <i class="fas fa-map-marker-alt" style="color:var(--gold);margin-left:4px;"></i>${o.address}
+          <i class="fas fa-map-marker-alt" style="color:var(--gold);margin-left:4px;"></i>${o.address || '—'}
         </div>
+        ${o.location ? `<div style="font-size:0.78rem;margin-top:4px;">
+          <a href="https://www.google.com/maps?q=${o.location.lat},${o.location.lng}" target="_blank" style="color:var(--blue);">
+            <i class="fas fa-map"></i> عرض الموقع على الخارطة
+          </a></div>` : ''}
         <div class="order-items-preview">${itemsText}</div>
+
+        <!-- تفاصيل المبالغ -->
+        <div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:0.82rem;">
+          <div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:4px;">
+            <span>المنتجات</span><span>${formatPrice(productsTotal)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:4px;">
+            <span>التوصيل</span><span>${formatPrice(o.deliveryFee || 0)}</span>
+          </div>
+          ${o.agentShare ? `<div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:4px;">
+            <span>عمولة الوكيل ${o.agentName ? '('+o.agentName+')' : ''}</span><span>${formatPrice(o.agentShare)}</span>
+          </div>` : ''}
+          ${o.driverName ? `<div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:4px;">
+            <span>السائق</span><span>${o.driverName}</span>
+          </div>` : ''}
+          <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--text-primary);border-top:1px solid var(--border);padding-top:6px;margin-top:4px;">
+            <span>الإجمالي</span><span style="color:var(--gold-dark);">${formatPrice(grandTotal)}</span>
+          </div>
+        </div>
+
         ${cancelNote}
-        <div class="order-footer">
-          <div class="order-total">${formatPrice(o.total)}</div>
-          <div style="display:flex;gap:8px;align-items:center;">
+        <div class="order-footer" style="margin-top:10px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
             ${isAdmin ? `
+              ${canAssignAgent ? `
+                <button class="btn btn-primary btn-sm" onclick="openAssignAgentModal('${o.id}')">
+                  <i class="fas fa-user-tie"></i> تعيين وكيل
+                </button>` : ''}
               <button class="btn btn-secondary btn-sm" onclick="openStatusModal('${o.id}', '${o.status}')">
                 <i class="fas fa-edit"></i> تحديث
               </button>
@@ -701,8 +834,15 @@
             ${canCustomerCancel ? `
               <button class="btn btn-danger btn-sm" onclick="customerCancelOrder('${o.id}')">
                 <i class="fas fa-times"></i> إلغاء الطلب
-              </button>
-            ` : ''}
+              </button>` : ''}
+            ${viewerRole === 'customer' && o.needsRating ? `
+              <button class="btn btn-primary btn-sm" style="background:var(--gold);border-color:var(--gold);" onclick="openRatingModal('${o.id}','${(o.driverName||'').replace(/'/g,"\\'")}')">
+                <i class="fas fa-star"></i> تقييم السائق
+              </button>` : ''}
+            ${viewerRole === 'customer' && o.driverRating ? `
+              <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
+                <i class="fas fa-star" style="color:var(--gold);"></i> تقييمك: ${o.driverRating}/5
+              </div>` : ''}
           </div>
         </div>
       </div>
@@ -748,6 +888,54 @@
     } catch (e) {
       showToast(e.message || 'تعذّر إلغاء الطلب', 'error');
     }
+  };
+
+  // ── تعيين وكيل يدوياً للطلب (أدمن) ──────────────────────────────────────────
+  let _allAgentsCache = [];
+  window.openAssignAgentModal = async function(orderId) {
+    document.getElementById('assignAgentOrderId').value = orderId;
+    const { getDocs, collection: col } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const snap = await getDocs(col(db, 'agents'));
+    _allAgentsCache = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(a => a.active !== false);
+
+    // ── اقتراح الوكيل الأقرب حسب موقع الطلب ──────────────────────────────
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (targetOrder?.location && _allAgentsCache.length) {
+      const { lat, lng } = targetOrder.location;
+      function hav(la1,lo1,la2,lo2){
+        const R=6371,dLat=(la1-la2)*Math.PI/180,dLng=(lo1-lo2)*Math.PI/180;
+        const a=Math.sin(dLat/2)**2+Math.cos(la2*Math.PI/180)*Math.cos(la1*Math.PI/180)*Math.sin(dLng/2)**2;
+        return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+      }
+      _allAgentsCache = _allAgentsCache
+        .map(a => ({ ...a, _dist: (a.lat && a.lng) ? hav(lat,lng,a.lat,a.lng) : 9999 }))
+        .sort((a, b) => a._dist - b._dist);
+    }
+
+    const sel = document.getElementById('assignAgentSelect');
+    sel.innerHTML = _allAgentsCache.map((a, i) => {
+      const distLabel = a._dist < 9999 ? ` — ${a._dist.toFixed(1)} كم` : '';
+      const nearest   = i === 0 && a._dist < 9999 ? ' ⭐ الأقرب' : '';
+      return `<option value="${a.id}">${a.name} — ${a.governorate || ''} ${a.district || ''}${distLabel}${nearest}</option>`;
+    }).join('');
+    openModal('assignAgentModal');
+  };
+  window.confirmAssignAgent = async function() {
+    const orderId  = document.getElementById('assignAgentOrderId').value;
+    const agentId  = document.getElementById('assignAgentSelect').value;
+    const agent    = _allAgentsCache.find(a => a.id === agentId);
+    if (!agent) { showToast('اختر وكيلاً', 'warning'); return; }
+    const btn = document.getElementById('assignAgentBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+      await assignAgentToOrder(orderId, agent);
+      showToast(`✅ تم تعيين الوكيل ${agent.name} وإرسال الإشعار`, 'success');
+      closeModal('assignAgentModal');
+      await renderPage('orders');
+    } catch (e) {
+      showToast(e.message || 'حدث خطأ', 'error');
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> تأكيد';
   };
 
   // ─────────────────────────────────────
@@ -1009,8 +1197,8 @@
     const snap = await getDocs(collection(db, 'users'));
     const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const roleColors = { admin: 'badge-gold', manager: 'badge-blue', customer: 'badge-gray' };
-    const roleLabels = { admin: '👑 مدير عام', manager: '🔧 مدير', customer: '🛒 عميل' };
+    const roleColors = { admin: 'badge-gold', manager: 'badge-blue', agent: 'badge-green', driver: 'badge-blue', customer: 'badge-gray' };
+    const roleLabels = { admin: '👑 مدير عام', manager: '🔧 مدير', agent: '🏪 وكيل', driver: '🏍️ سائق', customer: '🛒 عميل' };
 
     content.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -1061,12 +1249,32 @@
     `;
   }
 
+  // تحميل قائمة الوكلاء لقائمة ربط السائق
+  async function loadAgentsForSelect() {
+    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    const snap = await getDocs(collection(db, 'agents'));
+    const sel = document.getElementById('umDriverAgentId');
+    sel.innerHTML = '<option value="">— بدون وكيل —</option>' +
+      snap.docs.map(d => `<option value="${d.id}">${d.data().name || d.id}</option>`).join('');
+  }
+
+  window.toggleDriverAgentField = function(role) {
+    const grp = document.getElementById('umDriverAgentGroup');
+    if (role === 'driver') {
+      grp.style.display = '';
+      loadAgentsForSelect();
+    } else {
+      grp.style.display = 'none';
+    }
+  };
+
   window.openAddUser = function() {
     document.getElementById('umId').value = '';
     document.getElementById('umName').value = '';
     document.getElementById('umEmail').value = '';
     document.getElementById('umPass').value = '';
     document.getElementById('umRole').value = 'customer';
+    document.getElementById('umDriverAgentGroup').style.display = 'none';
     document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> إضافة مستخدم';
     document.getElementById('umEmailGroup').style.display = '';
     document.getElementById('umPassGroup').style.display = '';
@@ -1079,6 +1287,7 @@
     document.getElementById('umEmail').value = email;
     document.getElementById('umPass').value = '';
     document.getElementById('umRole').value = role;
+    document.getElementById('umDriverAgentGroup').style.display = 'none';
     document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-edit"></i> تعديل المستخدم';
     document.getElementById('umEmailGroup').style.display = 'none';
     document.getElementById('umPassGroup').style.display = 'none';
@@ -1096,18 +1305,59 @@
     try {
       const { setDoc, updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
       if (id) {
-        // Edit existing — update Firestore only
+        // تعديل مستخدم موجود
         await updateDoc(doc(db, 'users', id), { name, role });
         showToast('✅ تم تحديث المستخدم', 'success');
       } else {
-        // Add new — create via Admin API is needed for Auth
-        // We just create Firestore record; email/pass handled separately
-        const email = document.getElementById('umEmail').value;
-        // Create a placeholder doc with generated ID
-        const newId = 'manual_' + Date.now();
-        await setDoc(doc(db, 'users', newId), { name, email, role });
-        showToast('✅ تم إضافة المستخدم في قاعدة البيانات', 'success');
-        showToast('⚠️ أنشئ حساب Auth يدوياً من Firebase Console', 'info', 5000);
+        // إنشاء مستخدم جديد باستخدام تطبيق Firebase ثانوي مؤقت
+        const email    = document.getElementById('umEmail').value.trim();
+        const password = document.getElementById('umPass').value;
+        if (!email || !password) { showToast('البريد وكلمة المرور مطلوبان', 'warning'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ'; return; }
+        const { initializeApp, deleteApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+        const { getAuth: getSecondaryAuth, createUserWithEmailAndPassword } =
+          await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+        // استخدم تطبيق ثانوي حتى لا يؤثر على جلسة الأدمن
+        const secondaryApp = initializeApp(
+          { apiKey: "AIzaSyA1jo8L1gLSsDkJa7k0p17SpMXV35d-VcQ", authDomain: "irish-a68ec.firebaseapp.com", projectId: "irish-a68ec", appId: "1:305458859946:web:722d1f79633e0906e7a5d3" },
+          'secondary-' + Date.now()
+        );
+        const secondaryAuth = getSecondaryAuth(secondaryApp);
+        let newUser = null;
+        try {
+          const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+          newUser = cred.user;
+          const newUid = newUser.uid;
+          // اكتب الـ doc باستخدام Firestore المرتبط بالتطبيق الثانوي (المستخدم الجديد يكتب doc نفسه)
+          // هذا يتجاوز مشكلة الصلاحيات لأن request.auth.uid == userId
+          const { getFirestore: getSecondaryFirestore, doc: docFn, setDoc: setDocFn } =
+            await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+          const secondaryDb = getSecondaryFirestore(secondaryApp);
+          await setDocFn(docFn(secondaryDb, 'users', newUid), { name, email, role, createdAt: new Date().toISOString() });
+          // إذا كان السائق: أنشئ سجل driver في Firestore تلقائياً
+          if (role === 'driver') {
+            const { addDoc, collection: col2 } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+            const agentId = document.getElementById('umDriverAgentId')?.value || null;
+            await addDoc(col2(db, 'drivers'), {
+              userId:   newUid,
+              agentId:  agentId || null,
+              name,
+              phone:    '',
+              balance:  0,
+              active:   true,
+              createdAt: new Date().toISOString()
+            });
+          }
+        } catch (innerErr) {
+          // إذا فشلت الكتابة في Firestore بعد إنشاء الحساب → احذف حساب Auth لتجنب الحسابات اليتيمة
+          if (newUser) {
+            try { await newUser.delete(); } catch {}
+          }
+          throw innerErr;
+        } finally {
+          // احذف التطبيق الثانوي دائماً بعد الانتهاء
+          deleteApp(secondaryApp).catch(() => {});
+        }
+        showToast('✅ تم إنشاء الحساب بنجاح', 'success');
       }
       closeModal('userModal');
       await renderPage('users');
@@ -2299,7 +2549,7 @@
         <div style="text-align:center;padding:40px;color:var(--text-muted);">
           <div style="font-size:3rem;margin-bottom:12px;">🤝</div>
           <div style="font-weight:600;">لا يوجد وكلاء بعد</div>
-          <div style="font-size:0.83rem;margin-top:6px;">أضف أول وكيل من النموذج أدناه</div>
+          <div style="font-size:0.83rem;margin-top:6px;">اضغط "إضافة وكيل" لإضافة أول وكيل</div>
         </div>`;
 
       return agents.map(a => {
@@ -2367,6 +2617,10 @@
                   style="color:${isActive?'#e67e22':'var(--green)'};">
                 </i> ${isActive ? 'إيقاف' : 'تفعيل'}
               </button>
+              <button onclick="openTopupAgentModal('${a.id}','${(a.name||'').replace(/'/g,"\\'")}',${a.balance||0})"
+                class="btn btn-ghost btn-sm" style="color:var(--green);" title="تعزيز رصيد">
+                <i class="fas fa-wallet"></i>
+              </button>
               <button onclick="deleteAgentConfirm('${a.id}','${(a.name||'').replace(/'/g,"\\'")}')"
                 class="btn btn-ghost btn-sm" style="color:#c0392b;" title="حذف">
                 <i class="fas fa-trash"></i>
@@ -2376,289 +2630,210 @@
       }).join('');
     }
 
+    // بناء HTML خيارات المستخدمين (agent + غير مرتبطين)
+    function userOptionsForAgent(selectedId = '') {
+      const eligible = users.filter(u => !u.role || u.role === 'customer' || u.role === 'agent' || u.id === selectedId);
+      return `<option value="">— بدون حساب —</option>` +
+        eligible.map(u =>
+          `<option value="${u.id}" ${u.id === selectedId ? 'selected' : ''}>${u.name || u.email} (${u.email || u.id})</option>`
+        ).join('');
+    }
+
+    // HTML مشترك لحقول الوكيل — يُستخدم في كلا الموديلَين
+    function agentFormFields(prefix, a = {}) {
+      const govVal  = a.governorate || '';
+      const distVal = a.district    || '';
+      return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">الاسم *</label>
+            <input type="text" class="form-input" id="${prefix}Name" value="${a.name||''}" placeholder="محمد أحمد">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">الهاتف *</label>
+            <input type="text" class="form-input" id="${prefix}Phone" value="${a.phone||''}" placeholder="07XXXXXXXXX" dir="ltr">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">خط العرض *</label>
+            <input type="number" step="any" class="form-input" id="${prefix}Lat" value="${a.lat||''}" placeholder="32.61234" dir="ltr">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">خط الطول *</label>
+            <input type="number" step="any" class="form-input" id="${prefix}Lng" value="${a.lng||''}" placeholder="44.00123" dir="ltr">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">المحافظة *</label>
+            <select class="form-input" id="${prefix}Gov" onchange="updateAgentDistricts(this.value,'${prefix}Dist')">
+              ${govOptions(govVal)}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">القضاء *</label>
+            <select class="form-input" id="${prefix}Dist">${distOptions(govVal, distVal)}</select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">نوع العمولة</label>
+            <select class="form-input" id="${prefix}CommType">
+              <option value="percent" ${(a.commissionType||'percent')==='percent'?'selected':''}>نسبة %</option>
+              <option value="fixed"   ${a.commissionType==='fixed'?'selected':''}>مبلغ ثابت</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">قيمة العمولة</label>
+            <input type="number" min="0" class="form-input" id="${prefix}CommRate" value="${a.commissionRate??''}" placeholder="${defaultCommissionRate}" dir="ltr">
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = الافتراضية</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">نطاق التغطية (كيلومتر) *</label>
+          <input type="number" min="1" max="100" step="any" class="form-input" id="${prefix}CoverageKm" value="${a.coverageKm||''}" placeholder="8" dir="ltr">
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Telegram Chat ID <span style="color:var(--text-muted);font-size:0.75rem;">(لإشعارات الطلبات)</span></label>
+          <input type="text" class="form-input" id="${prefix}TelegramId" value="${a.telegramId||''}" placeholder="123456789" dir="ltr" inputmode="numeric">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">ربط بحساب مستخدم</label>
+          <select class="form-input" id="${prefix}UserId">
+            ${userOptionsForAgent(a.userId||'')}
+          </select>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">
+            سيُمنح الحساب صلاحية <strong>وكيل</strong> — يدخل عبر صفحة تسجيل الدخول العادية
+          </div>
+        </div>
+      `;
+    }
+
     content.innerHTML = `
-      <div style="margin-bottom:20px;">
-        <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:4px;">
-          <i class="fas fa-user-tie" style="color:var(--gold);margin-left:8px;"></i>إدارة الوكلاء
-        </h2>
-        <p style="color:var(--text-muted);font-size:0.83rem;">
-          العمولة تُحسَب من <strong style="color:var(--gold-dark);">هامش الربح</strong> (سعر البيع − سعر الشراء) × نسبة الوكيل.
-          النسبة الافتراضية: <strong>${defaultCommissionRate}%</strong>
-          — <a href="#" onclick="navigateTo('setup');return false;" style="color:var(--gold);">تغيير الافتراضية</a>
-        </p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-family:var(--font-display);color:var(--gold-dark);font-size:1.4rem;margin-bottom:2px;">
+            <i class="fas fa-user-tie" style="color:var(--gold);margin-left:8px;"></i>إدارة الوكلاء
+          </h2>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin:0;">
+            النسبة الافتراضية: <strong>${defaultCommissionRate}%</strong> —
+            <a href="#" onclick="navigateTo('setup');return false;" style="color:var(--gold);">تغيير</a>
+          </p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openAddAgentModal()">
+          <i class="fas fa-plus"></i> إضافة وكيل
+        </button>
       </div>
 
-      <!-- Table -->
-      <div class="section-card" style="margin-bottom:20px;">
+      <div class="section-card">
         <div class="section-card-header">
           <div class="section-card-title"><i class="fas fa-users"></i> قائمة الوكلاء</div>
+          <span class="badge badge-gold">${agents.length}</span>
         </div>
         <div class="section-card-body">${renderTable(agents)}</div>
       </div>
-
-      <!-- Add Agent -->
-      <div class="section-card">
-        <div class="section-card-header">
-          <div class="section-card-title"><i class="fas fa-user-plus"></i> إضافة وكيل جديد</div>
-        </div>
-        <div class="section-card-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">اسم الوكيل *</label>
-              <input type="text" class="form-input" id="agentName" placeholder="محمد أحمد">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">رقم الهاتف *</label>
-              <input type="text" class="form-input" id="agentPhone" placeholder="07XXXXXXXXX" dir="ltr">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">خط العرض *</label>
-              <input type="number" step="any" class="form-input" id="agentLat" placeholder="32.61234" dir="ltr">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">خط الطول *</label>
-              <input type="number" step="any" class="form-input" id="agentLng" placeholder="44.00123" dir="ltr">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">المحافظة *</label>
-              <select class="form-input" id="agentGov"
-                onchange="updateAgentDistricts(this.value,'agentDist')">
-                ${govOptions()}
-              </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">القضاء *</label>
-              <select class="form-input" id="agentDist">
-                <option value="">— اختر المحافظة أولاً —</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label">ربط بحساب مستخدم</label>
-            <select class="form-input" id="agentUserId">
-              ${userOptions()}
-            </select>
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
-              سيُمنح الحساب المختار صلاحية <strong>وكيل</strong> ويتمكن من الدخول للوحة الوكيل
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">عمولة الوكيل</label>
-              <div style="display:grid;grid-template-columns:110px 1fr;gap:6px;margin-bottom:3px;">
-                <select class="form-input" id="agentCommType">
-                  <option value="percent">نسبة %</option>
-                  <option value="fixed">مبلغ ثابت</option>
-                </select>
-                <input type="number" min="0" class="form-input" id="agentCommRate"
-                  placeholder="${defaultCommissionRate}" dir="ltr">
-              </div>
-              <div style="font-size:0.72rem;color:var(--text-muted);">فارغ = تطبيق الافتراضية</div>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">نطاق التغطية (كيلومتر) *</label>
-              <input type="number" min="1" max="100" step="any" class="form-input" id="agentCoverageKm"
-                placeholder="8" dir="ltr">
-              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">المسافة التي يغطيها هذا الوكيل</div>
-            </div>
-          </div>
-          <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:6px;align-items:center;margin-bottom:16px;">
-            <i class="fas fa-lightbulb" style="color:var(--gold);"></i>
-            افتح Google Maps ← اضغط على موقع الوكيل ← انسخ الإحداثيات
-          </div>
-          <button onclick="submitAddAgent()" class="btn btn-primary btn-block" id="addAgentBtn">
-            <i class="fas fa-plus"></i> إضافة الوكيل
-          </button>
-        </div>
-      </div>
-
-      <!-- Edit Modal -->
-      <div id="editAgentModal" class="modal-overlay" style="display:none;">
-        <div class="modal-box" style="max-width:460px;">
-          <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-user-edit"></i> تعديل بيانات الوكيل</div>
-            <button class="modal-close" onclick="document.getElementById('editAgentModal').style.display='none'">✕</button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" id="editAgentId">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">الاسم</label>
-                <input type="text" class="form-input" id="editAgentName">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">الهاتف</label>
-                <input type="text" class="form-input" id="editAgentPhone" dir="ltr">
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">خط العرض</label>
-                <input type="number" step="any" class="form-input" id="editAgentLat" dir="ltr">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">خط الطول</label>
-                <input type="number" step="any" class="form-input" id="editAgentLng" dir="ltr">
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">عمولة الوكيل</label>
-                <div style="display:grid;grid-template-columns:100px 1fr;gap:6px;margin-bottom:2px;">
-                  <select class="form-input" id="editAgentCommType">
-                    <option value="percent">نسبة %</option>
-                    <option value="fixed">مبلغ ثابت</option>
-                  </select>
-                  <input type="number" min="0" class="form-input" id="editAgentCommRate" dir="ltr">
-                </div>
-                <div style="font-size:0.7rem;color:var(--text-muted);">فارغ = افتراضية</div>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">نطاق التغطية (كيلومتر)</label>
-                <input type="number" min="1" max="100" step="any" class="form-input" id="editAgentCoverageKm" dir="ltr">
-                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">المسافة التي يغطيها الوكيل</div>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">المحافظة</label>
-                <select class="form-input" id="editAgentGov"
-                  onchange="updateAgentDistricts(this.value,'editAgentDist')">
-                  ${govOptions()}
-                </select>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">القضاء</label>
-                <select class="form-input" id="editAgentDist">
-                  <option value="">— اختر المحافظة أولاً —</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group" style="margin-top:12px;margin-bottom:0;">
-              <label class="form-label">ربط بحساب مستخدم</label>
-              <select class="form-input" id="editAgentUserId">
-                ${userOptions()}
-              </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="document.getElementById('editAgentModal').style.display='none'">إلغاء</button>
-            <button class="btn btn-primary" id="saveEditAgentBtn" onclick="submitEditAgent()">
-              <i class="fas fa-save"></i> حفظ
-            </button>
-          </div>
-        </div>
-      </div>
     `;
+
+    window.openAddAgentModal = function() {
+      document.getElementById('addAgentBody').innerHTML = agentFormFields('ag');
+      openModal('addAgentModal');
+    };
 
     window.submitAddAgent = async function() {
       const btn         = document.getElementById('addAgentBtn');
-      const name        = document.getElementById('agentName').value.trim();
-      const phone       = document.getElementById('agentPhone').value.trim();
-      const lat         = parseFloat(document.getElementById('agentLat').value);
-      const lng         = parseFloat(document.getElementById('agentLng').value);
-      const coverageKm  = parseFloat(document.getElementById('agentCoverageKm').value);
-      const commRaw     = document.getElementById('agentCommRate').value;
-      const governorate = document.getElementById('agentGov').value;
-      const district    = document.getElementById('agentDist').value;
-      const linkedUserId = document.getElementById('agentUserId').value;
+      const name        = document.getElementById('agName').value.trim();
+      const phone       = document.getElementById('agPhone').value.trim();
+      const lat         = parseFloat(document.getElementById('agLat').value);
+      const lng         = parseFloat(document.getElementById('agLng').value);
+      const coverageKm  = parseFloat(document.getElementById('agCoverageKm').value);
+      const governorate = document.getElementById('agGov').value;
+      const district    = document.getElementById('agDist').value;
+      const commRaw     = document.getElementById('agCommRate').value;
+      const telegramId  = document.getElementById('agTelegramId').value.trim() || null;
+      const linkedUserId = document.getElementById('agUserId').value;
 
       if (!name || !phone || isNaN(lat) || isNaN(lng) || isNaN(coverageKm)) {
-        showToast('يرجى تعبئة جميع الحقول المطلوبة بما فيها نطاق التغطية', 'warning'); return;
+        showToast('يرجى تعبئة الاسم والهاتف والإحداثيات والتغطية', 'warning'); return;
       }
       if (!governorate || !district) {
         showToast('يرجى اختيار المحافظة والقضاء', 'warning'); return;
       }
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       try {
         const agentData = { name, phone, lat, lng, coverageKm, governorate, district, active: true, createdAt: new Date().toISOString() };
+        if (telegramId) agentData.telegramId = telegramId;
         if (commRaw !== '') {
           agentData.commissionRate = parseFloat(commRaw);
-          agentData.commissionType = document.getElementById('agentCommType').value;
+          agentData.commissionType = document.getElementById('agCommType').value;
         }
         if (linkedUserId) {
           agentData.userId = linkedUserId;
-          // Grant agent role to the linked user
           await setDoc(doc(db, 'users', linkedUserId), { role: 'agent' }, { merge: true });
         }
         await addDoc(collection(db, 'agents'), agentData);
+        closeModal('addAgentModal');
         showToast('✅ تم إضافة الوكيل', 'success');
         await renderAgentsPage(content);
-      } catch { showToast('حدث خطأ', 'error'); }
+      } catch (e) { showToast('حدث خطأ: ' + e.message, 'error'); }
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-plus"></i> إضافة الوكيل';
+      btn.innerHTML = '<i class="fas fa-plus"></i> إضافة';
     };
 
     window.openEditAgent = function(id) {
       const a = agents.find(x => x.id === id);
       if (!a) return;
-      document.getElementById('editAgentId').value           = id;
-      document.getElementById('editAgentName').value         = a.name        || '';
-      document.getElementById('editAgentPhone').value        = a.phone       || '';
-      document.getElementById('editAgentLat').value          = a.lat         || '';
-      document.getElementById('editAgentLng').value          = a.lng         || '';
-      document.getElementById('editAgentCommType').value     = a.commissionType  ?? 'percent';
-      document.getElementById('editAgentCommRate').value     = a.commissionRate  ?? '';
-      document.getElementById('editAgentCoverageKm').value   = a.coverageKm  ?? '';
-      // Populate governorate then districts
-      const govSel = document.getElementById('editAgentGov');
-      govSel.value = a.governorate || '';
-      updateAgentDistricts(a.governorate || '', 'editAgentDist', a.district || '');
-      // Linked user
-      document.getElementById('editAgentUserId').value = a.userId || '';
-      document.getElementById('editAgentModal').style.display = 'flex';
+      document.getElementById('editAgentBody').innerHTML =
+        `<input type="hidden" id="editAgentId" value="${id}">` +
+        agentFormFields('editAg', a);
+      openModal('editAgentModal');
     };
 
     window.submitEditAgent = async function() {
       const btn = document.getElementById('saveEditAgentBtn');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       try {
-        const id            = document.getElementById('editAgentId').value;
-        const commRaw       = document.getElementById('editAgentCommRate').value;
-        const coverageKmRaw = document.getElementById('editAgentCoverageKm').value;
-        const governorate   = document.getElementById('editAgentGov').value;
-        const district      = document.getElementById('editAgentDist').value;
-        const linkedUserId  = document.getElementById('editAgentUserId').value;
+        const id           = document.getElementById('editAgentId').value;
+        const commRaw      = document.getElementById('editAgCommRate').value;
+        const coverageRaw  = document.getElementById('editAgCoverageKm').value;
+        const governorate  = document.getElementById('editAgGov').value;
+        const district     = document.getElementById('editAgDist').value;
+        const linkedUserId = document.getElementById('editAgUserId').value;
+        const telegramId   = document.getElementById('editAgTelegramId').value.trim() || null;
+
         const data = {
-          name:  document.getElementById('editAgentName').value.trim(),
-          phone: document.getElementById('editAgentPhone').value.trim(),
-          lat:   parseFloat(document.getElementById('editAgentLat').value),
-          lng:   parseFloat(document.getElementById('editAgentLng').value),
+          name:        document.getElementById('editAgName').value.trim(),
+          phone:       document.getElementById('editAgPhone').value.trim(),
+          lat:         parseFloat(document.getElementById('editAgLat').value),
+          lng:         parseFloat(document.getElementById('editAgLng').value),
+          telegramId,
           governorate: governorate || '',
           district:    district    || '',
-          updatedAt: new Date().toISOString()
+          updatedAt:   new Date().toISOString()
         };
         if (commRaw !== '') {
           data.commissionRate = parseFloat(commRaw);
-          data.commissionType = document.getElementById('editAgentCommType').value;
-        } else {
-          delete data.commissionRate;
-          delete data.commissionType;
+          data.commissionType = document.getElementById('editAgCommType').value;
         }
-        if (coverageKmRaw !== '') data.coverageKm = parseFloat(coverageKmRaw);
-        else delete data.coverageKm;
-        // Handle linked user change
+        if (coverageRaw !== '') data.coverageKm = parseFloat(coverageRaw);
+
+        // ربط الحساب / إلغاء الربط
         const oldAgent = agents.find(a => a.id === id);
         if (linkedUserId) {
           data.userId = linkedUserId;
           await setDoc(doc(db, 'users', linkedUserId), { role: 'agent' }, { merge: true });
         } else {
           data.userId = '';
-          // Revert old linked user's role back to customer if changed
           if (oldAgent?.userId && oldAgent.userId !== linkedUserId) {
             await setDoc(doc(db, 'users', oldAgent.userId), { role: 'customer' }, { merge: true });
           }
         }
         await updateDoc(doc(db, 'agents', id), data);
-        document.getElementById('editAgentModal').style.display = 'none';
+        closeModal('editAgentModal');
         showToast('✅ تم تحديث الوكيل', 'success');
         await renderAgentsPage(content);
-      } catch { showToast('حدث خطأ', 'error'); }
+      } catch (e) { showToast('حدث خطأ: ' + e.message, 'error'); }
       btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
     };
 
@@ -2677,6 +2852,72 @@
         showToast('🗑 تم حذف الوكيل', 'success');
         await renderAgentsPage(content);
       } catch { showToast('حدث خطأ', 'error'); }
+    };
+
+    // ── فتح موديل تعزيز رصيد الوكيل ──────────────────────────────────────────
+    window.openTopupAgentModal = function(id, name, currentBalance) {
+      document.getElementById('topupAgentId').value = id;
+      document.getElementById('topupAgentName').textContent = name;
+      document.getElementById('topupAgentCurrentBalance').textContent =
+        Number(currentBalance).toLocaleString('en-US') + ' د.ع';
+      document.getElementById('topupAgentPaid').value   = '';
+      document.getElementById('topupAgentCredit').value = '';
+      document.getElementById('topupAgentNote').value   = '';
+      // ملء القيم الافتراضية من إعدادات الباقة
+      try {
+        const pkgSnap = getDoc(doc(db, 'settings', 'packages'));
+        pkgSnap.then(s => {
+          if (s.exists()) {
+            const d = s.data();
+            if (d.agentPayAmount    != null) document.getElementById('topupAgentPaid').value   = d.agentPayAmount;
+            if (d.agentCreditAmount != null) document.getElementById('topupAgentCredit').value = d.agentCreditAmount;
+          }
+        });
+      } catch {}
+      openModal('topupAgentModal');
+    };
+
+    // ── تأكيد تعزيز رصيد الوكيل ──────────────────────────────────────────────
+    window.submitTopupAgent = async function() {
+      const btn        = document.getElementById('topupAgentBtn');
+      const agentId    = document.getElementById('topupAgentId').value;
+      const paid       = parseFloat(document.getElementById('topupAgentPaid').value);
+      const credit     = parseFloat(document.getElementById('topupAgentCredit').value);
+      const note       = document.getElementById('topupAgentNote').value.trim();
+
+      if (isNaN(paid) || isNaN(credit) || paid < 0 || credit <= 0) {
+        showToast('أدخل المبلغ المدفوع والرصيد المُضاف بشكل صحيح', 'warning'); return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعزيز...';
+      try {
+        const { increment, addDoc: firestoreAddDoc, collection: firestoreCol, updateDoc: firestoreUpdate, doc: firestoreDoc } =
+          await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+        // زيادة رصيد الوكيل
+        await firestoreUpdate(firestoreDoc(db, 'agents', agentId), {
+          balance:   increment(credit),
+          updatedAt: new Date().toISOString()
+        });
+        // تسجيل العملية في سجل التعزيزات
+        await firestoreAddDoc(firestoreCol(db, 'balance_topups'), {
+          targetId:     agentId,
+          targetType:   'agent',
+          creditAmount: credit,
+          paidAmount:   paid,
+          note:         note || '',
+          createdAt:    new Date().toISOString()
+        });
+
+        closeModal('topupAgentModal');
+        showToast('✅ تم تعزيز رصيد الوكيل بنجاح', 'success');
+        await renderAgentsPage(content);
+      } catch (e) {
+        showToast('حدث خطأ: ' + e.message, 'error');
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد التعزيز';
     };
   }
 
@@ -3494,6 +3735,129 @@
   };
 
 </script>
+<!-- ── Rating Modal (customer rates driver after delivery) ── -->
+<div class="modal-overlay" id="ratingModal">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="text-align:center;">
+      <i class="fas fa-star" style="color:var(--gold);"></i> تقييم الطلب
+    </div>
+    <input type="hidden" id="ratingOrderId">
+    <div style="text-align:center;margin-bottom:16px;color:var(--text-muted);font-size:0.88rem;"
+         id="ratingDriverName">—</div>
+
+    <!-- تقييم السائق -->
+    <div class="form-group">
+      <label class="form-label">تقييم السائق</label>
+      <div style="display:flex;gap:8px;justify-content:center;font-size:1.8rem;" id="driverStars">
+        <span data-v="1" onclick="setRating('driver',1)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="2" onclick="setRating('driver',2)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="3" onclick="setRating('driver',3)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="4" onclick="setRating('driver',4)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="5" onclick="setRating('driver',5)" style="cursor:pointer;opacity:0.35;">★</span>
+      </div>
+      <input type="hidden" id="ratingDriverVal" value="0">
+    </div>
+
+    <!-- تقييم الطلب -->
+    <div class="form-group">
+      <label class="form-label">تقييم الطلب</label>
+      <div style="display:flex;gap:8px;justify-content:center;font-size:1.8rem;" id="orderStars">
+        <span data-v="1" onclick="setRating('order',1)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="2" onclick="setRating('order',2)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="3" onclick="setRating('order',3)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="4" onclick="setRating('order',4)" style="cursor:pointer;opacity:0.35;">★</span>
+        <span data-v="5" onclick="setRating('order',5)" style="cursor:pointer;opacity:0.35;">★</span>
+      </div>
+      <input type="hidden" id="ratingOrderVal" value="0">
+    </div>
+
+    <!-- ملاحظة اختيارية -->
+    <div class="form-group">
+      <label class="form-label">ملاحظة (اختياري)</label>
+      <textarea class="form-textarea" id="ratingComment" rows="2" placeholder="أخبرنا عن تجربتك..."></textarea>
+    </div>
+
+    <!-- تأكيد الاستلام -->
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border-radius:10px;padding:12px;">
+      <input type="checkbox" id="ratingConfirmDelivery" style="width:18px;height:18px;accent-color:var(--gold);">
+      <label for="ratingConfirmDelivery" style="font-size:0.88rem;cursor:pointer;">
+        أؤكد استلام طلبي بشكل صحيح
+      </label>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="submitRatingBtn" onclick="submitRating()">
+      <i class="fas fa-paper-plane"></i> إرسال التقييم
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;"
+            onclick="closeModal('ratingModal')">لاحقاً</button>
+  </div>
+</div>
+
+<script type="module">
+  // Rating modal logic — injected after main module
+  window.openRatingModal = function(orderId, driverName) {
+    document.getElementById('ratingOrderId').value = orderId;
+    document.getElementById('ratingDriverName').textContent =
+      driverName ? `السائق: ${driverName}` : 'قيّم تجربتك';
+    document.getElementById('ratingDriverVal').value = '0';
+    document.getElementById('ratingOrderVal').value  = '0';
+    document.getElementById('ratingComment').value   = '';
+    document.getElementById('ratingConfirmDelivery').checked = false;
+    // Reset stars
+    ['driverStars','orderStars'].forEach(id => {
+      document.querySelectorAll(`#${id} span`).forEach(s => {
+        s.style.color   = '#ccc';
+        s.style.opacity = '0.35';
+      });
+    });
+    window.openModal('ratingModal');
+  };
+
+  window.setRating = function(type, value) {
+    const starsId = type === 'driver' ? 'driverStars' : 'orderStars';
+    const inputId = type === 'driver' ? 'ratingDriverVal' : 'ratingOrderVal';
+    document.getElementById(inputId).value = value;
+    document.querySelectorAll(`#${starsId} span`).forEach(s => {
+      const v = parseInt(s.dataset.v);
+      s.style.color   = v <= value ? '#f59e0b' : '#ccc';
+      s.style.opacity = v <= value ? '1' : '0.35';
+    });
+  };
+
+  window.submitRating = async function() {
+    const orderId     = document.getElementById('ratingOrderId').value;
+    const driverRating = parseInt(document.getElementById('ratingDriverVal').value);
+    const orderRating  = parseInt(document.getElementById('ratingOrderVal').value);
+    const comment     = document.getElementById('ratingComment').value.trim();
+    const confirmed   = document.getElementById('ratingConfirmDelivery').checked;
+
+    if (!confirmed) {
+      window.showToast('يرجى تأكيد استلام طلبك أولاً', 'warning');
+      return;
+    }
+    if (driverRating === 0 || orderRating === 0) {
+      window.showToast('يرجى اختيار تقييم للسائق والطلب', 'warning');
+      return;
+    }
+    const btn = document.getElementById('submitRatingBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+      const { submitOrderRating } = await import('../js/orders.js');
+      await submitOrderRating(orderId, { driverRating, orderRating, comment });
+      window.showToast('✅ شكراً على تقييمك!', 'success');
+      window.closeModal('ratingModal');
+      // Refresh my orders
+      if (typeof window.navigateTo === 'function') window.navigateTo('my-orders');
+    } catch (e) {
+      window.showToast('حدث خطأ، حاول مجدداً', 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال التقييم';
+  };
+</script>
+
 <script src="../js/pwa.js"></script>
 </body>
 </html>

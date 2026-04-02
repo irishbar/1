@@ -35,7 +35,7 @@ service cloud.firestore {
     // Admin reads/writes all. User reads/updates own profile only.
     match /users/{userId} {
       allow read:   if isSignedIn() && (request.auth.uid == userId || isManager());
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
         request.auth.uid == userId ||   // own profile
         isAdmin()                        // admin manages any user
@@ -153,7 +153,19 @@ service cloud.firestore {
     }
 
     // ─── settings ─────────────────────────────────────────────────────────────
-    // Admin only — protects Telegram token, ImgBB key, package config.
+    // packages + agents + delivery: يحتاجها الوكيل والسائق والزبون لحسابات التوصيل والعمولة
+    match /settings/packages {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /settings/agents {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /settings/delivery {
+      allow read:  if true;   // الزبون يحتاجها قبل تسجيل الدخول لحساب أجرة التوصيل
+      allow write: if isAdmin();
+    }
     match /settings/{docId} {
       allow read:  if isAdmin();
       allow write: if isAdmin();

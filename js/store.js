@@ -72,7 +72,7 @@ export async function fetchDeliverySettings() {
 }
 
 export async function saveDeliverySettings(data) {
-  await setDoc(doc(db, 'settings', 'delivery'), data);
+  await setDoc(doc(db, 'settings', 'delivery'), data, { merge: true });
 }
 
 export function calcDeliveryFee(userLat, userLng, settings) {

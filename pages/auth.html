@@ -159,16 +159,22 @@
   import { showToast, hideLoader } from '../js/ui.js';
 
   // Check if already logged in
+  // Note: after register(), onAuthStateChanged may fire before setDoc completes
+  // so profile can be null for brand-new users — we do NOT redirect in that case;
+  // the manual redirect inside the register handler covers new registrations.
   onAuthChange((user, profile) => {
     hideLoader();
     if (user && profile) {
       window.location.href = getDashboardUrl(profile.role);
     }
+    // if user exists but profile is null (doc not written yet), do nothing —
+    // the register() handler will redirect manually after the doc is saved.
   });
 
   function getDashboardUrl(role) {
     if (role === 'admin' || role === 'manager') return 'dashboard.html';
-    if (role === 'agent') return 'agent-dashboard.html';
+    if (role === 'agent')  return 'agent-dashboard.html';
+    if (role === 'driver') return 'driver-dashboard.html';
     return '../index.html';
   }
 
@@ -213,6 +219,8 @@
         password: document.getElementById('regPassword').value
       });
       showToast('تم إنشاء حسابك بنجاح!', 'success');
+      // Redirect manually after doc is saved — avoids race condition with onAuthStateChanged
+      setTimeout(() => { window.location.href = '../index.html'; }, 600);
     } catch (err) {
       showToast(getFirebaseError(err.code), 'error');
       btn.disabled = false;

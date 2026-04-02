@@ -6,11 +6,19 @@ import {
   collection, addDoc, getDocs, doc, updateDoc, getDoc,
   query, orderBy, where, onSnapshot, increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { fetchAgents, getCoverageStatus, AGENT_COMMISSION_RATE } from './agents.js';
-import { deductDriverBalance } from './drivers.js';
 
 // الحالات التي يُسمح فيها للزبون بالإلغاء (قبل خروج السائق)
 export const CUSTOMER_CANCELLABLE_STATUSES = ['جديد', 'قيد التجهيز'];
+
+// رابط قاعدة التطبيق (يُستخدم في روابط التليجرام)
+// نقرأه من Firestore أولاً (settings/general.appUrl)، وهذا هو الافتراضي
+let APP_BASE_URL = 'https://irish-a68ec.web.app';
+(async () => {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'general'));
+    if (snap.exists() && snap.data().appUrl) APP_BASE_URL = snap.data().appUrl.replace(/\/$/, '');
+  } catch {}
+})();
 
 // ──────────────────────────────────────────
 // TELEGRAM NOTIFICATION
@@ -39,15 +47,8 @@ function buildTelegramMessage(order) {
 
   const deliveryFeeStr = order.deliveryFee ? fmt(order.deliveryFee) : '—';
 
-  // المجموع الكلي = منتجات + توصيل + عمولة وكيل + عمولة منصة
   const productsTotal = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0);
-  const grandTotal    = productsTotal + (order.deliveryFee || 0) + (order.agentShare || 0) + (order.platformShare || 0);
-
-  // تفاصيل توزيع العمولة (للإدارة فقط - لا تؤثر على مبلغ العميل)
-  let commissionLine = '';
-  if (order.agentShare || order.platformShare) {
-    commissionLine = `\n   ├ وكيل: ${order.agentShare ? fmt(order.agentShare) : '—'}  |  منصة: ${order.platformShare ? fmt(order.platformShare) : '—'}`;
-  }
+  const grandTotal    = productsTotal + (order.deliveryFee || 0);
 
   return (
 `🥃 *طلب جديد — Irish Bar*
@@ -60,7 +61,7 @@ function buildTelegramMessage(order) {
 🛒 *المنتجات:*
 ${itemLines}
 ━━━━━━━━━━━━━━━━━━
-🚚 أجرة التوصيل: ${deliveryFeeStr}${commissionLine}
+🚚 أجرة التوصيل: ${deliveryFeeStr}
 💰 *الإجمالي: ${fmt(grandTotal)}*
 ━━━━━━━━━━━━━━━━━━${mapLine}`
   );
@@ -71,7 +72,34 @@ async function sendAgentTelegramNotification(order, agent) {
   try {
     const tg = await getTelegramSettings();
     if (!tg || !tg.botToken || !agent.telegramId) return;
-    const message = buildTelegramMessage(order);
+    const fmt = (n) => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
+    const shortId = order.id.slice(-6).toUpperCase();
+    const itemLines = (order.items || [])
+      .map(i => `  • ${i.name} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
+      .join('\n');
+    const mapLine = order.location
+      ? `\n📌 [موقع الزبون](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
+      : order.address ? `\n📝 العنوان: ${order.address}` : '';
+    const productsTotal = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0);
+    const grandTotal = productsTotal + (order.deliveryFee || 0);
+    const orderLink = `${APP_BASE_URL}/pages/agent-dashboard.html`;
+
+    const message =
+`📦 *طلب جديد بانتظارك — Irish Bar*
+━━━━━━━━━━━━━━━━━━
+🆔 رقم الطلب: \`#${shortId}\`
+👤 الزبون: ${order.customerName}
+📞 الهاتف: ${order.phone}
+🕐 وقت التوصيل: ${order.deliveryTime || '—'}
+━━━━━━━━━━━━━━━━━━
+🛒 *المنتجات:*
+${itemLines}
+━━━━━━━━━━━━━━━━━━
+🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}
+💰 *الإجمالي: ${fmt(grandTotal)}*
+━━━━━━━━━━━━━━━━━━${mapLine}
+🔗 [افتح لوحة الوكيل لتعيين السائق](${orderLink})`;
+
     await fetch(
       `https://api.telegram.org/bot${tg.botToken}/sendMessage`,
       {
@@ -129,7 +157,6 @@ async function sendStatusNotification(orderId, status) {
       (status === 'ملغي'        && tg.notif_cancelled);
     if (!shouldNotify) return;
 
-    // Fetch full order details for a rich message
     const orderSnap = await getDoc(doc(db, 'orders', orderId));
     const order = orderSnap.exists() ? { id: orderId, ...orderSnap.data() } : null;
 
@@ -151,6 +178,8 @@ async function sendStatusNotification(orderId, status) {
       const mapLine = order.location
         ? `\n📌 [موقع العميل](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
         : order.address ? `\n📝 العنوان: ${order.address}` : '';
+      const productsTotal = (order.items||[]).reduce((s,i)=>s+(i.price*i.quantity),0);
+      const grandTotal = productsTotal + (order.deliveryFee||0);
 
       msg =
 `${icon} *تحديث طلب — Irish Bar*
@@ -164,9 +193,8 @@ async function sendStatusNotification(orderId, status) {
 ${itemLines || '—'}
 ━━━━━━━━━━━━━━━━━━
 🚚 أجرة التوصيل: ${order.deliveryFee ? fmt(order.deliveryFee) : '—'}
-💰 *الإجمالي: ${fmt(((order.items||[]).reduce((s,i)=>s+(i.price*i.quantity),0)) + (order.deliveryFee||0) + (order.agentShare||0) + (order.platformShare||0))}*${mapLine}`;
+💰 *الإجمالي: ${fmt(grandTotal)}*${mapLine}`;
     } else {
-      // Fallback if order fetch fails
       msg = `${icon} *تحديث طلب — Irish Bar*\n\`#${shortId}\`\nالحالة: *${status}*`;
     }
 
@@ -203,38 +231,38 @@ export async function createOrder({ customerId, customerName, phone, address, de
     deliveryFee,
     location,
     status: 'جديد',
+    needsRating: false,
     createdAt: new Date().toISOString()
   };
   const ref = await addDoc(collection(db, 'orders'), order);
   const fullOrder = { id: ref.id, ...order };
 
-  // 🤝 Auto-assign nearest agent if location provided
-  if (location?.lat && location?.lng) {
-    try {
-      const agents = await fetchAgents();
-      const coverage = getCoverageStatus(location.lat, location.lng, agents);
-      if (coverage.covered && coverage.nearest) {
-        const agent    = coverage.nearest;
-        const commType = agent.commissionType ?? 'percent';
-        const commVal  = agent.commissionRate ?? (AGENT_COMMISSION_RATE * 100);
-        // عمولة الوكيل مستقلة — على إجمالي الطلب
-        const orderBase = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + deliveryFee;
-        const agentShare = commType === 'fixed'
-          ? Number(commVal)
-          : Math.round(orderBase * commVal / 100);
-        await updateDoc(doc(db, 'orders', ref.id), { agentId: agent.id, agentShare });
-        fullOrder.agentId = agent.id;
-        fullOrder.agentShare = agentShare;
-        // 🔔 Notify agent on their personal Telegram
-        if (agent.telegramId) sendAgentTelegramNotification(fullOrder, agent);
-      }
-    } catch (e) { console.warn('Agent assignment failed:', e); }
-  }
-
-  // 🔔 Send Telegram notification to admin (non-blocking)
+  // 🔔 إشعار الأدمن بالطلب الجديد — القرار بتعيين الوكيل للأدمن يدوياً
   sendTelegramNotification(fullOrder);
 
   return fullOrder;
+}
+
+// ── Assign Agent to Order (called by admin) ───────────────────────────────────
+export async function assignAgentToOrder(orderId, agent) {
+  const orderSnap = await getDoc(doc(db, 'orders', orderId));
+  if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
+  const order = { id: orderId, ...orderSnap.data() };
+
+  // قيمة الطلب الكاملة = المنتجات + التوصيل
+  const orderBase = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0);
+
+  await updateDoc(doc(db, 'orders', orderId), {
+    agentId:    agent.id,
+    agentName:  agent.name,
+    orderBase,  // نحفظها لاسترجاعها عند الإلغاء
+    status:     'قيد التجهيز',
+    assignedAgentAt: new Date().toISOString()
+  });
+
+  const fullOrder = { ...order, agentId: agent.id, agentName: agent.name, orderBase };
+  // 🔔 إشعار الوكيل على تلجرام مع رابط لوحة التحكم
+  if (agent.telegramId) sendAgentTelegramNotification(fullOrder, agent);
 }
 
 // ── Fetch All Orders (admin/manager) ──
@@ -257,8 +285,17 @@ export async function fetchMyOrders(customerId) {
 
 // ── Update Order Status ──
 export async function updateOrderStatus(orderId, status) {
-  await updateDoc(doc(db, 'orders', orderId), { status });
-  // 🔔 Send Telegram notification for completed/cancelled
+  const updates = { status };
+
+  // عند اكتمال الطلب: طلب التقييم من الزبون
+  if (status === 'مكتمل') {
+    updates.needsRating  = true;
+    updates.completedAt  = new Date().toISOString();
+  }
+
+  await updateDoc(doc(db, 'orders', orderId), updates);
+
+  // 🔔 إشعار Telegram على التحديثات
   sendStatusNotification(orderId, status);
 }
 
@@ -273,8 +310,10 @@ async function sendDriverTelegramNotification(order, driver) {
       .map(i => `  • ${i.name} × ${i.quantity}`)
       .join('\n');
     const mapLine = order.location
-      ? `\n📌 [موقع العميل](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
+      ? `\n📌 [موقع الزبون](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
       : order.address ? `\n📝 العنوان: ${order.address}` : '';
+    const orderLink = `${APP_BASE_URL}/pages/driver-dashboard.html`;
+
     const msg =
 `🏍️ *طلب توصيل جديد لك*
 ━━━━━━━━━━━━━━━━━━
@@ -286,7 +325,11 @@ async function sendDriverTelegramNotification(order, driver) {
 🛒 *المنتجات:*
 ${itemLines}
 ━━━━━━━━━━━━━━━━━━
-🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}${mapLine}`;
+🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}
+💰 *قيمة الطلب: ${fmt(order.orderBase || 0)}*${mapLine}
+━━━━━━━━━━━━━━━━━━
+🔗 [افتح لوحة السائق لتأكيد الاستلام](${orderLink})`;
+
     await fetch(
       `https://api.telegram.org/bot${tg.botToken}/sendMessage`,
       {
@@ -306,37 +349,83 @@ ${itemLines}
 }
 
 // ── Assign Driver to Order (called by agent) ──────────────────────────────────
+// يستقطع قيمة الطلب الكاملة من رصيد الوكيل ومن رصيد السائق
 export async function assignDriverToOrder(orderId, driver) {
   const orderSnap = await getDoc(doc(db, 'orders', orderId));
   if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
   const order = { id: orderId, ...orderSnap.data() };
 
-  // احسب الخصم من رصيد السائق (نسبة عمولة السائق × قيمة الطلب)
-  const orderBase = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0);
-  const rate = driver.commissionRate ?? 15;
-  const driverDeduction = Math.round(orderBase * rate / 100);
+  // قيمة الطلب الكاملة = المنتجات + التوصيل
+  const orderBase = order.orderBase ||
+    ((order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0));
 
-  // حدّث الطلب
+  // ── التحقق من رصيد السائق ─────────────────────────────────────────────────
+  const driverSnap = await getDoc(doc(db, 'drivers', driver.id));
+  const driverBalance = (driverSnap.exists() ? driverSnap.data().balance : 0) || 0;
+  if (driverBalance < orderBase) {
+    const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
+    throw new Error(
+      `رصيد السائق ${driver.name} غير كافٍ — الرصيد الحالي: ${fmt(driverBalance)} د.ع، قيمة الطلب: ${fmt(orderBase)} د.ع`
+    );
+  }
+
+  // ── التحقق من رصيد الوكيل ────────────────────────────────────────────────
+  if (order.agentId) {
+    const agentSnap = await getDoc(doc(db, 'agents', order.agentId));
+    const agentBalance = (agentSnap.exists() ? agentSnap.data().balance : 0) || 0;
+    if (agentBalance < orderBase) {
+      const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
+      throw new Error(
+        `رصيد الوكيل غير كافٍ — الرصيد الحالي: ${fmt(agentBalance)} د.ع، قيمة الطلب: ${fmt(orderBase)} د.ع`
+      );
+    }
+  }
+
+  // ── تحديث الطلب ───────────────────────────────────────────────────────────
   await updateDoc(doc(db, 'orders', orderId), {
     driverId:        driver.id,
     driverName:      driver.name,
-    driverDeduction,
+    driverDeduction: orderBase,
+    agentDeduction:  orderBase,
     status:          'في التوصيل',
     assignedAt:      new Date().toISOString()
   });
 
-  // اخصم من رصيد السائق
-  await deductDriverBalance(driver.id, driverDeduction, orderId);
+  // ── استقطاع رصيد السائق (القيمة الكاملة) ─────────────────────────────────
+  await updateDoc(doc(db, 'drivers', driver.id), {
+    balance:   increment(-orderBase),
+    updatedAt: new Date().toISOString()
+  });
+  await addDoc(collection(db, 'balance_deductions'), {
+    driverId:  driver.id,
+    amount:    orderBase,
+    orderId,
+    note: `طلب #${orderId.slice(-6).toUpperCase()} — قيمة كاملة`,
+    createdAt: new Date().toISOString()
+  });
 
-  // أرسل إشعار تلجرام للسائق
-  const fullOrder = { ...order, driverId: driver.id, driverName: driver.name };
+  // ── استقطاع رصيد الوكيل (القيمة الكاملة) ─────────────────────────────────
+  if (order.agentId) {
+    await updateDoc(doc(db, 'agents', order.agentId), {
+      balance:   increment(-orderBase),
+      updatedAt: new Date().toISOString()
+    });
+    await addDoc(collection(db, 'balance_deductions'), {
+      agentId:  order.agentId,
+      amount:   orderBase,
+      orderId,
+      note: `طلب #${orderId.slice(-6).toUpperCase()} — قيمة كاملة`,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  // 🔔 إشعار تلجرام للسائق مع رابط لوحة التحكم
+  const fullOrder = { ...order, driverId: driver.id, driverName: driver.name, orderBase };
   sendDriverTelegramNotification(fullOrder, driver);
 }
 
 // ── Cancel Order ──────────────────────────────────────────────────────────────
 // cancelledBy: 'customer' | 'admin'
-// الزبون: يُسمح له فقط قبل خروج السائق (جديد / قيد التجهيز)
-// الأدمن:  يستطيع الإلغاء في أي وقت
 export async function cancelOrder(orderId, cancelledBy = 'admin') {
   const orderSnap = await getDoc(doc(db, 'orders', orderId));
   if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
@@ -363,7 +452,6 @@ export async function cancelOrder(orderId, cancelledBy = 'admin') {
         balance:   increment(order.driverDeduction),
         updatedAt: new Date().toISOString()
       });
-      // تسجيل الاسترجاع في سجل التعزيزات
       await addDoc(collection(db, 'balance_topups'), {
         targetId:     order.driverId,
         targetType:   'driver_refund',
@@ -378,10 +466,42 @@ export async function cancelOrder(orderId, cancelledBy = 'admin') {
     }
   }
 
+  // ── استرجاع رصيد الوكيل إن كان قد خُصم ───────────────────────────────────
+  if (order.agentId && order.agentDeduction > 0) {
+    try {
+      await updateDoc(doc(db, 'agents', order.agentId), {
+        balance:   increment(order.agentDeduction),
+        updatedAt: new Date().toISOString()
+      });
+      await addDoc(collection(db, 'balance_topups'), {
+        targetId:     order.agentId,
+        targetType:   'agent_refund',
+        orderId,
+        creditAmount: order.agentDeduction,
+        paidAmount:   0,
+        note: `استرجاع — طلب ملغي #${orderId.slice(-6).toUpperCase()}`,
+        createdAt:    new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Agent refund failed:', e);
+    }
+  }
+
   // 🔔 إشعار Telegram
   sendStatusNotification(orderId, 'ملغي');
 
   return order;
+}
+
+// ── Submit Customer Rating ────────────────────────────────────────────────────
+export async function submitOrderRating(orderId, { driverRating, orderRating, comment = '' }) {
+  await updateDoc(doc(db, 'orders', orderId), {
+    needsRating:   false,
+    driverRating:  driverRating,
+    orderRating:   orderRating,
+    ratingComment: comment,
+    ratedAt:       new Date().toISOString()
+  });
 }
 
 // ── Real-time Orders Listener (for admin) ──

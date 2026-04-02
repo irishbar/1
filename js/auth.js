@@ -59,4 +59,4 @@ export function requireRole(profile, allowedRoles) {
   return profile && allowedRoles.includes(profile.role);
 }
 
-// Roles: 'admin' | 'manager' | 'customer'
+// Roles: 'admin' | 'manager' | 'agent' | 'driver' | 'customer'

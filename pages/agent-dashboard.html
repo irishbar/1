@@ -669,6 +669,25 @@
   </div>
 </div>
 
+<!-- ── Assign Driver Modal ── -->
+<div class="modal-overlay" id="assignDriverModal" onclick="if(event.target===this)closeAssignDriverModal()">
+  <div class="modal-sheet">
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> تعيين سائق للطلب</div>
+    <p style="font-size:0.83rem;color:var(--text-muted);margin-bottom:14px;">
+      اختر السائق المناسب — سيُرسَل له إشعار تلجرام تلقائياً ويُخصَم من رصيده
+    </p>
+    <div class="form-group">
+      <label class="form-label">السائق</label>
+      <select class="form-input" id="assignDriverSelect"></select>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" id="confirmAssignDriverBtn" onclick="confirmAssignDriver()">
+      <i class="fas fa-check"></i> تعيين وإرسال الإشعار
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeAssignDriverModal()">إلغاء</button>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   import { onAuthChange } from '../js/auth.js';
