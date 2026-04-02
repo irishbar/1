@@ -261,6 +261,139 @@
     }
     .empty-state i { font-size: 2.5rem; opacity: 0.2; margin-bottom: 10px; display: block; }
     .empty-state div { font-size: clamp(0.82rem, 2.2vw, 0.9rem); }
+
+    /* ── Agent Balance Card ── */
+    .agent-balance-card {
+      margin: 16px 16px 0;
+      border-radius: var(--radius-xl);
+      padding: 22px 20px;
+      color: #fff;
+      position: relative; overflow: hidden;
+    }
+    .agent-balance-card.green  { background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 100%); }
+    .agent-balance-card.blue   { background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%); }
+    .agent-balance-card.amber  { background: linear-gradient(135deg, #78350f 0%, #d97706 100%); }
+    .agent-balance-card.red    { background: linear-gradient(135deg, #7f1d1d 0%, #ef4444 100%); }
+    .agent-balance-card::before {
+      content: '🏪'; position: absolute; left: -10px; top: -10px;
+      font-size: 7rem; opacity: 0.06; transform: rotate(-15deg);
+    }
+    .agent-balance-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(212,170,69,0.7), transparent);
+    }
+    .agent-balance-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    }
+    .agent-balance-label { font-size: 0.78rem; opacity: 0.8; font-weight: 600; margin-bottom: 6px; }
+    .agent-balance-amount {
+      font-family: var(--font-en-body);
+      font-size: clamp(1.8rem, 6vw, 2.4rem);
+      font-weight: 900; line-height: 1;
+    }
+    .agent-balance-pkg {
+      background: rgba(255,255,255,0.12); border-radius: var(--radius-md);
+      padding: 8px 12px; text-align: center; flex-shrink: 0;
+    }
+    .agent-balance-pkg-label { font-size: 0.68rem; opacity: 0.8; margin-bottom: 2px; }
+    .agent-balance-pkg-val { font-family: var(--font-en-body); font-size: 0.88rem; font-weight: 800; }
+    .balance-warn-bar {
+      margin: 8px 16px 0;
+      background: rgba(239,68,68,0.09); border: 1.5px solid rgba(239,68,68,0.25);
+      border-radius: var(--radius-md); padding: 11px 14px;
+      display: none; align-items: center; gap: 10px;
+      font-size: clamp(0.78rem,2vw,0.84rem); color: #b91c1c; font-weight: 600;
+    }
+    .balance-warn-bar i { flex-shrink: 0; }
+
+    /* ── Drivers Section ── */
+    .driver-card {
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg); padding: 16px;
+      margin-bottom: 12px; box-shadow: var(--shadow-xs);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .driver-card-avatar {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #1e3a5f, #1a56db);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; color: #fff;
+    }
+    .driver-card-info { flex: 1; min-width: 0; }
+    .driver-card-name { font-weight: 800; font-size: clamp(0.88rem,2.4vw,0.96rem); margin-bottom: 3px; }
+    .driver-card-phone { font-size: 0.76rem; color: var(--text-muted); margin-bottom: 5px; }
+    .driver-card-balance {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--font-en-body); font-weight: 800;
+      font-size: 0.84rem; padding: 3px 10px;
+      border-radius: var(--radius-full); border: 1.5px solid;
+    }
+    .driver-card-balance.bal-green  { color: #2d6a4f; border-color: rgba(45,106,79,0.3); background: rgba(45,106,79,0.07); }
+    .driver-card-balance.bal-blue   { color: #1a56db; border-color: rgba(26,86,219,0.3); background: rgba(26,86,219,0.06); }
+    .driver-card-balance.bal-amber  { color: #d97706; border-color: rgba(217,119,6,0.3); background: rgba(217,119,6,0.07); }
+    .driver-card-balance.bal-red    { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.07); }
+    .driver-card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    .driver-action-btn {
+      font-size: 0.76rem; padding: 6px 12px; border-radius: var(--radius-full);
+      border: 1.5px solid; cursor: pointer; font-weight: 700;
+      display: flex; align-items: center; gap: 5px; white-space: nowrap;
+      font-family: var(--font-body); transition: var(--transition);
+    }
+    .driver-action-btn.topup {
+      background: rgba(45,106,79,0.07); border-color: rgba(45,106,79,0.3); color: #2d6a4f;
+    }
+    .driver-action-btn.topup:hover { background: rgba(45,106,79,0.14); }
+    .driver-action-btn.del {
+      background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.25); color: #ef4444;
+    }
+    .driver-action-btn.del:hover { background: rgba(239,68,68,0.12); }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      display: none; align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: var(--bg-card); width: 100%; max-width: 640px;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      padding: 24px 20px 40px; max-height: 85vh; overflow-y: auto;
+    }
+    .modal-sheet-handle {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: var(--border); margin: 0 auto 20px;
+    }
+    .modal-sheet-title {
+      font-family: var(--font-display); font-size: 1.05rem; font-weight: 800;
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    }
+    .modal-sheet-title i { color: var(--gold); }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
+    .form-input, .form-select {
+      width: 100%; padding: 12px 14px; border-radius: var(--radius-md);
+      border: 1.5px solid var(--border); background: var(--bg-secondary);
+      font-family: var(--font-body); font-size: 0.9rem; color: var(--text-primary);
+      box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: none; border-color: var(--gold);
+    }
+    .topup-presets {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
+    }
+    .topup-preset-btn {
+      padding: 10px 6px; border-radius: var(--radius-md);
+      border: 1.5px solid var(--border); background: var(--bg-secondary);
+      cursor: pointer; text-align: center; transition: var(--transition);
+      font-family: var(--font-body);
+    }
+    .topup-preset-btn:hover, .topup-preset-btn.selected {
+      border-color: var(--gold); background: var(--gold-pale);
+    }
+    .topup-preset-pay { font-size: 0.7rem; color: #ef4444; font-weight: 700; margin-bottom: 2px; }
+    .topup-preset-credit { font-size: 0.78rem; color: var(--green); font-weight: 800; }
   </style>
 </head>
 <body>
@@ -312,6 +445,24 @@
       <span class="stat-value" id="statRate">35%</span>
       <span class="stat-label">نسبة العمولة</span>
     </div>
+  </div>
+
+  <!-- ── Agent Balance with Platform ── -->
+  <div class="agent-balance-card green" id="agentBalanceCard">
+    <div class="agent-balance-top">
+      <div>
+        <div class="agent-balance-label">رصيدك مع المنصة</div>
+        <div class="agent-balance-amount" id="agentBalanceAmount">0 د.ع</div>
+      </div>
+      <div class="agent-balance-pkg">
+        <div class="agent-balance-pkg-label">الباقة</div>
+        <div class="agent-balance-pkg-val" id="agentPkgInfo">8,000 ← 100,000</div>
+      </div>
+    </div>
+  </div>
+  <div class="balance-warn-bar" id="agentBalanceWarn">
+    <i class="fas fa-exclamation-triangle"></i>
+    رصيدك منخفض! تواصل مع الإدارة لتعزيز رصيدك مع المنصة.
   </div>
 
   <!-- Agent Map (set your location) -->
@@ -412,6 +563,106 @@
     </div>
   </div>
 
+  <!-- ── My Drivers ── -->
+  <div class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title" style="margin-bottom:0;">
+        <i class="fas fa-motorcycle"></i> سائقيك
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="openAddDriverModal()">
+        <i class="fas fa-plus"></i> إضافة سائق
+      </button>
+    </div>
+    <div id="driversList">
+      <div class="empty-state">
+        <i class="fas fa-motorcycle"></i>
+        <div>لم تضف أي سائق بعد</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Add Driver Modal ── -->
+<div class="modal-overlay" id="addDriverModal" onclick="if(event.target===this)closeAddDriverModal()">
+  <div class="modal-sheet">
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> إضافة سائق جديد</div>
+    <div class="form-group">
+      <label class="form-label">اسم السائق <span style="color:var(--gold-dark);">*</span></label>
+      <input type="text" class="form-input" id="driverName" placeholder="الاسم الكامل">
+    </div>
+    <div class="form-group">
+      <label class="form-label">رقم الهاتف <span style="color:var(--gold-dark);">*</span></label>
+      <input type="tel" class="form-input" id="driverPhone" placeholder="07XXXXXXXXX" inputmode="numeric" maxlength="11">
+    </div>
+    <div class="form-group">
+      <label class="form-label">User ID (Firebase UID — اختياري)</label>
+      <input type="text" class="form-input" id="driverUserId" placeholder="يُعطى للسائق للدخول للوحته">
+    </div>
+    <div class="form-group">
+      <label class="form-label">نسبة العمولة %</label>
+      <input type="number" class="form-input" id="driverRate" value="15" min="0" max="100">
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" onclick="saveNewDriver()">
+      <i class="fas fa-check"></i> حفظ السائق
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeAddDriverModal()">إلغاء</button>
+  </div>
+</div>
+
+<!-- ── Top-up Driver Balance Modal ── -->
+<div class="modal-overlay" id="topupModal" onclick="if(event.target===this)closeTopupModal()">
+  <div class="modal-sheet">
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-title"><i class="fas fa-wallet"></i> تعزيز رصيد السائق</div>
+    <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.65;">
+      السائق: <strong id="topupDriverName">—</strong><br>
+      الرصيد الحالي: <strong id="topupDriverBalance" style="color:var(--green);">—</strong>
+    </p>
+
+    <!-- Presets -->
+    <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">باقات سريعة</div>
+    <div class="topup-presets" id="topupPresets"></div>
+
+    <!-- Manual -->
+    <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">أو أدخل يدوياً</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">المبلغ المدفوع (د.ع)</label>
+        <input type="number" class="form-input" id="topupPaid" placeholder="15000" oninput="onTopupManual()">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">الرصيد المُضاف (د.ع)</label>
+        <input type="number" class="form-input" id="topupCredit" placeholder="100000" oninput="clearPresetSelection()">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظة (اختياري)</label>
+      <input type="text" class="form-input" id="topupNote" placeholder="مثال: دفعة شهر أبريل">
+    </div>
+
+    <!-- Summary -->
+    <div style="background:rgba(45,106,79,0.06);border:1.5px solid rgba(45,106,79,0.2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+        <span style="color:var(--text-muted);">المدفوع من السائق</span>
+        <span style="font-weight:700;color:#ef4444;" id="summPaid">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
+        <span style="color:var(--text-muted);">الرصيد المُضاف</span>
+        <span style="font-weight:700;color:var(--green);" id="summCredit">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;">
+        <span style="color:var(--text-muted);">ربحك من الصفقة</span>
+        <span style="font-weight:800;color:var(--gold-dark);" id="summProfit">—</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg btn-block" id="confirmTopupBtn" onclick="confirmTopup()">
+      <i class="fas fa-check-circle"></i> تأكيد التعزيز
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeTopupModal()">إلغاء</button>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -421,6 +672,14 @@
   import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
   import { fetchAllOrders } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
+  import {
+    fetchDriversByAgent, addDriver, updateDriver, deleteDriver,
+    topUpDriverBalance, fetchTopupHistory,
+    packagesReady,
+    DRIVER_PAY_AMOUNT, DRIVER_CREDIT_AMOUNT,
+    AGENT_PAY_AMOUNT, AGENT_CREDIT_AMOUNT,
+    BALANCE_WARN_THRESH, balanceColor, formatAmt
+  } from '../js/drivers.js';
 
   const { collection, getDocs, doc, getDoc, updateDoc, query, where, setDoc } =
     await (async () => {
@@ -428,12 +687,14 @@
     })();
 
   let currentUser = null;
-  let agentDoc = null; // the agent Firestore document for this user
+  let agentDoc = null;
   let agentMap = null;
   let agentMarker = null;
   let coverageCircle = null;
   let agentLat = null, agentLng = null;
   let agentAddress = '';
+  let myDrivers = [];
+  let activeTopupDriverId = null;
 
   window.showToast = showToast;
 
@@ -480,7 +741,10 @@
     }
 
     initAgentMap(agentDoc);
+    await packagesReady;
+    renderAgentBalanceCard();
     await loadAgentData();
+    await loadDrivers();
   });
 
   function initAgentMap(agent) {
@@ -622,6 +886,211 @@
     tc.appendChild(t);
     setTimeout(() => { t.classList.add('hide'); setTimeout(()=>t.remove(),300); }, dur);
   }
+
+  // ────────────────────────────────────────────
+  // AGENT BALANCE CARD
+  // ────────────────────────────────────────────
+  function renderAgentBalanceCard() {
+    const balance = agentDoc?.balance || 0;
+    const card    = document.getElementById('agentBalanceCard');
+    const warnEl  = document.getElementById('agentBalanceWarn');
+
+    document.getElementById('agentBalanceAmount').textContent =
+      new Intl.NumberFormat('en-US').format(balance) + ' د.ع';
+    document.getElementById('agentPkgInfo').textContent =
+      new Intl.NumberFormat('en-US').format(AGENT_PAY_AMOUNT) +
+      ' ← ' +
+      new Intl.NumberFormat('en-US').format(AGENT_CREDIT_AMOUNT);
+
+    // color
+    if (balance <= 0)          card.className = 'agent-balance-card red';
+    else if (balance < 20000)  card.className = 'agent-balance-card amber';
+    else if (balance < 50000)  card.className = 'agent-balance-card blue';
+    else                       card.className = 'agent-balance-card green';
+
+    warnEl.style.display = balance < BALANCE_WARN_THRESH ? 'flex' : 'none';
+  }
+
+  // ────────────────────────────────────────────
+  // DRIVERS
+  // ────────────────────────────────────────────
+  async function loadDrivers() {
+    if (!agentDoc) return;
+    myDrivers = await fetchDriversByAgent(agentDoc.id);
+    renderDrivers();
+  }
+
+  function driverBalanceClass(b) {
+    if (b <= 0)         return 'bal-red';
+    if (b < 20000)      return 'bal-amber';
+    if (b < 50000)      return 'bal-blue';
+    return 'bal-green';
+  }
+
+  function renderDrivers() {
+    const el = document.getElementById('driversList');
+    if (!myDrivers.length) {
+      el.innerHTML = `<div class="empty-state"><i class="fas fa-motorcycle"></i><div>لم تضف أي سائق بعد</div></div>`;
+      return;
+    }
+    el.innerHTML = myDrivers.map(d => {
+      const bal = d.balance || 0;
+      const balFmt = new Intl.NumberFormat('en-US').format(bal) + ' د.ع';
+      const balClass = driverBalanceClass(bal);
+      return `
+        <div class="driver-card">
+          <div class="driver-card-avatar">🛵</div>
+          <div class="driver-card-info">
+            <div class="driver-card-name">${d.name}</div>
+            <div class="driver-card-phone">${d.phone || '—'} · ${d.commissionRate ?? 15}% عمولة</div>
+            <div class="driver-card-balance ${balClass}">
+              <i class="fas fa-wallet" style="font-size:0.7rem;"></i> ${balFmt}
+            </div>
+          </div>
+          <div class="driver-card-actions">
+            <button class="driver-action-btn topup" onclick="openTopupModal('${d.id}')">
+              <i class="fas fa-plus"></i> تعزيز
+            </button>
+            <button class="driver-action-btn del" onclick="confirmDeleteDriver('${d.id}','${d.name}')">
+              <i class="fas fa-trash"></i> حذف
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Add Driver Modal ─────────────────────────
+  window.openAddDriverModal = function() {
+    document.getElementById('driverName').value   = '';
+    document.getElementById('driverPhone').value  = '';
+    document.getElementById('driverUserId').value = '';
+    document.getElementById('driverRate').value   = '15';
+    document.getElementById('addDriverModal').classList.add('open');
+  };
+  window.closeAddDriverModal = function() {
+    document.getElementById('addDriverModal').classList.remove('open');
+  };
+
+  window.saveNewDriver = async function() {
+    const name   = document.getElementById('driverName').value.trim();
+    const phone  = document.getElementById('driverPhone').value.trim();
+    const userId = document.getElementById('driverUserId').value.trim() || null;
+    const rate   = parseFloat(document.getElementById('driverRate').value) || 15;
+    if (!name || !phone) { showToast('الاسم ورقم الهاتف مطلوبان', 'warning'); return; }
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل', 'warning'); return; }
+    try {
+      await addDriver({ agentId: agentDoc.id, name, phone, userId, commissionRate: rate });
+      showToast('✅ تم إضافة السائق بنجاح', 'success');
+      closeAddDriverModal();
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء الحفظ', 'error'); }
+  };
+
+  window.confirmDeleteDriver = async function(id, name) {
+    if (!confirm(`هل أنت متأكد من حذف السائق "${name}"؟`)) return;
+    try {
+      await deleteDriver(id);
+      showToast('تم حذف السائق', 'info');
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء الحذف', 'error'); }
+  };
+
+  // ── Top-up Modal ─────────────────────────────
+  function buildPresets() {
+    const container = document.getElementById('topupPresets');
+    const multiples = [1, 2, 3];
+    container.innerHTML = multiples.map(m => {
+      const pay    = DRIVER_PAY_AMOUNT * m;
+      const credit = DRIVER_CREDIT_AMOUNT * m;
+      const profit = pay - (AGENT_PAY_AMOUNT * m); // agent profit per unit
+      return `
+        <div class="topup-preset-btn" onclick="selectPreset(${pay},${credit})">
+          <div class="topup-preset-pay">${new Intl.NumberFormat('en-US').format(pay)} د.ع</div>
+          <div class="topup-preset-credit">+${new Intl.NumberFormat('en-US').format(credit)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.selectPreset = function(pay, credit) {
+    document.getElementById('topupPaid').value   = pay;
+    document.getElementById('topupCredit').value = credit;
+    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    updateTopupSummary();
+  };
+  window.clearPresetSelection = function() {
+    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
+    updateTopupSummary();
+  };
+  window.onTopupManual = function() {
+    clearPresetSelection();
+    // auto-fill credit based on package ratio
+    const paid = parseFloat(document.getElementById('topupPaid').value) || 0;
+    if (paid > 0) {
+      const ratio  = DRIVER_CREDIT_AMOUNT / DRIVER_PAY_AMOUNT;
+      const credit = Math.round(paid * ratio);
+      document.getElementById('topupCredit').value = credit;
+    }
+    updateTopupSummary();
+  };
+
+  function updateTopupSummary() {
+    const paid   = parseFloat(document.getElementById('topupPaid').value)   || 0;
+    const credit = parseFloat(document.getElementById('topupCredit').value) || 0;
+    const fmt    = n => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
+    // Agent profit = what driver paid minus what agent paid to platform for equivalent credit
+    const agentCostPerUnit = AGENT_PAY_AMOUNT / AGENT_CREDIT_AMOUNT;
+    const agentCost        = Math.round(credit * agentCostPerUnit);
+    const profit           = paid - agentCost;
+    document.getElementById('summPaid').textContent   = paid   > 0 ? fmt(paid)   : '—';
+    document.getElementById('summCredit').textContent = credit > 0 ? fmt(credit) : '—';
+    document.getElementById('summProfit').textContent = paid   > 0 ? fmt(profit) : '—';
+  }
+
+  window.openTopupModal = function(driverId) {
+    const driver = myDrivers.find(d => d.id === driverId);
+    if (!driver) return;
+    activeTopupDriverId = driverId;
+    document.getElementById('topupDriverName').textContent =
+      driver.name;
+    document.getElementById('topupDriverBalance').textContent =
+      new Intl.NumberFormat('en-US').format(driver.balance || 0) + ' د.ع';
+    document.getElementById('topupPaid').value   = '';
+    document.getElementById('topupCredit').value = '';
+    document.getElementById('topupNote').value   = '';
+    document.getElementById('summPaid').textContent   = '—';
+    document.getElementById('summCredit').textContent = '—';
+    document.getElementById('summProfit').textContent = '—';
+    buildPresets();
+    document.getElementById('topupModal').classList.add('open');
+  };
+  window.closeTopupModal = function() {
+    document.getElementById('topupModal').classList.remove('open');
+    activeTopupDriverId = null;
+  };
+
+  window.confirmTopup = async function() {
+    const paid   = parseFloat(document.getElementById('topupPaid').value);
+    const credit = parseFloat(document.getElementById('topupCredit').value);
+    const note   = document.getElementById('topupNote').value.trim();
+    if (!paid || !credit || paid <= 0 || credit <= 0) {
+      showToast('أدخل المبلغ المدفوع والرصيد المُضاف', 'warning'); return;
+    }
+    if (!activeTopupDriverId || !agentDoc) return;
+    const btn = document.getElementById('confirmTopupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعزيز...';
+    try {
+      await topUpDriverBalance(activeTopupDriverId, credit, paid, agentDoc.id, note);
+      showToast('✅ تم تعزيز رصيد السائق بنجاح', 'success');
+      closeTopupModal();
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء التعزيز', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد التعزيز';
+  };
 </script>
 <script src="../js/pwa.js"></script>
 </body>
