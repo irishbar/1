@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#b8922a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Irish Bar">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="apple-touch-icon" href="../icon-192.png">
+  <title>Irish Bar — لوحة السائق</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <script>
+    (function(){
+      var lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e){
+        var now = Date.now(); if (now - lastTouchEnd < 300) e.preventDefault(); lastTouchEnd = now;
+      }, { passive: false });
+      document.addEventListener('touchstart', function(e){ if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchmove',  function(e){ if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturestart',  function(e){ e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive: false });
+      document.addEventListener('gestureend',    function(e){ e.preventDefault(); }, { passive: false });
+      document.addEventListener('wheel', function(e){ if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+      document.addEventListener('keydown', function(e){
+        if (e.ctrlKey && (e.key==='+' || e.key==='-' || e.key==='=' || e.key==='0')) e.preventDefault();
+      });
+    })();
+  </script>
+  <style>
+    body { background: var(--bg-secondary); }
+    .driver-page { min-height:100vh; max-width:640px; margin:0 auto; padding:0 0 80px; }
+
+    /* ── Top Bar ── */
+    .driver-topbar {
+      position:sticky; top:0; z-index:100;
+      background:rgba(255,255,255,0.94); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border-light);
+      height:64px; padding:0 16px;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 1px 20px rgba(184,146,42,0.06);
+    }
+    .driver-topbar-title {
+      font-family:var(--font-display);
+      font-size:clamp(0.95rem,3vw,1.1rem);
+      font-weight:800;
+      display:flex; align-items:center; gap:8px;
+    }
+    .driver-topbar-title i { color:#f59e0b; }
+    .back-btn {
+      display:flex; align-items:center; gap:6px;
+      font-size:0.85rem; color:var(--gold-dark); font-weight:600;
+      text-decoration:none; padding:8px 12px;
+      border-radius:var(--radius-full); transition:var(--transition);
+    }
+    .back-btn:hover { background:var(--gold-glow); }
+
+    /* ── Balance Hero Card ── */
+    .balance-hero {
+      margin:16px 16px 0;
+      border-radius:var(--radius-xl);
+      padding:28px 24px;
+      color:#fff;
+      position:relative; overflow:hidden;
+      transition:background 0.5s;
+    }
+    .balance-hero.green  { background:linear-gradient(135deg,#1a3a2a 0%,#2d6a4f 100%); }
+    .balance-hero.blue   { background:linear-gradient(135deg,#1e3a5f 0%,#1a56db 100%); }
+    .balance-hero.amber  { background:linear-gradient(135deg,#78350f 0%,#d97706 100%); }
+    .balance-hero.red    { background:linear-gradient(135deg,#7f1d1d 0%,#ef4444 100%); }
+    .balance-hero::before {
+      content:'🛵';
+      position:absolute; left:-10px; top:-10px;
+      font-size:7rem; opacity:0.07; transform:rotate(-15deg);
+    }
+    .balance-hero::after {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+    }
+    .balance-hero-label {
+      font-size:clamp(0.76rem,2vw,0.84rem);
+      opacity:0.8; margin-bottom:8px; font-weight:600; letter-spacing:0.5px;
+    }
+    .balance-hero-amount {
+      font-family:var(--font-en-body);
+      font-size:clamp(2rem,7vw,2.8rem);
+      font-weight:900; line-height:1; margin-bottom:6px;
+    }
+    .balance-hero-sub {
+      font-size:clamp(0.76rem,2vw,0.83rem); opacity:0.7;
+      display:flex; align-items:center; gap:8px;
+    }
+    .online-dot { width:8px; height:8px; background:#4ade80; border-radius:50%; animation:pulse-dot 1.5s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* low balance warning */
+    .balance-warn {
+      margin:10px 16px 0;
+      background:rgba(239,68,68,0.08); border:1.5px solid rgba(239,68,68,0.25);
+      border-radius:var(--radius-md); padding:12px 14px;
+      display:flex; align-items:center; gap:10px;
+      font-size:clamp(0.78rem,2vw,0.85rem); color:#b91c1c; font-weight:600;
+    }
+    .balance-warn i { flex-shrink:0; }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display:grid; grid-template-columns:repeat(2,1fr);
+      gap:12px; margin:16px 16px 0;
+    }
+    .stat-card {
+      background:var(--bg-card); border:1px solid var(--border-card);
+      border-radius:var(--radius-lg); padding:18px 16px;
+      box-shadow:var(--shadow-sm); position:relative; overflow:hidden;
+    }
+    .stat-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:3px 3px 0 0;
+    }
+    .stat-card.gold::before   { background:linear-gradient(90deg,var(--gold-light),var(--gold-dark)); }
+    .stat-card.green::before  { background:linear-gradient(90deg,#40916c,#2d6a4f); }
+    .stat-card.blue::before   { background:linear-gradient(90deg,#60a5fa,#1a56db); }
+    .stat-card.purple::before { background:linear-gradient(90deg,#a78bfa,#7c3aed); }
+    .stat-value { font-family:var(--font-en-body); font-size:clamp(1.3rem,4.5vw,1.7rem); font-weight:900; margin-bottom:4px; display:block; }
+    .stat-card.gold .stat-value   { color:var(--gold-dark); }
+    .stat-card.green .stat-value  { color:var(--green); }
+    .stat-card.blue .stat-value   { color:var(--blue); }
+    .stat-card.purple .stat-value { color:#7c3aed; }
+    .stat-label { font-size:clamp(0.68rem,1.8vw,0.76rem); color:var(--text-muted); font-weight:600; }
+    .stat-icon  { position:absolute; top:14px; left:14px; font-size:1.5rem; opacity:0.12; }
+
+    /* ── Section ── */
+    .section { margin:20px 16px 0; }
+    .section-title {
+      font-family:var(--font-display); font-size:clamp(0.9rem,2.5vw,1rem);
+      font-weight:800; color:var(--text-primary);
+      margin-bottom:14px; display:flex; align-items:center; gap:8px;
+    }
+    .section-title i { color:var(--gold); }
+
+    /* ── Info Card ── */
+    .info-card {
+      background:var(--bg-card); border:1px solid var(--border-card);
+      border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm);
+    }
+
+    /* ── Top-up Package Box ── */
+    .package-box {
+      background:linear-gradient(135deg,rgba(45,106,79,0.07),rgba(45,106,79,0.03));
+      border:1.5px solid rgba(45,106,79,0.25); border-radius:var(--radius-md);
+      padding:16px 18px; margin-bottom:12px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .package-pay {
+      text-align:center;
+    }
+    .package-pay-label { font-size:0.72rem; color:var(--text-muted); font-weight:600; margin-bottom:3px; }
+    .package-pay-amount {
+      font-family:var(--font-en-body); font-size:1.25rem; font-weight:900; color:#ef4444;
+    }
+    .package-arrow {
+      font-size:1.6rem; color:var(--text-muted); flex-shrink:0;
+    }
+    .package-credit {
+      text-align:center;
+    }
+    .package-credit-label { font-size:0.72rem; color:var(--text-muted); font-weight:600; margin-bottom:3px; }
+    .package-credit-amount {
+      font-family:var(--font-en-body); font-size:1.25rem; font-weight:900; color:var(--green);
+    }
+    .package-note {
+      font-size:clamp(0.75rem,2vw,0.82rem); color:var(--text-secondary);
+      line-height:1.65; margin-top:10px;
+    }
+    .package-steps {
+      margin-top:12px; padding:0; list-style:none;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .package-steps li {
+      display:flex; align-items:flex-start; gap:10px;
+      font-size:clamp(0.78rem,2vw,0.84rem); color:var(--text-secondary);
+    }
+    .package-steps li .step-num {
+      width:22px; height:22px; border-radius:50%; flex-shrink:0;
+      background:var(--gold-pale); border:1.5px solid var(--gold-border);
+      color:var(--gold-dark); font-size:0.72rem; font-weight:800;
+      display:flex; align-items:center; justify-content:center; margin-top:1px;
+    }
+
+    /* ── History items ── */
+    .history-item {
+      background:var(--bg-card); border:1px solid var(--border-card);
+      border-radius:var(--radius-md); padding:14px 16px; margin-bottom:10px;
+      box-shadow:var(--shadow-xs);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .history-item-info { flex:1; min-width:0; }
+    .history-item-date { font-size:0.74rem; color:var(--text-muted); margin-bottom:3px; }
+    .history-item-note { font-size:clamp(0.8rem,2.2vw,0.88rem); font-weight:600; }
+    .history-amount {
+      font-family:var(--font-en-body); font-weight:900;
+      font-size:clamp(0.88rem,2.5vw,1rem); white-space:nowrap;
+    }
+    .history-amount.credit  { color:var(--green); }
+    .history-amount.deduct  { color:#ef4444; }
+
+    /* ── Empty State ── */
+    .empty-state { text-align:center; padding:32px 16px; color:var(--text-muted); }
+    .empty-state i { font-size:2.5rem; opacity:0.2; margin-bottom:10px; display:block; }
+    .empty-state div { font-size:clamp(0.82rem,2.2vw,0.9rem); }
+
+    /* ── Commission Rate badge ── */
+    .rate-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(124,58,237,0.08); border:1.5px solid rgba(124,58,237,0.2);
+      color:#7c3aed; border-radius:var(--radius-full);
+      padding:6px 14px; font-size:0.82rem; font-weight:700; margin-top:10px;
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="driver-page">
+
+  <!-- Top Bar -->
+  <div class="driver-topbar">
+    <a class="back-btn" href="../index.html">
+      <i class="fas fa-arrow-right"></i> المتجر
+    </a>
+    <div class="driver-topbar-title">
+      <i class="fas fa-motorcycle"></i> لوحة السائق
+    </div>
+    <div style="width:64px;"></div>
+  </div>
+
+  <!-- Balance Hero -->
+  <div class="balance-hero green" id="balanceHero">
+    <div class="balance-hero-label">رصيدك الحالي</div>
+    <div class="balance-hero-amount" id="balanceAmount">0 د.ع</div>
+    <div class="balance-hero-sub">
+      <span class="online-dot"></span>
+      <span id="driverStatusText">متصل</span>
+    </div>
+  </div>
+
+  <!-- Low Balance Warning (hidden by default) -->
+  <div class="balance-warn" id="balanceWarn" style="display:none;">
+    <i class="fas fa-exclamation-triangle"></i>
+    رصيدك منخفض! تواصل مع وكيلك لتعزيز الرصيد قبل استقبال طلبات جديدة.
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card gold">
+      <span class="stat-icon">📦</span>
+      <span class="stat-value" id="statOrders">0</span>
+      <span class="stat-label">الطلبات المكتملة</span>
+    </div>
+    <div class="stat-card red" style="--stat-color:#ef4444;">
+      <span class="stat-icon">💸</span>
+      <span class="stat-value" id="statDeducted" style="color:#ef4444;">0</span>
+      <span class="stat-label">إجمالي المخصوم (د.ع)</span>
+    </div>
+    <div class="stat-card green">
+      <span class="stat-icon">💰</span>
+      <span class="stat-value" id="statTopups">0</span>
+      <span class="stat-label">مرات التعزيز</span>
+    </div>
+    <div class="stat-card purple">
+      <span class="stat-icon">⭐</span>
+      <span class="stat-value" id="statRate">15%</span>
+      <span class="stat-label">نسبة العمولة</span>
+    </div>
+  </div>
+
+  <!-- How to Top-up -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-wallet"></i> كيف تعزز رصيدك؟</div>
+    <div class="info-card">
+      <div class="package-box">
+        <div class="package-pay">
+          <div class="package-pay-label">تدفع لوكيلك</div>
+          <div class="package-pay-amount" id="pkgPayAmount">15,000 د.ع</div>
+        </div>
+        <div class="package-arrow">→</div>
+        <div class="package-credit">
+          <div class="package-credit-label">تحصل على رصيد</div>
+          <div class="package-credit-amount" id="pkgCreditAmount">100,000 د.ع</div>
+        </div>
+      </div>
+      <ul class="package-steps">
+        <li>
+          <span class="step-num">1</span>
+          <span>تواصل مع وكيلك وأخبره بالمبلغ الذي تريد تعزيزه.</span>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <span>سلّم المبلغ نقداً للوكيل (<strong id="pkgPayStep">15,000 د.ع</strong> مقابل 100,000 رصيد).</span>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <span>سيقوم الوكيل بتعزيز رصيدك فوراً، وسيظهر في لوحتك.</span>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <span>من كل طلب تستلمه، تُخصم نسبة <strong id="pkgRateStep">15%</strong> تلقائياً من رصيدك.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Top-up History -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-plus-circle"></i> سجل التعزيزات</div>
+    <div id="topupHistoryList">
+      <div class="empty-state">
+        <i class="fas fa-history"></i>
+        <div>لا توجد تعزيزات بعد</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deduction History -->
+  <div class="section">
+    <div class="section-title"><i class="fas fa-minus-circle"></i> سجل الخصومات</div>
+    <div id="deductHistoryList">
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <div>لا توجد خصومات بعد</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { onAuthChange } from '../js/auth.js';
+  import { showToast, formatPrice } from '../js/ui.js';
+  import {
+    findMyDriver, fetchTopupHistory, fetchDeductionHistory,
+    packagesReady,
+    DRIVER_PAY_AMOUNT, DRIVER_CREDIT_AMOUNT, BALANCE_WARN_THRESH
+  } from '../js/drivers.js';
+
+  let driverDoc = null;
+
+  function fmt(n) { return new Intl.NumberFormat('en-US').format(n) + ' د.ع'; }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('ar-IQ', {
+      year:'numeric', month:'short', day:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  }
+
+  onAuthChange(async (user, profile) => {
+    if (!user) { window.location.href = '../pages/auth.html'; return; }
+
+    await packagesReady;
+
+    driverDoc = await findMyDriver(user.uid);
+    if (!driverDoc) {
+      document.getElementById('driverStatusText').textContent = 'لم يتم ربط حسابك بسائق — تواصل مع وكيلك';
+      return;
+    }
+
+    renderHeader();
+    updatePackageInfo();
+    await loadHistory();
+  });
+
+  function renderHeader() {
+    const balance = driverDoc.balance || 0;
+    const heroEl  = document.getElementById('balanceHero');
+
+    document.getElementById('balanceAmount').textContent  = fmt(balance);
+    document.getElementById('driverStatusText').textContent =
+      (driverDoc.name || 'السائق') + ' — متصل';
+    document.getElementById('statRate').textContent =
+      (driverDoc.commissionRate ?? 15) + '%';
+
+    // Color coding
+    if (balance <= 0)           { heroEl.className = 'balance-hero red'; }
+    else if (balance < 20000)   { heroEl.className = 'balance-hero amber'; }
+    else if (balance < 50000)   { heroEl.className = 'balance-hero blue'; }
+    else                        { heroEl.className = 'balance-hero green'; }
+
+    // Warning
+    document.getElementById('balanceWarn').style.display =
+      balance < BALANCE_WARN_THRESH ? 'flex' : 'none';
+  }
+
+  function updatePackageInfo() {
+    const payFmt    = fmt(DRIVER_PAY_AMOUNT);
+    const creditFmt = fmt(DRIVER_CREDIT_AMOUNT);
+    const rate      = driverDoc.commissionRate ?? 15;
+    document.getElementById('pkgPayAmount').textContent    = payFmt;
+    document.getElementById('pkgCreditAmount').textContent = creditFmt;
+    document.getElementById('pkgPayStep').textContent      = payFmt;
+    document.getElementById('pkgRateStep').textContent     = rate + '%';
+  }
+
+  async function loadHistory() {
+    const [topups, deductions] = await Promise.all([
+      fetchTopupHistory(driverDoc.id),
+      fetchDeductionHistory(driverDoc.id)
+    ]);
+
+    // Stats
+    const totalDeducted = deductions.reduce((s, d) => s + (d.amount || 0), 0);
+    document.getElementById('statOrders').textContent   = deductions.length;
+    document.getElementById('statDeducted').textContent = totalDeducted.toLocaleString('en-US');
+    document.getElementById('statTopups').textContent   = topups.length;
+
+    // Render top-ups
+    const tEl = document.getElementById('topupHistoryList');
+    if (!topups.length) {
+      tEl.innerHTML = `<div class="empty-state"><i class="fas fa-history"></i><div>لا توجد تعزيزات بعد</div></div>`;
+    } else {
+      tEl.innerHTML = topups.slice(0, 30).map(t => `
+        <div class="history-item">
+          <div class="history-item-info">
+            <div class="history-item-date">${fmtDate(t.createdAt)}</div>
+            <div class="history-item-note">دفعت ${fmt(t.paidAmount || 0)}${t.note ? ' — ' + t.note : ''}</div>
+          </div>
+          <div class="history-amount credit">+${fmt(t.creditAmount || 0)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Render deductions
+    const dEl = document.getElementById('deductHistoryList');
+    if (!deductions.length) {
+      dEl.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><div>لا توجد خصومات بعد</div></div>`;
+    } else {
+      dEl.innerHTML = deductions.slice(0, 30).map(d => `
+        <div class="history-item">
+          <div class="history-item-info">
+            <div class="history-item-date">${fmtDate(d.createdAt)}</div>
+            <div class="history-item-note">طلب #${(d.orderId || '').slice(-6).toUpperCase() || '—'}</div>
+          </div>
+          <div class="history-amount deduct">−${fmt(d.amount || 0)}</div>
+        </div>
+      `).join('');
+    }
+  }
+</script>
+<script src="../js/pwa.js"></script>
+</body>
+</html>
