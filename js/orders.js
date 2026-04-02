@@ -7,6 +7,7 @@ import {
   query, orderBy, where, onSnapshot, increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { fetchAgents, getCoverageStatus, AGENT_COMMISSION_RATE } from './agents.js';
+import { deductDriverBalance } from './drivers.js';
 
 // الحالات التي يُسمح فيها للزبون بالإلغاء (قبل خروج السائق)
 export const CUSTOMER_CANCELLABLE_STATUSES = ['جديد', 'قيد التجهيز'];
@@ -259,6 +260,77 @@ export async function updateOrderStatus(orderId, status) {
   await updateDoc(doc(db, 'orders', orderId), { status });
   // 🔔 Send Telegram notification for completed/cancelled
   sendStatusNotification(orderId, status);
+}
+
+// ── Send notification to driver's personal Telegram ──
+async function sendDriverTelegramNotification(order, driver) {
+  try {
+    const tg = await getTelegramSettings();
+    if (!tg || !tg.botToken || !driver.telegramId) return;
+    const fmt = (n) => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
+    const shortId = order.id.slice(-6).toUpperCase();
+    const itemLines = (order.items || [])
+      .map(i => `  • ${i.name} × ${i.quantity}`)
+      .join('\n');
+    const mapLine = order.location
+      ? `\n📌 [موقع العميل](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
+      : order.address ? `\n📝 العنوان: ${order.address}` : '';
+    const msg =
+`🏍️ *طلب توصيل جديد لك*
+━━━━━━━━━━━━━━━━━━
+🆔 رقم الطلب: \`#${shortId}\`
+👤 الزبون: ${order.customerName}
+📞 الهاتف: ${order.phone}
+🕐 وقت التوصيل: ${order.deliveryTime || '—'}
+━━━━━━━━━━━━━━━━━━
+🛒 *المنتجات:*
+${itemLines}
+━━━━━━━━━━━━━━━━━━
+🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}${mapLine}`;
+    await fetch(
+      `https://api.telegram.org/bot${tg.botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: driver.telegramId,
+          text: msg,
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false
+        })
+      }
+    );
+  } catch (e) {
+    console.warn('Driver Telegram notification failed:', e);
+  }
+}
+
+// ── Assign Driver to Order (called by agent) ──────────────────────────────────
+export async function assignDriverToOrder(orderId, driver) {
+  const orderSnap = await getDoc(doc(db, 'orders', orderId));
+  if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
+  const order = { id: orderId, ...orderSnap.data() };
+
+  // احسب الخصم من رصيد السائق (نسبة عمولة السائق × قيمة الطلب)
+  const orderBase = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0);
+  const rate = driver.commissionRate ?? 15;
+  const driverDeduction = Math.round(orderBase * rate / 100);
+
+  // حدّث الطلب
+  await updateDoc(doc(db, 'orders', orderId), {
+    driverId:        driver.id,
+    driverName:      driver.name,
+    driverDeduction,
+    status:          'في التوصيل',
+    assignedAt:      new Date().toISOString()
+  });
+
+  // اخصم من رصيد السائق
+  await deductDriverBalance(driver.id, driverDeduction, orderId);
+
+  // أرسل إشعار تلجرام للسائق
+  const fullOrder = { ...order, driverId: driver.id, driverName: driver.name };
+  sendDriverTelegramNotification(fullOrder, driver);
 }
 
 // ── Cancel Order ──────────────────────────────────────────────────────────────

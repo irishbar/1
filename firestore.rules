@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'admin';
+    }
+
+    function isManager() {
+      return isSignedIn() && (getRole() == 'manager' || getRole() == 'admin');
+    }
+
+    function isAgent() {
+      return isSignedIn() && getRole() == 'agent';
+    }
+
+    function isDriver() {
+      return isSignedIn() && getRole() == 'driver';
+    }
+
+    function isCustomer() {
+      return isSignedIn() && getRole() == 'customer';
+    }
+
+    // ─── users ────────────────────────────────────────────────────────────────
+    // Admin reads/writes all. User reads/updates own profile only.
+    match /users/{userId} {
+      allow read:   if isSignedIn() && (request.auth.uid == userId || isManager());
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||   // own profile
+        isAdmin()                        // admin manages any user
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ─── products ─────────────────────────────────────────────────────────────
+    // Public read. Admin write.
+    match /products/{id} {
+      allow read:  if true;
+      allow write: if isManager();
+    }
+
+    // ─── categories ───────────────────────────────────────────────────────────
+    match /categories/{id} {
+      allow read:  if true;
+      allow write: if isManager();
+    }
+
+    // ─── promotions ───────────────────────────────────────────────────────────
+    match /promotions/{id} {
+      allow read:  if true;
+      allow write: if isManager();
+    }
+
+    // ─── orders ───────────────────────────────────────────────────────────────
+    // Customer creates their own orders, reads their own orders.
+    // Admin/manager reads & updates all.
+    // Agent can read orders assigned to them.
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        resource.data.customerId == request.auth.uid ||
+        (isAgent() && resource.data.agentId == request.auth.uid) ||
+        (isDriver() && resource.data.driverId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && (
+        isManager() ||
+        // Customer creates — must set their own customerId
+        (isCustomer() && request.resource.data.customerId == request.auth.uid)
+      );
+      allow update: if isSignedIn() && (
+        isManager() ||
+        // Agent can update orders assigned to them (e.g., change status)
+        (isAgent() && resource.data.agentId == request.auth.uid) ||
+        // Driver can update their assigned order status
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // Customer can only cancel (set status to 'ملغي') while order is in cancellable statuses
+        (
+          isCustomer() &&
+          resource.data.customerId == request.auth.uid &&
+          request.resource.data.status == 'ملغي' &&
+          (resource.data.status == 'جديد' || resource.data.status == 'قيد التجهيز') &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'cancelledBy', 'cancelledAt'])
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ─── agents ───────────────────────────────────────────────────────────────
+    // Authenticated users can read agents (needed for coverage checks).
+    // Admin creates/deletes. Agent can update their own document.
+    match /agents/{agentId} {
+      allow read:   if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAgent() && request.auth.uid == resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // ─── drivers ──────────────────────────────────────────────────────────────
+    // Agent manages their own drivers. Driver reads their own record. Admin reads all.
+    match /drivers/{driverId} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid) ||
+        (isDriver() && resource.data.userId == request.auth.uid)
+      );
+      allow create: if isManager() || isAgent();
+      allow update: if isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid) ||
+        (isDriver() && resource.data.userId == request.auth.uid);
+      allow delete: if isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid);
+    }
+
+    // ─── balance_topups ───────────────────────────────────────────────────────
+    // Agents create topup records for their drivers. Admin reads all. Driver reads own.
+    match /balance_topups/{id} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid) ||
+        (isDriver() && resource.data.targetId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && (isManager() || isAgent());
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── balance_deductions ───────────────────────────────────────────────────
+    // Created server-side (cloud functions) or by admin. Driver reads own.
+    match /balance_deductions/{id} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        (isDriver() && resource.data.driverId == request.auth.uid)
+      );
+      allow create: if isManager() || isAgent();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── purchases ────────────────────────────────────────────────────────────
+    // Admin only.
+    match /purchases/{id} {
+      allow read, write: if isManager();
+    }
+
+    // ─── settings ─────────────────────────────────────────────────────────────
+    // Admin only — protects Telegram token, ImgBB key, package config.
+    match /settings/{docId} {
+      allow read:  if isAdmin();
+      allow write: if isAdmin();
+    }
+
+  }
+}

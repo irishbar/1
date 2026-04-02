@@ -49,12 +49,13 @@ export async function fetchDriversByAgent(agentId) {
 }
 
 // ─── Add a new driver (by agent) ─────────────────────────────────────────────
-export async function addDriver({ agentId, name, phone, userId = null, commissionRate = 15 }) {
+export async function addDriver({ agentId, name, phone, userId = null, commissionRate = 15, telegramId = null }) {
   return await addDoc(collection(db, 'drivers'), {
     agentId,
     name,
     phone,
     userId,
+    telegramId,
     commissionRate,
     balance: 0,
     active: true,

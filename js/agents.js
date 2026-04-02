@@ -71,26 +71,27 @@ export function getCoverageStatus(userLat, userLng, agents) {
 }
 
 // ─── Calculate profit split (agent can be passed for per-agent override) ───────
-export function calcProfitSplit(deliveryFee, agent = null) {
-  // Treat commissionType+commissionRate as a pair — only use agent's values if BOTH are set
+// calcProfitSplit — العمولات مستقلة عن رسوم التوصيل
+// agentShare   = عمولة الوكيل (تُضاف للمجموع بشكل مستقل)
+// platformShare = عمولة المنصة (تُضاف للمجموع بشكل مستقل)
+// المجموع الكلي = منتجات + توصيل + agentShare + platformShare
+export function calcProfitSplit(orderTotal, deliveryFee, agent = null) {
+  // عمولة الوكيل — نسبة أو مبلغ ثابت على إجمالي الطلب
   const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
   const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
   const aVal  = agentHasOwn ? agent.commissionRate : (AGENT_COMMISSION_RATE * 100);
   const agentShare = aType === 'fixed'
-    ? Math.min(aVal, deliveryFee)
-    : Math.round(deliveryFee * aVal / 100);
+    ? Number(aVal)
+    : Math.round(orderTotal * aVal / 100);
 
-  // Platform commission
-  let platformShare;
+  // عمولة المنصة — نسبة أو مبلغ ثابت مستقل
+  let platformShare = 0;
   if (PLATFORM_COMMISSION_VALUE != null) {
-    if (PLATFORM_COMMISSION_TYPE === 'fixed') {
-      platformShare = Math.min(PLATFORM_COMMISSION_VALUE, deliveryFee);
-    } else {
-      platformShare = Math.round(deliveryFee * PLATFORM_COMMISSION_VALUE / 100);
-    }
-  } else {
-    platformShare = deliveryFee - agentShare;
+    platformShare = PLATFORM_COMMISSION_TYPE === 'fixed'
+      ? Number(PLATFORM_COMMISSION_VALUE)
+      : Math.round(orderTotal * PLATFORM_COMMISSION_VALUE / 100);
   }
+
   return { agentShare, platformShare };
 }
 

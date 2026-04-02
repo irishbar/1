@@ -601,6 +601,10 @@
       <input type="text" class="form-input" id="driverUserId" placeholder="يُعطى للسائق للدخول للوحته">
     </div>
     <div class="form-group">
+      <label class="form-label">Telegram Chat ID <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — لاستلام إشعارات الطلبات)</span></label>
+      <input type="text" class="form-input" id="driverTelegramId" placeholder="مثال: 123456789" inputmode="numeric">
+    </div>
+    <div class="form-group">
       <label class="form-label">نسبة العمولة %</label>
       <input type="number" class="form-input" id="driverRate" value="15" min="0" max="100">
     </div>
@@ -670,7 +674,7 @@
   import { onAuthChange } from '../js/auth.js';
   import { showToast, formatPrice } from '../js/ui.js';
   import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
-  import { fetchAllOrders } from '../js/orders.js';
+  import { fetchAllOrders, assignDriverToOrder } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
   import {
     fetchDriversByAgent, addDriver, updateDriver, deleteDriver,
@@ -860,18 +864,54 @@
       el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><div>لا توجد طلبات بعد</div></div>`;
       return;
     }
+    const assignable = ['جديد', 'قيد التجهيز'];
     el.innerHTML = orders.slice(0, 20).map(o => `
       <div class="order-item">
         <div class="order-item-info">
           <div class="order-item-id">#${o.id.slice(-6).toUpperCase()}</div>
           <div class="order-item-name">${o.customerName}</div>
           <div class="order-item-meta">${o.phone} · ${o.deliveryTime || ''} · <span class="badge badge-${getBadgeClass(o.status)}">${o.status}</span></div>
+          ${o.driverName ? `<div class="order-item-meta" style="color:var(--green);">🏍️ ${o.driverName}</div>` : ''}
           ${o.location ? `<div class="order-item-meta"><a href="https://www.google.com/maps?q=${o.location.lat},${o.location.lng}" target="_blank" style="color:var(--blue);">📍 عرض الموقع</a></div>` : ''}
         </div>
-        <div class="order-item-commission">+${(o.agentShare||0).toLocaleString('en-US')} د.ع</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div class="order-item-commission">+${(o.agentShare||0).toLocaleString('en-US')} د.ع</div>
+          ${assignable.includes(o.status) ? `<button class="btn btn-sm btn-primary" onclick="openAssignDriverModal('${o.id}')"><i class="fas fa-motorcycle"></i> تعيين سائق</button>` : ''}
+        </div>
       </div>
     `).join('');
   }
+
+  let assignOrderId = null;
+  window.openAssignDriverModal = function(orderId) {
+    assignOrderId = orderId;
+    const select = document.getElementById('assignDriverSelect');
+    select.innerHTML = myDrivers.length
+      ? myDrivers.map(d => `<option value="${d.id}">${d.name} — ${(d.balance||0).toLocaleString('en-US')} د.ع</option>`).join('')
+      : '<option disabled>لا يوجد سائقون</option>';
+    document.getElementById('assignDriverModal').classList.add('open');
+  };
+  window.closeAssignDriverModal = function() {
+    document.getElementById('assignDriverModal').classList.remove('open');
+    assignOrderId = null;
+  };
+  window.confirmAssignDriver = async function() {
+    if (!assignOrderId) return;
+    const select = document.getElementById('assignDriverSelect');
+    const driver = myDrivers.find(d => d.id === select.value);
+    if (!driver) { showToast('اختر سائقاً', 'warning'); return; }
+    try {
+      await assignDriverToOrder(assignOrderId, driver);
+      showToast(`✅ تم تعيين ${driver.name} وإرسال الإشعار`, 'success');
+      closeAssignDriverModal();
+      // أعد تحميل الطلبات والسائقين
+      const orders = await fetchAllOrders();
+      renderAgentOrders(orders.filter(o => o.agentId === agentDoc.id));
+      await loadDrivers();
+    } catch (e) {
+      showToast(e.message || 'حدث خطأ', 'error');
+    }
+  };
 
   function getBadgeClass(s) {
     return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
@@ -962,10 +1002,11 @@
 
   // ── Add Driver Modal ─────────────────────────
   window.openAddDriverModal = function() {
-    document.getElementById('driverName').value   = '';
-    document.getElementById('driverPhone').value  = '';
-    document.getElementById('driverUserId').value = '';
-    document.getElementById('driverRate').value   = '15';
+    document.getElementById('driverName').value       = '';
+    document.getElementById('driverPhone').value      = '';
+    document.getElementById('driverUserId').value     = '';
+    document.getElementById('driverTelegramId').value = '';
+    document.getElementById('driverRate').value       = '15';
     document.getElementById('addDriverModal').classList.add('open');
   };
   window.closeAddDriverModal = function() {
@@ -973,14 +1014,15 @@
   };
 
   window.saveNewDriver = async function() {
-    const name   = document.getElementById('driverName').value.trim();
-    const phone  = document.getElementById('driverPhone').value.trim();
-    const userId = document.getElementById('driverUserId').value.trim() || null;
-    const rate   = parseFloat(document.getElementById('driverRate').value) || 15;
+    const name       = document.getElementById('driverName').value.trim();
+    const phone      = document.getElementById('driverPhone').value.trim();
+    const userId     = document.getElementById('driverUserId').value.trim() || null;
+    const telegramId = document.getElementById('driverTelegramId').value.trim() || null;
+    const rate       = parseFloat(document.getElementById('driverRate').value) || 15;
     if (!name || !phone) { showToast('الاسم ورقم الهاتف مطلوبان', 'warning'); return; }
     if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل', 'warning'); return; }
     try {
-      await addDriver({ agentId: agentDoc.id, name, phone, userId, commissionRate: rate });
+      await addDriver({ agentId: agentDoc.id, name, phone, userId, telegramId, commissionRate: rate });
       showToast('✅ تم إضافة السائق بنجاح', 'success');
       closeAddDriverModal();
       await loadDrivers();
