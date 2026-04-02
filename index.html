@@ -518,9 +518,6 @@
       return { ...p, available: !inStopWindow };
     });
   }
-      return { ...p, available: inWindow ? (p.available !== false) : false };
-    });
-  }
 
   async function loadStore() {
     try {
