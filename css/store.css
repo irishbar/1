@@ -136,7 +136,8 @@
 .section-label {
   font-size: clamp(0.65rem, 1.8vw, 0.72rem);
   font-weight: 800;
-  letter-spacing: 2.5px; text-transform: uppercase;
+  /* FIX: إزالة letter-spacing من الخط العربي لمنع تقطع الكلمات */
+  letter-spacing: 0;
   color: var(--gold-dark); margin-bottom: 13px;
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-display);
