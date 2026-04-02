@@ -35,6 +35,16 @@ function buildTelegramMessage(order) {
 
   const deliveryFeeStr = order.deliveryFee ? fmt(order.deliveryFee) : '—';
 
+  // المجموع الكلي = منتجات + توصيل + عمولة وكيل + عمولة منصة
+  const productsTotal = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0);
+  const grandTotal    = productsTotal + (order.deliveryFee || 0) + (order.agentShare || 0) + (order.platformShare || 0);
+
+  // تفاصيل توزيع العمولة (للإدارة فقط - لا تؤثر على مبلغ العميل)
+  let commissionLine = '';
+  if (order.agentShare || order.platformShare) {
+    commissionLine = `\n   ├ وكيل: ${order.agentShare ? fmt(order.agentShare) : '—'}  |  منصة: ${order.platformShare ? fmt(order.platformShare) : '—'}`;
+  }
+
   return (
 `🥃 *طلب جديد — Irish Bar*
 ━━━━━━━━━━━━━━━━━━
@@ -46,8 +56,8 @@ function buildTelegramMessage(order) {
 🛒 *المنتجات:*
 ${itemLines}
 ━━━━━━━━━━━━━━━━━━
-🚚 أجرة التوصيل: ${deliveryFeeStr}
-💰 *الإجمالي: ${fmt(order.total)}*
+🚚 أجرة التوصيل: ${deliveryFeeStr}${commissionLine}
+💰 *الإجمالي: ${fmt(grandTotal)}*
 ━━━━━━━━━━━━━━━━━━${mapLine}`
   );
 }
@@ -150,7 +160,7 @@ async function sendStatusNotification(orderId, status) {
 ${itemLines || '—'}
 ━━━━━━━━━━━━━━━━━━
 🚚 أجرة التوصيل: ${order.deliveryFee ? fmt(order.deliveryFee) : '—'}
-💰 *الإجمالي: ${fmt(order.total || 0)}*${mapLine}`;
+💰 *الإجمالي: ${fmt(((order.items||[]).reduce((s,i)=>s+(i.price*i.quantity),0)) + (order.deliveryFee||0) + (order.agentShare||0) + (order.platformShare||0))}*${mapLine}`;
     } else {
       // Fallback if order fetch fails
       msg = `${icon} *تحديث طلب — Irish Bar*\n\`#${shortId}\`\nالحالة: *${status}*`;
@@ -203,9 +213,11 @@ export async function createOrder({ customerId, customerName, phone, address, de
         const agent    = coverage.nearest;
         const commType = agent.commissionType ?? 'percent';
         const commVal  = agent.commissionRate ?? (AGENT_COMMISSION_RATE * 100);
+        // عمولة الوكيل مستقلة — على إجمالي الطلب
+        const orderBase = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + deliveryFee;
         const agentShare = commType === 'fixed'
-          ? Math.min(commVal, deliveryFee)
-          : Math.round(deliveryFee * commVal / 100);
+          ? Number(commVal)
+          : Math.round(orderBase * commVal / 100);
         await updateDoc(doc(db, 'orders', ref.id), { agentId: agent.id, agentShare });
         fullOrder.agentId = agent.id;
         fullOrder.agentShare = agentShare;
