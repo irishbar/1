@@ -2,7 +2,7 @@
    Irish Bar — Service Worker (PWA Full Offline)
    ============================================= */
 
-const CACHE_NAME     = 'irish-bar-v2';
+const CACHE_NAME     = 'irish-bar-v3';
 
 // Build absolute URLs relative to SW scope (works on GitHub Pages and any subdirectory)
 const BASE = self.registration.scope; // e.g. https://user.github.io/repo/
