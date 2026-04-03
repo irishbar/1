@@ -936,16 +936,6 @@
     return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
   }
 
-  function showToast(msg, type='info', dur=3000) {
-    const tc = document.getElementById('toast-container');
-    const icons = { success:'✅', error:'❌', info:'🍀', warning:'⚠️' };
-    const t = document.createElement('div');
-    t.className = `toast toast-${type}`;
-    t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
-    tc.appendChild(t);
-    setTimeout(() => { t.classList.add('hide'); setTimeout(()=>t.remove(),300); }, dur);
-  }
-
   // ────────────────────────────────────────────
   // AGENT BALANCE CARD
   // ────────────────────────────────────────────
