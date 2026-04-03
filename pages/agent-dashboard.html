@@ -383,7 +383,9 @@
     <div class="agent-topbar-title">
       <i class="fas fa-store"></i> لوحة الوكيل
     </div>
-    <div style="width:60px;"></div>
+    <button onclick="doLogout()" style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:#ef4444;font-weight:600;background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.2);padding:7px 12px;border-radius:var(--radius-full);cursor:pointer;font-family:var(--font-body);">
+      <i class="fas fa-sign-out-alt"></i> خروج
+    </button>
   </div>
 
   <!-- ── Header Card (always visible) ── -->
@@ -752,7 +754,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
-  import { onAuthChange } from '../js/auth.js';
+  import { onAuthChange, logout } from '../js/auth.js';
   import { showToast, formatPrice } from '../js/ui.js';
   import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
   import { fetchAllOrders, assignDriverToOrder } from '../js/orders.js';
@@ -785,6 +787,12 @@
   let activeTopupDriverId = null;
 
   window.showToast = showToast;
+
+  window.doLogout = async function() {
+    if (!confirm('هل تريد تسجيل الخروج؟')) return;
+    await logout();
+    window.location.href = '../pages/auth.html';
+  };
 
   // ── Tab Navigation ──────────────────────────────────────────────────────────
   const TABS = ['orders', 'account', 'password', 'drivers'];
