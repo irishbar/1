@@ -480,6 +480,9 @@
   onAuthChange(async (user, profile) => {
     currentUser    = user;
     currentProfile = profile;
+    // توجيه الوكيل والسائق لصفحاتهم مباشرة
+    if (profile?.role === 'agent')  { window.location.href = 'pages/agent-dashboard.html'; return; }
+    if (profile?.role === 'driver') { window.location.href = 'pages/driver-dashboard.html'; return; }
     await loadStore();
     hideLoader();
     renderCart();
