@@ -19,42 +19,27 @@
     (function(){
       var lastTouchEnd = 0;
       document.addEventListener('touchend', function(e){
-        var now = Date.now();
-        if (now - lastTouchEnd < 300) { e.preventDefault(); }
-        lastTouchEnd = now;
+        var now = Date.now(); if (now - lastTouchEnd < 300) e.preventDefault(); lastTouchEnd = now;
       }, { passive: false });
-      document.addEventListener('touchstart', function(e){
-        if (e.touches.length > 1) { e.preventDefault(); }
-      }, { passive: false });
-      document.addEventListener('touchmove', function(e){
-        if (e.touches.length > 1) { e.preventDefault(); }
-      }, { passive: false });
-      document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchstart', function(e){ if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchmove',  function(e){ if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturestart',  function(e){ e.preventDefault(); }, { passive: false });
       document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, { passive: false });
-      document.addEventListener('gestureend', function(e){ e.preventDefault(); }, { passive: false });
-      document.addEventListener('wheel', function(e){
-        if (e.ctrlKey) { e.preventDefault(); }
-      }, { passive: false });
+      document.addEventListener('gestureend',    function(e){ e.preventDefault(); }, { passive: false });
+      document.addEventListener('wheel', function(e){ if (e.ctrlKey) e.preventDefault(); }, { passive: false });
       document.addEventListener('keydown', function(e){
-        if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
-          e.preventDefault();
-        }
+        if (e.ctrlKey && (e.key==='+' || e.key==='-' || e.key==='=' || e.key==='0')) e.preventDefault();
       });
     })();
   </script>
   <style>
     body { background: var(--bg-secondary); }
-    .agent-page {
-      min-height: 100vh;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 0 0 60px;
-    }
-    /* Top Bar */
+    .agent-page { min-height: 100vh; max-width: 640px; margin: 0 auto; padding: 0 0 80px; }
+
+    /* ── Top Bar ── */
     .agent-topbar {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,0.94);
-      backdrop-filter: blur(20px);
+      background: rgba(255,255,255,0.94); backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border-light);
       height: 64px; padding: 0 16px;
       display: flex; align-items: center; justify-content: space-between;
@@ -62,8 +47,7 @@
     }
     .agent-topbar-title {
       font-family: var(--font-display);
-      font-size: clamp(0.95rem, 3vw, 1.1rem);
-      font-weight: 800;
+      font-size: clamp(0.95rem,3vw,1.1rem); font-weight: 800;
       display: flex; align-items: center; gap: 8px;
     }
     .agent-topbar-title i { color: var(--green); }
@@ -71,204 +55,109 @@
       display: flex; align-items: center; gap: 6px;
       font-size: 0.85rem; color: var(--gold-dark); font-weight: 600;
       text-decoration: none; padding: 8px 12px;
-      border-radius: var(--radius-full);
-      transition: var(--transition);
+      border-radius: var(--radius-full); transition: var(--transition);
     }
     .back-btn:hover { background: var(--gold-glow); }
 
-    /* Header Card */
+    /* ── Header Card ── */
     .agent-header-card {
       margin: 16px 16px 0;
       background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 100%);
-      border-radius: var(--radius-xl);
-      padding: 24px;
-      color: #fff;
+      border-radius: var(--radius-xl); padding: 24px; color: #fff;
       position: relative; overflow: hidden;
     }
     .agent-header-card::before {
-      content: '🏪';
-      position: absolute; left: -10px; top: -10px;
+      content: '🏪'; position: absolute; left: -10px; top: -10px;
       font-size: 7rem; opacity: 0.06; transform: rotate(-15deg);
     }
     .agent-header-card::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, transparent, rgba(212,170,69,0.8), transparent);
     }
     .agent-header-name {
       font-family: var(--font-display);
-      font-size: clamp(1.2rem, 4vw, 1.5rem);
-      font-weight: 900; margin-bottom: 4px;
+      font-size: clamp(1.2rem,4vw,1.5rem); font-weight: 900; margin-bottom: 4px;
     }
     .agent-header-sub {
-      font-size: clamp(0.76rem, 2vw, 0.84rem);
-      opacity: 0.75; display: flex; align-items: center; gap: 8px;
+      font-size: clamp(0.76rem,2vw,0.84rem); opacity: 0.75;
+      display: flex; align-items: center; gap: 8px;
     }
     .agent-online-dot {
-      width: 8px; height: 8px;
-      background: #4ade80; border-radius: 50%;
+      width: 8px; height: 8px; background: #4ade80; border-radius: 50%;
       animation: pulse-dot 1.5s infinite;
     }
     @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-    /* Stats Grid */
+    /* ── Stats Grid ── */
     .stats-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr);
+      display: grid; grid-template-columns: repeat(2,1fr);
       gap: 12px; margin: 16px 16px 0;
     }
     .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-lg);
-      padding: 18px 16px;
-      box-shadow: var(--shadow-sm);
-      position: relative; overflow: hidden;
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg); padding: 18px 16px;
+      box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
     }
     .stat-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
       border-radius: 3px 3px 0 0;
     }
-    .stat-card.gold::before { background: linear-gradient(90deg, var(--gold-light), var(--gold-dark)); }
-    .stat-card.green::before { background: linear-gradient(90deg, #40916c, #2d6a4f); }
-    .stat-card.blue::before { background: linear-gradient(90deg, #60a5fa, #1a56db); }
+    .stat-card.gold::before   { background: linear-gradient(90deg, var(--gold-light), var(--gold-dark)); }
+    .stat-card.green::before  { background: linear-gradient(90deg, #40916c, #2d6a4f); }
+    .stat-card.blue::before   { background: linear-gradient(90deg, #60a5fa, #1a56db); }
     .stat-card.purple::before { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
     .stat-value {
       font-family: var(--font-en-body);
-      font-size: clamp(1.3rem, 4.5vw, 1.7rem);
-      font-weight: 900; margin-bottom: 4px;
-      display: block;
+      font-size: clamp(1.3rem,4.5vw,1.7rem); font-weight: 900; margin-bottom: 4px; display: block;
     }
-    .stat-card.gold .stat-value { color: var(--gold-dark); }
-    .stat-card.green .stat-value { color: var(--green); }
-    .stat-card.blue .stat-value { color: var(--blue); }
+    .stat-card.gold .stat-value   { color: var(--gold-dark); }
+    .stat-card.green .stat-value  { color: var(--green); }
+    .stat-card.blue .stat-value   { color: var(--blue); }
     .stat-card.purple .stat-value { color: #7c3aed; }
-    .stat-label {
-      font-size: clamp(0.68rem, 1.8vw, 0.76rem);
-      color: var(--text-muted); font-weight: 600;
-    }
-    .stat-icon {
-      position: absolute; top: 14px; left: 14px;
-      font-size: 1.5rem; opacity: 0.12;
-    }
+    .stat-label { font-size: clamp(0.68rem,1.8vw,0.76rem); color: var(--text-muted); font-weight: 600; }
+    .stat-icon { position: absolute; top: 14px; left: 14px; font-size: 1.5rem; opacity: 0.12; }
 
-    /* Section */
+    /* ── Bottom Navigation ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 640px; z-index: 200;
+      background: rgba(255,255,255,0.97); backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-light);
+      display: flex; align-items: stretch;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.07);
+      height: 64px;
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      border: none; background: transparent; cursor: pointer;
+      font-family: var(--font-body); font-size: 0.68rem; font-weight: 600;
+      color: var(--text-muted); padding: 6px 4px;
+      transition: color 0.2s, background 0.2s;
+      border-radius: 0;
+    }
+    .nav-btn i { font-size: 1.2rem; }
+    .nav-btn.active { color: var(--green); }
+    .nav-btn.active i { color: var(--green); }
+    .nav-btn:active { background: rgba(45,106,79,0.06); }
+
+    /* ── Tab Panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section ── */
     .section { margin: 20px 16px 0; }
     .section-title {
       font-family: var(--font-display);
-      font-size: clamp(0.9rem, 2.5vw, 1rem);
-      font-weight: 800; color: var(--text-primary);
-      margin-bottom: 14px;
-      display: flex; align-items: center; gap: 8px;
+      font-size: clamp(0.9rem,2.5vw,1rem); font-weight: 800; color: var(--text-primary);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
     }
     .section-title i { color: var(--gold); }
 
-    /* Map Card */
-    .map-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-lg);
-      overflow: hidden; box-shadow: var(--shadow-sm);
-    }
-    .map-card-header {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-light);
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 8px;
-    }
-    .map-card-title {
-      font-weight: 700;
-      font-size: clamp(0.86rem, 2.2vw, 0.92rem);
-      display: flex; align-items: center; gap: 8px; color: var(--text-primary);
-    }
-    .map-card-title i { color: var(--green); }
-    #agentMap { height: 250px; }
-    .map-card-footer {
-      padding: 14px 16px;
-      border-top: 1px solid var(--border-light);
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .agent-location-text {
-      font-size: clamp(0.78rem, 2vw, 0.84rem);
-      color: var(--text-secondary);
-      display: flex; align-items: flex-start; gap: 8px;
-    }
-    .agent-location-text i { color: var(--green); flex-shrink: 0; margin-top: 3px; }
-    #agentLocationAddr { flex: 1; word-break: break-word; }
-
-    .coverage-radius-info {
-      background: rgba(45,106,79,0.06);
-      border: 1px solid rgba(45,106,79,0.18);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-size: clamp(0.75rem, 1.9vw, 0.82rem);
-      color: var(--text-secondary);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .coverage-radius-info i { color: var(--green); }
-
-    /* Commission Card */
-    .commission-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-    }
-    .commission-formula {
-      display: flex; align-items: center; justify-content: center;
-      gap: 12px; margin: 16px 0;
-      flex-wrap: wrap;
-    }
-    .formula-box {
-      background: var(--bg-secondary);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 12px 16px; text-align: center; min-width: 90px;
-    }
-    .formula-box.highlight {
-      background: linear-gradient(135deg, rgba(45,106,79,0.08), rgba(45,106,79,0.04));
-      border-color: rgba(45,106,79,0.3);
-    }
-    .formula-label { font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
-    .formula-value { font-family: var(--font-en-body); font-weight: 800; font-size: 1rem; color: var(--text-primary); }
-    .formula-value.green { color: var(--green); }
-    .formula-value.gold  { color: var(--gold-dark); }
-    .formula-sep { font-size: 1.3rem; color: var(--text-muted); }
-
-    /* Orders List */
-    .order-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow-xs);
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    }
-    .order-item-info { flex: 1; min-width: 0; }
-    .order-item-id { font-family: var(--font-en-body); font-weight: 800; font-size: 0.82rem; color: var(--gold-dark); margin-bottom: 4px; }
-    .order-item-name { font-weight: 700; font-size: clamp(0.82rem,2.2vw,0.9rem); margin-bottom: 3px; word-break: break-word; }
-    .order-item-meta { font-size: 0.74rem; color: var(--text-muted); }
-    .order-item-commission {
-      font-family: var(--font-en-body); font-weight: 900;
-      font-size: clamp(0.85rem,2.5vw,1rem);
-      color: var(--green); white-space: nowrap;
-    }
-
-    .empty-state {
-      text-align: center; padding: 32px 16px; color: var(--text-muted);
-    }
-    .empty-state i { font-size: 2.5rem; opacity: 0.2; margin-bottom: 10px; display: block; }
-    .empty-state div { font-size: clamp(0.82rem, 2.2vw, 0.9rem); }
-
     /* ── Agent Balance Card ── */
     .agent-balance-card {
-      margin: 16px 16px 0;
-      border-radius: var(--radius-xl);
-      padding: 22px 20px;
-      color: #fff;
-      position: relative; overflow: hidden;
+      margin: 16px 16px 0; border-radius: var(--radius-xl); padding: 22px 20px;
+      color: #fff; position: relative; overflow: hidden;
     }
     .agent-balance-card.green  { background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 100%); }
     .agent-balance-card.blue   { background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%); }
@@ -282,14 +171,11 @@
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, transparent, rgba(212,170,69,0.7), transparent);
     }
-    .agent-balance-top {
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-    }
+    .agent-balance-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
     .agent-balance-label { font-size: 0.78rem; opacity: 0.8; font-weight: 600; margin-bottom: 6px; }
     .agent-balance-amount {
       font-family: var(--font-en-body);
-      font-size: clamp(1.8rem, 6vw, 2.4rem);
-      font-weight: 900; line-height: 1;
+      font-size: clamp(1.8rem,6vw,2.4rem); font-weight: 900; line-height: 1;
     }
     .agent-balance-pkg {
       background: rgba(255,255,255,0.12); border-radius: var(--radius-md);
@@ -306,32 +192,105 @@
     }
     .balance-warn-bar i { flex-shrink: 0; }
 
-    /* ── Drivers Section ── */
+    /* ── Map Card ── */
+    .map-card {
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .map-card-header {
+      padding: 14px 16px; border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .map-card-title {
+      font-weight: 700; font-size: clamp(0.86rem,2.2vw,0.92rem);
+      display: flex; align-items: center; gap: 8px; color: var(--text-primary);
+    }
+    .map-card-title i { color: var(--green); }
+    #agentMap { height: 240px; }
+    .map-card-footer {
+      padding: 14px 16px; border-top: 1px solid var(--border-light);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .coverage-radius-info {
+      background: rgba(45,106,79,0.06); border: 1px solid rgba(45,106,79,0.18);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: clamp(0.75rem,1.9vw,0.82rem); color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    }
+    .coverage-radius-info .cov-left { display: flex; align-items: center; gap: 8px; }
+    .coverage-radius-info i { color: var(--green); }
+    .agent-location-text {
+      font-size: clamp(0.78rem,2vw,0.84rem); color: var(--text-secondary);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .agent-location-text i { color: var(--green); flex-shrink: 0; margin-top: 3px; }
+    #agentLocationAddr { flex: 1; word-break: break-word; }
+
+    /* ── Commission Card ── */
+    .commission-card {
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm);
+    }
+    .commission-formula {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin: 16px 0; flex-wrap: wrap;
+    }
+    .formula-box {
+      background: var(--bg-secondary); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 16px; text-align: center; min-width: 90px;
+    }
+    .formula-box.highlight {
+      background: linear-gradient(135deg, rgba(45,106,79,0.08), rgba(45,106,79,0.04));
+      border-color: rgba(45,106,79,0.3);
+    }
+    .formula-label { font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .formula-value { font-family: var(--font-en-body); font-weight: 800; font-size: 1rem; color: var(--text-primary); }
+    .formula-value.green { color: var(--green); }
+    .formula-value.gold  { color: var(--gold-dark); }
+    .formula-sep { font-size: 1.3rem; color: var(--text-muted); }
+
+    /* ── Orders List ── */
+    .order-item {
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px;
+      box-shadow: var(--shadow-xs); display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+    }
+    .order-item-info { flex: 1; min-width: 0; }
+    .order-item-id { font-family: var(--font-en-body); font-weight: 800; font-size: 0.82rem; color: var(--gold-dark); margin-bottom: 4px; }
+    .order-item-name { font-weight: 700; font-size: clamp(0.82rem,2.2vw,0.9rem); margin-bottom: 3px; word-break: break-word; }
+    .order-item-meta { font-size: 0.74rem; color: var(--text-muted); }
+    .order-item-commission {
+      font-family: var(--font-en-body); font-weight: 900;
+      font-size: clamp(0.85rem,2.5vw,1rem); color: var(--green); white-space: nowrap;
+    }
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); }
+    .empty-state i { font-size: 2.5rem; opacity: 0.2; margin-bottom: 10px; display: block; }
+    .empty-state div { font-size: clamp(0.82rem,2.2vw,0.9rem); }
+
+    /* ── Drivers ── */
     .driver-card {
       background: var(--bg-card); border: 1px solid var(--border-card);
-      border-radius: var(--radius-lg); padding: 16px;
-      margin-bottom: 12px; box-shadow: var(--shadow-xs);
-      display: flex; align-items: center; gap: 14px;
+      border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px;
+      box-shadow: var(--shadow-xs); display: flex; align-items: center; gap: 14px;
     }
     .driver-card-avatar {
       width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
       background: linear-gradient(135deg, #1e3a5f, #1a56db);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.3rem; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #fff;
     }
     .driver-card-info { flex: 1; min-width: 0; }
     .driver-card-name { font-weight: 800; font-size: clamp(0.88rem,2.4vw,0.96rem); margin-bottom: 3px; }
     .driver-card-phone { font-size: 0.76rem; color: var(--text-muted); margin-bottom: 5px; }
     .driver-card-balance {
       display: inline-flex; align-items: center; gap: 5px;
-      font-family: var(--font-en-body); font-weight: 800;
-      font-size: 0.84rem; padding: 3px 10px;
-      border-radius: var(--radius-full); border: 1.5px solid;
+      font-family: var(--font-en-body); font-weight: 800; font-size: 0.84rem;
+      padding: 3px 10px; border-radius: var(--radius-full); border: 1.5px solid;
     }
-    .driver-card-balance.bal-green  { color: #2d6a4f; border-color: rgba(45,106,79,0.3); background: rgba(45,106,79,0.07); }
-    .driver-card-balance.bal-blue   { color: #1a56db; border-color: rgba(26,86,219,0.3); background: rgba(26,86,219,0.06); }
-    .driver-card-balance.bal-amber  { color: #d97706; border-color: rgba(217,119,6,0.3); background: rgba(217,119,6,0.07); }
-    .driver-card-balance.bal-red    { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.07); }
+    .driver-card-balance.bal-green  { color: #2d6a4f; border-color: rgba(45,106,79,0.3);  background: rgba(45,106,79,0.07); }
+    .driver-card-balance.bal-blue   { color: #1a56db; border-color: rgba(26,86,219,0.3);  background: rgba(26,86,219,0.06); }
+    .driver-card-balance.bal-amber  { color: #d97706; border-color: rgba(217,119,6,0.3);  background: rgba(217,119,6,0.07); }
+    .driver-card-balance.bal-red    { color: #ef4444; border-color: rgba(239,68,68,0.3);  background: rgba(239,68,68,0.07); }
     .driver-card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
     .driver-action-btn {
       font-size: 0.76rem; padding: 6px 12px; border-radius: var(--radius-full);
@@ -339,14 +298,16 @@
       display: flex; align-items: center; gap: 5px; white-space: nowrap;
       font-family: var(--font-body); transition: var(--transition);
     }
-    .driver-action-btn.topup {
-      background: rgba(45,106,79,0.07); border-color: rgba(45,106,79,0.3); color: #2d6a4f;
-    }
+    .driver-action-btn.topup { background: rgba(45,106,79,0.07); border-color: rgba(45,106,79,0.3); color: #2d6a4f; }
     .driver-action-btn.topup:hover { background: rgba(45,106,79,0.14); }
-    .driver-action-btn.del {
-      background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.25); color: #ef4444;
-    }
+    .driver-action-btn.del { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.25); color: #ef4444; }
     .driver-action-btn.del:hover { background: rgba(239,68,68,0.12); }
+
+    /* ── Password Tab ── */
+    .pw-card {
+      background: var(--bg-card); border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg); padding: 24px 20px; box-shadow: var(--shadow-sm);
+    }
 
     /* ── Modals ── */
     .modal-overlay {
@@ -377,23 +338,36 @@
       font-family: var(--font-body); font-size: 0.9rem; color: var(--text-primary);
       box-sizing: border-box; transition: border-color 0.2s;
     }
-    .form-input:focus, .form-select:focus {
-      outline: none; border-color: var(--gold);
-    }
-    .topup-presets {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
-    }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--gold); }
+    .topup-presets { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
     .topup-preset-btn {
       padding: 10px 6px; border-radius: var(--radius-md);
       border: 1.5px solid var(--border); background: var(--bg-secondary);
-      cursor: pointer; text-align: center; transition: var(--transition);
-      font-family: var(--font-body);
+      cursor: pointer; text-align: center; transition: var(--transition); font-family: var(--font-body);
     }
-    .topup-preset-btn:hover, .topup-preset-btn.selected {
-      border-color: var(--gold); background: var(--gold-pale);
-    }
-    .topup-preset-pay { font-size: 0.7rem; color: #ef4444; font-weight: 700; margin-bottom: 2px; }
+    .topup-preset-btn:hover, .topup-preset-btn.selected { border-color: var(--gold); background: var(--gold-pale); }
+    .topup-preset-pay    { font-size: 0.7rem;  color: #ef4444; font-weight: 700; margin-bottom: 2px; }
     .topup-preset-credit { font-size: 0.78rem; color: var(--green); font-weight: 800; }
+
+    /* ── Driver user search ── */
+    .driver-user-option {
+      padding: 12px 14px; border-radius: var(--radius-md);
+      border: 1.5px solid var(--border); background: var(--bg-secondary);
+      cursor: pointer; margin-bottom: 8px; transition: var(--transition);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .driver-user-option:hover, .driver-user-option.selected {
+      border-color: var(--green); background: rgba(45,106,79,0.06);
+    }
+    .driver-user-option .duo-avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #1e3a5f, #1a56db);
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem;
+    }
+    .driver-user-option .duo-info .duo-name { font-weight: 700; font-size: 0.9rem; }
+    .driver-user-option .duo-info .duo-email { font-size: 0.75rem; color: var(--text-muted); }
+    #driverUsersList { max-height: 200px; overflow-y: auto; margin-bottom: 4px; }
+    .no-driver-users { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -401,7 +375,7 @@
 
 <div class="agent-page">
 
-  <!-- Top Bar -->
+  <!-- ── Top Bar ── -->
   <div class="agent-topbar">
     <a class="back-btn" href="../index.html">
       <i class="fas fa-arrow-right"></i> المتجر
@@ -409,12 +383,10 @@
     <div class="agent-topbar-title">
       <i class="fas fa-store"></i> لوحة الوكيل
     </div>
-    <button class="icon-btn" onclick="saveLocation()" title="حفظ الموقع">
-      <i class="fas fa-save"></i>
-    </button>
+    <div style="width:60px;"></div>
   </div>
 
-  <!-- Header Card -->
+  <!-- ── Header Card (always visible) ── -->
   <div class="agent-header-card">
     <div class="agent-header-name" id="agentName">الوكيل</div>
     <div class="agent-header-sub">
@@ -423,7 +395,7 @@
     </div>
   </div>
 
-  <!-- Stats -->
+  <!-- ── Stats Grid (always visible) ── -->
   <div class="stats-grid">
     <div class="stat-card gold">
       <span class="stat-icon">📦</span>
@@ -447,175 +419,275 @@
     </div>
   </div>
 
-  <!-- ── Agent Balance with Platform ── -->
-  <div class="agent-balance-card green" id="agentBalanceCard">
-    <div class="agent-balance-top">
-      <div>
-        <div class="agent-balance-label">رصيدك مع المنصة</div>
-        <div class="agent-balance-amount" id="agentBalanceAmount">0 د.ع</div>
-      </div>
-      <div class="agent-balance-pkg">
-        <div class="agent-balance-pkg-label">الباقة</div>
-        <div class="agent-balance-pkg-val" id="agentPkgInfo">8,000 ← 100,000</div>
+  <!-- ══════════════════════════════════════════
+       TAB 1: الطلبات
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-orders">
+
+    <div class="section">
+      <div class="section-title"><i class="fas fa-list"></i> طلباتك</div>
+      <div id="agentOrdersList">
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          <div>لا توجد طلبات بعد</div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="balance-warn-bar" id="agentBalanceWarn">
-    <i class="fas fa-exclamation-triangle"></i>
-    رصيدك منخفض! تواصل مع الإدارة لتعزيز رصيدك مع المنصة.
+
   </div>
 
-  <!-- Agent Map (set your location) -->
-  <div class="section">
-    <div class="section-title"><i class="fas fa-map-marker-alt"></i> موقعك كمخزن افتراضي</div>
-    <div class="map-card">
-      <div class="map-card-header">
-        <div class="map-card-title">
-          <i class="fas fa-store"></i> حدد موقعك على الخارطة
+  <!-- ══════════════════════════════════════════
+       TAB 2: حسابي
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-account">
+
+    <!-- Balance Card -->
+    <div class="agent-balance-card green" id="agentBalanceCard">
+      <div class="agent-balance-top">
+        <div>
+          <div class="agent-balance-label">رصيدك مع المنصة</div>
+          <div class="agent-balance-amount" id="agentBalanceAmount">0 د.ع</div>
         </div>
-        <button class="btn btn-sm btn-ghost" onclick="goToMyGPS()">
-          <i class="fas fa-crosshairs"></i> موقعي
-        </button>
-      </div>
-      <div id="agentMap"></div>
-      <div class="map-card-footer">
-        <div class="coverage-radius-info">
-          <i class="fas fa-circle-notch"></i>
-          نطاق تغطيتك: <strong>8 كيلومتر</strong> حول موقعك — أي طلب داخل هذا النطاق سيُوجَّه إليك
+        <div class="agent-balance-pkg">
+          <div class="agent-balance-pkg-label">الباقة</div>
+          <div class="agent-balance-pkg-val" id="agentPkgInfo">8,000 ← 100,000</div>
         </div>
-        <div class="agent-location-text">
-          <i class="fas fa-location-dot"></i>
-          <span id="agentLocationAddr">اسحب الخارطة لتحديد موقعك</span>
-        </div>
-        <button class="btn btn-primary btn-block" id="saveLocationBtn" onclick="saveLocation()">
-          <i class="fas fa-save"></i> حفظ الموقع
-        </button>
       </div>
     </div>
-  </div>
+    <div class="balance-warn-bar" id="agentBalanceWarn">
+      <i class="fas fa-exclamation-triangle"></i>
+      رصيدك منخفض! تواصل مع الإدارة لتعزيز رصيدك مع المنصة.
+    </div>
 
-  <!-- Commission Formula -->
-  <div class="section">
-    <div class="section-title"><i class="fas fa-chart-pie"></i> معادلة توزيع الأرباح</div>
-    <div class="commission-card">
-      <p style="font-size:clamp(0.8rem,2.2vw,0.86rem);color:var(--text-secondary);margin-bottom:12px;line-height:1.65;">
-        من كل طلب يصلك، تحصل على <strong>35%</strong> من رسوم التوصيل كعمولة، والباقي يذهب للمنصة.
-      </p>
-      <div class="commission-formula">
-        <div class="formula-box">
-          <span class="formula-label">رسوم التوصيل</span>
-          <span class="formula-value">مثال: 5,000</span>
+    <!-- Map / Warehouse Location -->
+    <div class="section">
+      <div class="section-title"><i class="fas fa-map-marker-alt"></i> موقعك كمخزن افتراضي</div>
+      <div class="map-card">
+        <div class="map-card-header">
+          <div class="map-card-title">
+            <i class="fas fa-store"></i> حدد موقعك على الخارطة
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="goToMyGPS()">
+            <i class="fas fa-crosshairs"></i> موقعي
+          </button>
         </div>
-        <div class="formula-sep">=</div>
-        <div class="formula-box highlight">
-          <span class="formula-label">عمولتك (35%)</span>
-          <span class="formula-value green">1,750 د.ع</span>
-        </div>
-        <div class="formula-sep">+</div>
-        <div class="formula-box">
-          <span class="formula-label">المنصة (65%)</span>
-          <span class="formula-value gold">3,250 د.ع</span>
+        <div id="agentMap"></div>
+        <div class="map-card-footer">
+          <div class="coverage-radius-info">
+            <div class="cov-left">
+              <i class="fas fa-circle-notch"></i>
+              نطاق التغطية: <strong id="coverageKmLabel">8</strong> كيلومتر
+            </div>
+            <button class="btn btn-sm btn-ghost" style="font-size:0.74rem;padding:5px 10px;" onclick="openCoverageRequestModal()">
+              <i class="fas fa-paper-plane"></i> طلب تغيير
+            </button>
+          </div>
+          <div class="agent-location-text">
+            <i class="fas fa-location-dot"></i>
+            <span id="agentLocationAddr">اسحب الخارطة لتحديد موقعك</span>
+          </div>
+          <button class="btn btn-primary btn-block" id="saveLocationBtn" onclick="saveLocation()">
+            <i class="fas fa-save"></i> حفظ الموقع
+          </button>
         </div>
       </div>
+    </div>
 
-      <!-- Dynamic calculator -->
-      <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
-        <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">حساب العمولة</div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <input type="number" id="calcInput" class="form-input" style="flex:1;min-width:120px;"
-                 placeholder="رسوم التوصيل (د.ع)" oninput="calcCommission(this.value)">
-          <div style="min-width:120px;">
-            <div style="font-size:0.72rem;color:var(--text-muted);">عمولتك</div>
-            <div style="font-family:var(--font-en-body);font-size:1.1rem;font-weight:900;color:var(--green);" id="calcResult">—</div>
+    <!-- Commission Formula -->
+    <div class="section">
+      <div class="section-title"><i class="fas fa-chart-pie"></i> معادلة توزيع الأرباح</div>
+      <div class="commission-card">
+        <p style="font-size:clamp(0.8rem,2.2vw,0.86rem);color:var(--text-secondary);margin-bottom:12px;line-height:1.65;">
+          من كل طلب يصلك، تحصل على <strong>35%</strong> من رسوم التوصيل كعمولة، والباقي يذهب للمنصة.
+        </p>
+        <div class="commission-formula">
+          <div class="formula-box">
+            <span class="formula-label">رسوم التوصيل</span>
+            <span class="formula-value">مثال: 5,000</span>
+          </div>
+          <div class="formula-sep">=</div>
+          <div class="formula-box highlight">
+            <span class="formula-label">عمولتك (35%)</span>
+            <span class="formula-value green">1,750 د.ع</span>
+          </div>
+          <div class="formula-sep">+</div>
+          <div class="formula-box">
+            <span class="formula-label">المنصة (65%)</span>
+            <span class="formula-value gold">3,250 د.ع</span>
+          </div>
+        </div>
+        <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">حساب العمولة</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="number" id="calcInput" class="form-input" style="flex:1;min-width:120px;"
+                   placeholder="رسوم التوصيل (د.ع)" oninput="calcCommission(this.value)">
+            <div style="min-width:120px;">
+              <div style="font-size:0.72rem;color:var(--text-muted);">عمولتك</div>
+              <div style="font-family:var(--font-en-body);font-size:1.1rem;font-weight:900;color:var(--green);" id="calcResult">—</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Telegram Settings -->
+    <div class="section">
+      <div class="section-title"><i class="fab fa-telegram"></i> إعدادات تيليجرام</div>
+      <div class="commission-card" style="padding:16px;">
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
+          أدخل <strong>Chat ID</strong> الخاص بك على تيليجرام لاستقبال إشعار فوري عند كل طلب جديد.
+          يمكنك معرفة Chat ID عبر البوت
+          <a href="https://t.me/userinfobot" target="_blank" style="color:var(--blue);">@userinfobot</a>.
+        </p>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" id="telegramIdInput" class="form-input" style="flex:1;"
+            placeholder="مثال: 123456789" dir="ltr">
+          <button id="saveTelegramBtn" class="btn btn-primary btn-sm" onclick="saveTelegramId()" style="white-space:nowrap;">
+            <i class="fas fa-save"></i> حفظ
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Telegram Settings -->
-  <div class="section">
-    <div class="section-title"><i class="fab fa-telegram"></i> إعدادات تيليجرام</div>
-    <div class="commission-card" style="padding:16px;">
-      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
-        أدخل <strong>Chat ID</strong> الخاص بك على تيليجرام لاستقبال إشعار فوري عند كل طلب جديد في منطقتك.
-        يمكنك معرفة Chat ID عبر البوت
-        <a href="https://t.me/userinfobot" target="_blank" style="color:var(--blue);">@userinfobot</a>.
-      </p>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <input type="text" id="telegramIdInput" class="form-input" style="flex:1;"
-          placeholder="مثال: 123456789" dir="ltr">
-        <button id="saveTelegramBtn" class="btn btn-primary btn-sm" onclick="saveTelegramId()" style="white-space:nowrap;">
-          <i class="fas fa-save"></i> حفظ
+  <!-- ══════════════════════════════════════════
+       TAB 3: كلمة المرور
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-password">
+    <div class="section">
+      <div class="section-title"><i class="fas fa-lock"></i> تغيير كلمة المرور</div>
+      <div class="pw-card">
+        <div class="form-group">
+          <label class="form-label">كلمة المرور الحالية</label>
+          <input type="password" class="form-input" id="pwCurrent" placeholder="أدخل كلمة المرور الحالية">
+        </div>
+        <div class="form-group">
+          <label class="form-label">كلمة المرور الجديدة</label>
+          <input type="password" class="form-input" id="pwNew" placeholder="6 أحرف على الأقل">
+        </div>
+        <div class="form-group">
+          <label class="form-label">تأكيد كلمة المرور الجديدة</label>
+          <input type="password" class="form-input" id="pwConfirm" placeholder="أعد كتابة كلمة المرور الجديدة">
+        </div>
+        <button class="btn btn-primary btn-block" id="changePwBtn" onclick="changePassword()">
+          <i class="fas fa-key"></i> تغيير كلمة المرور
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Recent Orders -->
-  <div class="section">
-    <div class="section-title"><i class="fas fa-list"></i> طلباتك الأخيرة</div>
-    <div id="agentOrdersList">
-      <div class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <div>لا توجد طلبات بعد</div>
+  <!-- ══════════════════════════════════════════
+       TAB 4: السائقين
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-drivers">
+    <div class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="section-title" style="margin-bottom:0;">
+          <i class="fas fa-motorcycle"></i> سائقيك
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="openAddDriverModal()">
+          <i class="fas fa-plus"></i> إضافة سائق
+        </button>
+      </div>
+      <div id="driversList">
+        <div class="empty-state">
+          <i class="fas fa-motorcycle"></i>
+          <div>لم تضف أي سائق بعد</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ── My Drivers ── -->
-  <div class="section">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div class="section-title" style="margin-bottom:0;">
-        <i class="fas fa-motorcycle"></i> سائقيك
-      </div>
-      <button class="btn btn-sm btn-primary" onclick="openAddDriverModal()">
-        <i class="fas fa-plus"></i> إضافة سائق
-      </button>
-    </div>
-    <div id="driversList">
-      <div class="empty-state">
-        <i class="fas fa-motorcycle"></i>
-        <div>لم تضف أي سائق بعد</div>
-      </div>
-    </div>
-  </div>
+</div><!-- /.agent-page -->
 
-</div>
+<!-- ── Bottom Navigation ── -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="navOrders" onclick="switchTab('orders')">
+    <i class="fas fa-list-alt"></i>
+    الطلبات
+  </button>
+  <button class="nav-btn" id="navAccount" onclick="switchTab('account')">
+    <i class="fas fa-user-circle"></i>
+    حسابي
+  </button>
+  <button class="nav-btn" id="navPassword" onclick="switchTab('password')">
+    <i class="fas fa-lock"></i>
+    الباسوورد
+  </button>
+  <button class="nav-btn" id="navDrivers" onclick="switchTab('drivers')">
+    <i class="fas fa-motorcycle"></i>
+    السائقين
+  </button>
+</nav>
 
-<!-- ── Add Driver Modal ── -->
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Add Driver Modal -->
 <div class="modal-overlay" id="addDriverModal" onclick="if(event.target===this)closeAddDriverModal()">
   <div class="modal-sheet">
     <div class="modal-sheet-handle"></div>
-    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> إضافة سائق جديد</div>
+    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> ربط سائق بحسابه</div>
+    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+      اختر حساب السائق من القائمة أدناه — يجب أن يكون الحساب من نوع <strong>سائق</strong>.
+    </p>
     <div class="form-group">
-      <label class="form-label">اسم السائق <span style="color:var(--gold-dark);">*</span></label>
-      <input type="text" class="form-input" id="driverName" placeholder="الاسم الكامل">
+      <label class="form-label">حسابات السائقين المتاحة</label>
+      <div id="driverUsersLoading" style="text-align:center;padding:16px;color:var(--text-muted);font-size:0.85rem;">
+        <i class="fas fa-spinner fa-spin"></i> جاري تحميل الحسابات...
+      </div>
+      <div id="driverUsersList" style="display:none;"></div>
+      <div id="driverUsersEmpty" class="no-driver-users" style="display:none;">
+        <i class="fas fa-user-slash" style="font-size:1.8rem;opacity:0.2;margin-bottom:8px;display:block;"></i>
+        لا توجد حسابات سائقين متاحة — أضف مستخدماً من نوع سائق أولاً
+      </div>
     </div>
+    <input type="hidden" id="selectedDriverUserId">
+    <input type="hidden" id="selectedDriverUserName">
     <div class="form-group">
       <label class="form-label">رقم الهاتف <span style="color:var(--gold-dark);">*</span></label>
       <input type="tel" class="form-input" id="driverPhone" placeholder="07XXXXXXXXX" inputmode="numeric" maxlength="11">
     </div>
     <div class="form-group">
-      <label class="form-label">User ID (Firebase UID — اختياري)</label>
-      <input type="text" class="form-input" id="driverUserId" placeholder="يُعطى للسائق للدخول للوحته">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Telegram Chat ID <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — لاستلام إشعارات الطلبات)</span></label>
+      <label class="form-label">Telegram Chat ID <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري)</span></label>
       <input type="text" class="form-input" id="driverTelegramId" placeholder="مثال: 123456789" inputmode="numeric">
     </div>
     <div class="form-group">
       <label class="form-label">نسبة العمولة %</label>
       <input type="number" class="form-input" id="driverRate" value="15" min="0" max="100">
     </div>
-    <button class="btn btn-primary btn-lg btn-block" onclick="saveNewDriver()">
-      <i class="fas fa-check"></i> حفظ السائق
+    <button class="btn btn-primary btn-lg btn-block" id="saveDriverBtn" onclick="saveNewDriver()">
+      <i class="fas fa-check"></i> ربط السائق
     </button>
     <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeAddDriverModal()">إلغاء</button>
   </div>
 </div>
 
-<!-- ── Top-up Driver Balance Modal ── -->
+<!-- Coverage Request Modal -->
+<div class="modal-overlay" id="coverageRequestModal" onclick="if(event.target===this)closeCoverageRequestModal()">
+  <div class="modal-sheet">
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-title"><i class="fas fa-paper-plane"></i> طلب تغيير نطاق التغطية</div>
+    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+      نطاق التغطية الحالي: <strong id="currentCoverageLabel">—</strong> كم.
+      سيتم إرسال طلبك للإدارة للمراجعة والموافقة.
+    </p>
+    <div class="form-group">
+      <label class="form-label">النطاق المطلوب (كيلومتر)</label>
+      <input type="number" class="form-input" id="requestedCoverage" placeholder="مثال: 10" min="1" max="50">
+    </div>
+    <div class="form-group">
+      <label class="form-label">السبب / الملاحظات</label>
+      <textarea class="form-input" id="coverageRequestNote" rows="3" placeholder="اذكر سبب طلب تغيير النطاق..." style="resize:vertical;"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" id="sendCoverageRequestBtn" onclick="submitCoverageRequest()">
+      <i class="fas fa-paper-plane"></i> إرسال الطلب
+    </button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeCoverageRequestModal()">إلغاء</button>
+  </div>
+</div>
+
+<!-- Top-up Driver Balance Modal -->
 <div class="modal-overlay" id="topupModal" onclick="if(event.target===this)closeTopupModal()">
   <div class="modal-sheet">
     <div class="modal-sheet-handle"></div>
@@ -624,65 +696,55 @@
       السائق: <strong id="topupDriverName">—</strong><br>
       الرصيد الحالي: <strong id="topupDriverBalance" style="color:var(--green);">—</strong>
     </p>
-
-    <!-- Presets -->
     <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">باقات سريعة</div>
     <div class="topup-presets" id="topupPresets"></div>
-
-    <!-- Manual -->
     <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">أو أدخل يدوياً</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label">المبلغ المدفوع (د.ع)</label>
-        <input type="number" class="form-input" id="topupPaid" placeholder="15000" oninput="onTopupManual()">
+        <input type="number" class="form-input" id="topupPaid" placeholder="0" oninput="onTopupManual()">
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label">الرصيد المُضاف (د.ع)</label>
-        <input type="number" class="form-input" id="topupCredit" placeholder="100000" oninput="clearPresetSelection()">
+        <input type="number" class="form-input" id="topupCredit" placeholder="0" oninput="updateTopupSummary()">
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">ملاحظة (اختياري)</label>
-      <input type="text" class="form-input" id="topupNote" placeholder="مثال: دفعة شهر أبريل">
+      <input type="text" class="form-input" id="topupNote" placeholder="مثال: دفعة نقدية">
     </div>
-
-    <!-- Summary -->
-    <div style="background:rgba(45,106,79,0.06);border:1.5px solid rgba(45,106,79,0.2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;">
+    <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-bottom:18px;">
       <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
-        <span style="color:var(--text-muted);">المدفوع من السائق</span>
-        <span style="font-weight:700;color:#ef4444;" id="summPaid">—</span>
+        <span style="color:var(--text-muted);">المدفوع:</span>
+        <span id="summPaid" style="font-weight:700;">—</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
-        <span style="color:var(--text-muted);">الرصيد المُضاف</span>
-        <span style="font-weight:700;color:var(--green);" id="summCredit">—</span>
+        <span style="color:var(--text-muted);">الرصيد المُضاف:</span>
+        <span id="summCredit" style="font-weight:700;color:var(--green);">—</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.82rem;">
-        <span style="color:var(--text-muted);">ربحك من الصفقة</span>
-        <span style="font-weight:800;color:var(--gold-dark);" id="summProfit">—</span>
+        <span style="color:var(--text-muted);">ربحك:</span>
+        <span id="summProfit" style="font-weight:700;color:var(--gold-dark);">—</span>
       </div>
     </div>
-
-    <button class="btn btn-primary btn-lg btn-block" id="confirmTopupBtn" onclick="confirmTopup()">
+    <button class="btn btn-primary btn-block" id="confirmTopupBtn" onclick="confirmTopup()">
       <i class="fas fa-check-circle"></i> تأكيد التعزيز
     </button>
     <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeTopupModal()">إلغاء</button>
   </div>
 </div>
 
-<!-- ── Assign Driver Modal ── -->
+<!-- Assign Driver to Order Modal -->
 <div class="modal-overlay" id="assignDriverModal" onclick="if(event.target===this)closeAssignDriverModal()">
   <div class="modal-sheet">
     <div class="modal-sheet-handle"></div>
     <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> تعيين سائق للطلب</div>
-    <p style="font-size:0.83rem;color:var(--text-muted);margin-bottom:14px;">
-      اختر السائق المناسب — سيُرسَل له إشعار تلجرام تلقائياً ويُخصَم من رصيده
-    </p>
     <div class="form-group">
-      <label class="form-label">السائق</label>
-      <select class="form-input" id="assignDriverSelect"></select>
+      <label class="form-label">اختر السائق</label>
+      <select class="form-select" id="assignDriverSelect"></select>
     </div>
-    <button class="btn btn-primary btn-lg btn-block" id="confirmAssignDriverBtn" onclick="confirmAssignDriver()">
-      <i class="fas fa-check"></i> تعيين وإرسال الإشعار
+    <button class="btn btn-primary btn-block" onclick="confirmAssignDriver()">
+      <i class="fas fa-check"></i> تأكيد التعيين
     </button>
     <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeAssignDriverModal()">إلغاء</button>
   </div>
@@ -696,22 +758,25 @@
   import { fetchAllOrders, assignDriverToOrder } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
   import {
-    fetchDriversByAgent, addDriver, updateDriver, deleteDriver,
-    topUpDriverBalance, fetchTopupHistory,
+    fetchDriversByAgent, addDriver, deleteDriver,
+    topUpDriverBalance,
     packagesReady,
     DRIVER_PAY_AMOUNT, DRIVER_CREDIT_AMOUNT,
     AGENT_PAY_AMOUNT, AGENT_CREDIT_AMOUNT,
-    BALANCE_WARN_THRESH, balanceColor, formatAmt
+    BALANCE_WARN_THRESH, formatAmt
   } from '../js/drivers.js';
 
-  const { collection, getDocs, doc, getDoc, updateDoc, query, where, setDoc } =
-    await (async () => {
-      return await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-    })();
+  const {
+    collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where
+  } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+  const {
+    getAuth, reauthenticateWithCredential, updatePassword, EmailAuthProvider
+  } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
 
   let currentUser = null;
-  let agentDoc = null;
-  let agentMap = null;
+  let agentDoc    = null;
+  let agentMap    = null;
   let agentMarker = null;
   let coverageCircle = null;
   let agentLat = null, agentLng = null;
@@ -721,44 +786,51 @@
 
   window.showToast = showToast;
 
-  // Find agent document linked to the logged-in user
+  // ── Tab Navigation ──────────────────────────────────────────────────────────
+  const TABS = ['orders', 'account', 'password', 'drivers'];
+  window.switchTab = function(name) {
+    TABS.forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('active', t === name);
+      document.getElementById('nav' + capitalize(t)).classList.toggle('active', t === name);
+    });
+    // Invalidate map size when account tab shown
+    if (name === 'account' && agentMap) setTimeout(() => agentMap.invalidateSize(), 100);
+  };
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // ── Find my agent doc ──────────────────────────────────────────────────────
   async function findMyAgent(uid) {
     try {
-      // Primary: agent has userId === uid
       const q = query(collection(db, 'agents'), where('userId', '==', uid));
       const snap = await getDocs(q);
       if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
-      // Fallback: legacy where agent document id === uid
       const legacySnap = await getDoc(doc(db, 'agents', uid));
       if (legacySnap.exists()) return { id: legacySnap.id, ...legacySnap.data() };
     } catch {}
     return null;
   }
 
+  // ── Auth ───────────────────────────────────────────────────────────────────
   onAuthChange(async (user, profile) => {
     currentUser = user;
     if (!user) { window.location.href = '../pages/auth.html'; return; }
 
-    // Find agent record
     agentDoc = await findMyAgent(user.uid);
 
     const displayName = agentDoc?.name || profile?.name || user.email || 'الوكيل';
     document.getElementById('agentName').textContent = displayName;
 
-    // Show governorate/district in header if available
     if (agentDoc?.governorate) {
-      const sub = document.getElementById('agentStatusText');
       const loc = [agentDoc.governorate, agentDoc.district].filter(Boolean).join(' ← ');
-      sub.textContent = `متصل — ${loc}`;
+      document.getElementById('agentStatusText').textContent = `متصل — ${loc}`;
     }
 
-    // Update stats
     const agentCoverage = agentDoc?.coverageKm ?? AGENT_COVERAGE_KM;
     const agentRate     = agentDoc?.commissionRate ?? Math.round(AGENT_COMMISSION_RATE * 100);
     document.getElementById('statCoverage').textContent = agentCoverage + ' كم';
     document.getElementById('statRate').textContent     = agentRate + '%';
+    document.getElementById('coverageKmLabel').textContent = agentCoverage;
 
-    // Populate Telegram ID if already set
     if (agentDoc?.telegramId) {
       document.getElementById('telegramIdInput').value = agentDoc.telegramId;
     }
@@ -770,6 +842,7 @@
     await loadDrivers();
   });
 
+  // ── Map ───────────────────────────────────────────────────────────────────
   function initAgentMap(agent) {
     if (agentMap) return;
     const cLat = agent?.lat || 32.6136;
@@ -783,17 +856,16 @@
       iconSize: [36,36], iconAnchor: [18,18], className: ''
     });
     agentMarker = L.marker([cLat, cLng], { icon, draggable: true }).addTo(agentMap);
-    const agentCoverage = agent?.coverageKm ?? AGENT_COVERAGE_KM;
+    const cov = agent?.coverageKm ?? AGENT_COVERAGE_KM;
     coverageCircle = L.circle([cLat, cLng], {
-      radius: agentCoverage * 1000,
-      color: 'rgba(45,106,79,0.6)',
-      fillColor: 'rgba(45,106,79,0.06)',
-      fillOpacity: 1, weight: 2, dashArray: '8 5'
+      radius: cov * 1000, color: 'rgba(45,106,79,0.6)',
+      fillColor: 'rgba(45,106,79,0.06)', fillOpacity: 1, weight: 2, dashArray: '8 5'
     }).addTo(agentMap);
 
     if (agent?.lat) {
       agentLat = agent.lat; agentLng = agent.lng;
-      document.getElementById('agentLocationAddr').textContent = agent.address || `${cLat.toFixed(5)}, ${cLng.toFixed(5)}`;
+      document.getElementById('agentLocationAddr').textContent =
+        agent.address || `${cLat.toFixed(5)}, ${cLng.toFixed(5)}`;
     }
 
     agentMarker.on('dragend', () => onMapMove(agentMarker.getLatLng()));
@@ -804,11 +876,13 @@
     agentLat = latlng.lat; agentLng = latlng.lng;
     coverageCircle.setLatLng(latlng);
     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`)
-      .then(r=>r.json()).then(d => {
+      .then(r => r.json()).then(d => {
         agentAddress = d.display_name?.split(',').slice(0,3).join('، ') || '';
-        document.getElementById('agentLocationAddr').textContent = agentAddress || `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
-      }).catch(()=>{
-        document.getElementById('agentLocationAddr').textContent = `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+        document.getElementById('agentLocationAddr').textContent =
+          agentAddress || `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+      }).catch(() => {
+        document.getElementById('agentLocationAddr').textContent =
+          `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
       });
   }
 
@@ -829,24 +903,59 @@
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
     try {
       await updateDoc(doc(db, 'agents', agentDoc.id), {
-        lat: agentLat, lng: agentLng,
-        address: agentAddress,
+        lat: agentLat, lng: agentLng, address: agentAddress,
         updatedAt: new Date().toISOString()
       });
       agentDoc.lat = agentLat; agentDoc.lng = agentLng;
       showToast('✅ تم حفظ موقعك بنجاح', 'success');
       document.getElementById('agentStatusText').textContent = 'متصل — الموقع محدث';
-    } catch (e) { showToast('خطأ في حفظ الموقع', 'error'); }
+    } catch { showToast('خطأ في حفظ الموقع', 'error'); }
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-save"></i> حفظ الموقع';
   };
 
+  // ── Coverage Request Modal ─────────────────────────────────────────────────
+  window.openCoverageRequestModal = function() {
+    const current = agentDoc?.coverageKm ?? AGENT_COVERAGE_KM;
+    document.getElementById('currentCoverageLabel').textContent = current;
+    document.getElementById('requestedCoverage').value = '';
+    document.getElementById('coverageRequestNote').value = '';
+    document.getElementById('coverageRequestModal').classList.add('open');
+  };
+  window.closeCoverageRequestModal = function() {
+    document.getElementById('coverageRequestModal').classList.remove('open');
+  };
+  window.submitCoverageRequest = async function() {
+    const requested = parseFloat(document.getElementById('requestedCoverage').value);
+    const note      = document.getElementById('coverageRequestNote').value.trim();
+    if (!requested || requested < 1) { showToast('أدخل نطاق تغطية صحيح', 'warning'); return; }
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل', 'warning'); return; }
+    const btn = document.getElementById('sendCoverageRequestBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+    try {
+      await addDoc(collection(db, 'coverage_requests'), {
+        agentId:     agentDoc.id,
+        agentName:   agentDoc.name || '',
+        currentKm:   agentDoc?.coverageKm ?? AGENT_COVERAGE_KM,
+        requestedKm: requested,
+        note,
+        status:      'pending',
+        createdAt:   new Date().toISOString()
+      });
+      showToast('✅ تم إرسال طلبك للإدارة بنجاح', 'success');
+      closeCoverageRequestModal();
+    } catch { showToast('حدث خطأ أثناء الإرسال', 'error'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال الطلب';
+  };
+
+  // ── Telegram ───────────────────────────────────────────────────────────────
   window.saveTelegramId = async function() {
     if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل بعد', 'warning'); return; }
     const val = document.getElementById('telegramIdInput').value.trim();
     const btn = document.getElementById('saveTelegramBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     try {
       await updateDoc(doc(db, 'agents', agentDoc.id), {
         telegramId: val, updatedAt: new Date().toISOString()
@@ -854,27 +963,63 @@
       agentDoc.telegramId = val;
       showToast('✅ تم حفظ Telegram ID', 'success');
     } catch { showToast('خطأ في الحفظ', 'error'); }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
   };
 
+  // ── Commission Calculator ──────────────────────────────────────────────────
   window.calcCommission = function(val) {
     const fee  = parseFloat(val) || 0;
     const rate = agentDoc?.commissionRate != null ? agentDoc.commissionRate / 100 : AGENT_COMMISSION_RATE;
-    const commission = Math.round(fee * rate);
-    document.getElementById('calcResult').textContent = fee > 0 ? commission.toLocaleString('en-US') + ' د.ع' : '—';
+    document.getElementById('calcResult').textContent =
+      fee > 0 ? Math.round(fee * rate).toLocaleString('en-US') + ' د.ع' : '—';
   };
 
+  // ── Change Password ────────────────────────────────────────────────────────
+  window.changePassword = async function() {
+    const current = document.getElementById('pwCurrent').value;
+    const newPw   = document.getElementById('pwNew').value;
+    const confirm = document.getElementById('pwConfirm').value;
+
+    if (!current || !newPw || !confirm) { showToast('أكمل جميع الحقول', 'warning'); return; }
+    if (newPw.length < 6) { showToast('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'warning'); return; }
+    if (newPw !== confirm) { showToast('كلمتا المرور غير متطابقتين', 'warning'); return; }
+
+    const btn = document.getElementById('changePwBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التغيير...';
+    try {
+      const auth       = getAuth();
+      const credential = EmailAuthProvider.credential(currentUser.email, current);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, newPw);
+      showToast('✅ تم تغيير كلمة المرور بنجاح', 'success');
+      document.getElementById('pwCurrent').value  = '';
+      document.getElementById('pwNew').value      = '';
+      document.getElementById('pwConfirm').value  = '';
+    } catch (e) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        showToast('كلمة المرور الحالية غير صحيحة', 'error');
+      } else {
+        showToast('حدث خطأ: ' + (e.message || ''), 'error');
+      }
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> تغيير كلمة المرور';
+  };
+
+  // ── Load Agent Orders & Stats ──────────────────────────────────────────────
   async function loadAgentData() {
     if (!agentDoc) return;
     try {
       const orders = await fetchAllOrders();
       const myOrders = orders.filter(o => o.agentId === agentDoc.id);
       const totalCommission = myOrders.reduce((s, o) => s + (o.agentShare || 0), 0);
-      document.getElementById('statOrders').textContent = myOrders.length;
+      document.getElementById('statOrders').textContent     = myOrders.length;
       document.getElementById('statCommission').textContent = totalCommission.toLocaleString('en-US');
       renderAgentOrders(myOrders);
     } catch (e) { console.error(e); }
+  }
+
+  function getBadgeClass(s) {
+    return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
   }
 
   function renderAgentOrders(orders) {
@@ -901,6 +1046,239 @@
     `).join('');
   }
 
+  // ── Balance Card ───────────────────────────────────────────────────────────
+  function renderAgentBalanceCard() {
+    const balance = agentDoc?.balance || 0;
+    const card    = document.getElementById('agentBalanceCard');
+    const warnEl  = document.getElementById('agentBalanceWarn');
+    document.getElementById('agentBalanceAmount').textContent =
+      new Intl.NumberFormat('en-US').format(balance) + ' د.ع';
+    document.getElementById('agentPkgInfo').textContent =
+      new Intl.NumberFormat('en-US').format(AGENT_PAY_AMOUNT) + ' ← ' +
+      new Intl.NumberFormat('en-US').format(AGENT_CREDIT_AMOUNT);
+    if (balance <= 0)          card.className = 'agent-balance-card red';
+    else if (balance < 20000)  card.className = 'agent-balance-card amber';
+    else if (balance < 50000)  card.className = 'agent-balance-card blue';
+    else                       card.className = 'agent-balance-card green';
+    warnEl.style.display = balance < BALANCE_WARN_THRESH ? 'flex' : 'none';
+  }
+
+  // ── Drivers ────────────────────────────────────────────────────────────────
+  async function loadDrivers() {
+    if (!agentDoc) return;
+    myDrivers = await fetchDriversByAgent(agentDoc.id);
+    renderDrivers();
+  }
+
+  function driverBalanceClass(b) {
+    if (b <= 0)        return 'bal-red';
+    if (b < 20000)     return 'bal-amber';
+    if (b < 50000)     return 'bal-blue';
+    return 'bal-green';
+  }
+
+  function renderDrivers() {
+    const el = document.getElementById('driversList');
+    if (!myDrivers.length) {
+      el.innerHTML = `<div class="empty-state"><i class="fas fa-motorcycle"></i><div>لم تضف أي سائق بعد</div></div>`;
+      return;
+    }
+    el.innerHTML = myDrivers.map(d => {
+      const bal = d.balance || 0;
+      return `
+        <div class="driver-card">
+          <div class="driver-card-avatar">🛵</div>
+          <div class="driver-card-info">
+            <div class="driver-card-name">${d.name}</div>
+            <div class="driver-card-phone">${d.phone || '—'} · ${d.commissionRate ?? 15}% عمولة</div>
+            <div class="driver-card-balance ${driverBalanceClass(bal)}">
+              <i class="fas fa-wallet" style="font-size:0.7rem;"></i>
+              ${new Intl.NumberFormat('en-US').format(bal)} د.ع
+            </div>
+          </div>
+          <div class="driver-card-actions">
+            <button class="driver-action-btn topup" onclick="openTopupModal('${d.id}')">
+              <i class="fas fa-plus"></i> تعزيز
+            </button>
+            <button class="driver-action-btn del" onclick="confirmDeleteDriver('${d.id}','${d.name.replace(/'/g,"\\'")}')">
+              <i class="fas fa-trash"></i> حذف
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Add Driver Modal (with driver-role user search) ────────────────────────
+  window.openAddDriverModal = async function() {
+    // Reset fields
+    document.getElementById('driverPhone').value      = '';
+    document.getElementById('driverTelegramId').value = '';
+    document.getElementById('driverRate').value       = '15';
+    document.getElementById('selectedDriverUserId').value   = '';
+    document.getElementById('selectedDriverUserName').value = '';
+
+    // Show loading
+    document.getElementById('driverUsersLoading').style.display = 'block';
+    document.getElementById('driverUsersList').style.display    = 'none';
+    document.getElementById('driverUsersEmpty').style.display   = 'none';
+    document.getElementById('addDriverModal').classList.add('open');
+
+    try {
+      // Load users with role='driver'
+      const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'driver')));
+      const allDriverUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Filter out already-linked users
+      const linkedIds = new Set(myDrivers.filter(d => d.userId).map(d => d.userId));
+      const available = allDriverUsers.filter(u => !linkedIds.has(u.id));
+
+      document.getElementById('driverUsersLoading').style.display = 'none';
+
+      if (!available.length) {
+        document.getElementById('driverUsersEmpty').style.display = 'block';
+        return;
+      }
+
+      const listEl = document.getElementById('driverUsersList');
+      listEl.innerHTML = available.map(u => `
+        <div class="driver-user-option" id="duo-${u.id}" onclick="selectDriverUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}')">
+          <div class="duo-avatar">🛵</div>
+          <div class="duo-info">
+            <div class="duo-name">${u.name || '—'}</div>
+            <div class="duo-email">${u.email || ''}</div>
+          </div>
+        </div>
+      `).join('');
+      listEl.style.display = 'block';
+    } catch {
+      document.getElementById('driverUsersLoading').style.display = 'none';
+      document.getElementById('driverUsersEmpty').style.display   = 'block';
+    }
+  };
+
+  window.selectDriverUser = function(uid, name) {
+    document.getElementById('selectedDriverUserId').value   = uid;
+    document.getElementById('selectedDriverUserName').value = name;
+    document.querySelectorAll('.driver-user-option').forEach(el => el.classList.remove('selected'));
+    const el = document.getElementById('duo-' + uid);
+    if (el) el.classList.add('selected');
+  };
+
+  window.closeAddDriverModal = function() {
+    document.getElementById('addDriverModal').classList.remove('open');
+  };
+
+  window.saveNewDriver = async function() {
+    const userId = document.getElementById('selectedDriverUserId').value.trim();
+    const name   = document.getElementById('selectedDriverUserName').value.trim();
+    if (!userId || !name) { showToast('الرجاء اختيار حساب السائق أولاً', 'warning'); return; }
+    const phone      = document.getElementById('driverPhone').value.trim();
+    const telegramId = document.getElementById('driverTelegramId').value.trim() || null;
+    const rate       = parseFloat(document.getElementById('driverRate').value) || 15;
+    if (!phone) { showToast('رقم الهاتف مطلوب', 'warning'); return; }
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل', 'warning'); return; }
+
+    const btn = document.getElementById('saveDriverBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+    try {
+      await addDriver({ agentId: agentDoc.id, name, phone, userId, telegramId, commissionRate: rate });
+      showToast('✅ تم ربط السائق بنجاح', 'success');
+      closeAddDriverModal();
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء الحفظ', 'error'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> ربط السائق';
+  };
+
+  window.confirmDeleteDriver = async function(id, name) {
+    if (!confirm(`هل أنت متأكد من حذف السائق "${name}"؟`)) return;
+    try {
+      await deleteDriver(id);
+      showToast('تم حذف السائق', 'info');
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء الحذف', 'error'); }
+  };
+
+  // ── Top-up Modal ───────────────────────────────────────────────────────────
+  function buildPresets() {
+    const container = document.getElementById('topupPresets');
+    container.innerHTML = [1, 2, 3].map(m => {
+      const pay    = DRIVER_PAY_AMOUNT * m;
+      const credit = DRIVER_CREDIT_AMOUNT * m;
+      return `
+        <div class="topup-preset-btn" onclick="selectPreset(${pay},${credit},event)">
+          <div class="topup-preset-pay">${new Intl.NumberFormat('en-US').format(pay)} د.ع</div>
+          <div class="topup-preset-credit">+${new Intl.NumberFormat('en-US').format(credit)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  window.selectPreset = function(pay, credit, e) {
+    document.getElementById('topupPaid').value   = pay;
+    document.getElementById('topupCredit').value = credit;
+    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
+    e.currentTarget.classList.add('selected');
+    updateTopupSummary();
+  };
+  window.onTopupManual = function() {
+    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
+    const paid = parseFloat(document.getElementById('topupPaid').value) || 0;
+    if (paid > 0) {
+      document.getElementById('topupCredit').value =
+        Math.round(paid * (DRIVER_CREDIT_AMOUNT / DRIVER_PAY_AMOUNT));
+    }
+    updateTopupSummary();
+  };
+  window.updateTopupSummary = function() {
+    const paid   = parseFloat(document.getElementById('topupPaid').value)   || 0;
+    const credit = parseFloat(document.getElementById('topupCredit').value) || 0;
+    const fmt    = n => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
+    const profit = paid - Math.round(credit * (AGENT_PAY_AMOUNT / AGENT_CREDIT_AMOUNT));
+    document.getElementById('summPaid').textContent   = paid   > 0 ? fmt(paid)   : '—';
+    document.getElementById('summCredit').textContent = credit > 0 ? fmt(credit) : '—';
+    document.getElementById('summProfit').textContent = paid   > 0 ? fmt(profit) : '—';
+  };
+
+  window.openTopupModal = function(driverId) {
+    const driver = myDrivers.find(d => d.id === driverId);
+    if (!driver) return;
+    activeTopupDriverId = driverId;
+    document.getElementById('topupDriverName').textContent =
+      driver.name;
+    document.getElementById('topupDriverBalance').textContent =
+      new Intl.NumberFormat('en-US').format(driver.balance || 0) + ' د.ع';
+    document.getElementById('topupPaid').value   = '';
+    document.getElementById('topupCredit').value = '';
+    document.getElementById('topupNote').value   = '';
+    document.getElementById('summPaid').textContent = document.getElementById('summCredit').textContent =
+      document.getElementById('summProfit').textContent = '—';
+    buildPresets();
+    document.getElementById('topupModal').classList.add('open');
+  };
+  window.closeTopupModal = function() {
+    document.getElementById('topupModal').classList.remove('open');
+    activeTopupDriverId = null;
+  };
+  window.confirmTopup = async function() {
+    const paid   = parseFloat(document.getElementById('topupPaid').value);
+    const credit = parseFloat(document.getElementById('topupCredit').value);
+    const note   = document.getElementById('topupNote').value.trim();
+    if (!paid || !credit || paid <= 0 || credit <= 0) {
+      showToast('أدخل المبلغ المدفوع والرصيد المُضاف', 'warning'); return;
+    }
+    if (!activeTopupDriverId || !agentDoc) return;
+    const btn = document.getElementById('confirmTopupBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعزيز...';
+    try {
+      await topUpDriverBalance(activeTopupDriverId, credit, paid, agentDoc.id, note);
+      showToast('✅ تم تعزيز رصيد السائق بنجاح', 'success');
+      closeTopupModal();
+      await loadDrivers();
+    } catch { showToast('حدث خطأ أثناء التعزيز', 'error'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد التعزيز';
+  };
+
+  // ── Assign Driver Modal ────────────────────────────────────────────────────
   let assignOrderId = null;
   window.openAssignDriverModal = function(orderId) {
     assignOrderId = orderId;
@@ -921,226 +1299,12 @@
     if (!driver) { showToast('اختر سائقاً', 'warning'); return; }
     try {
       await assignDriverToOrder(assignOrderId, driver);
-      showToast(`✅ تم تعيين ${driver.name} وإرسال الإشعار`, 'success');
+      showToast(`✅ تم تعيين ${driver.name}`, 'success');
       closeAssignDriverModal();
-      // أعد تحميل الطلبات والسائقين
       const orders = await fetchAllOrders();
       renderAgentOrders(orders.filter(o => o.agentId === agentDoc.id));
       await loadDrivers();
-    } catch (e) {
-      showToast(e.message || 'حدث خطأ', 'error');
-    }
-  };
-
-  function getBadgeClass(s) {
-    return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
-  }
-
-  // ────────────────────────────────────────────
-  // AGENT BALANCE CARD
-  // ────────────────────────────────────────────
-  function renderAgentBalanceCard() {
-    const balance = agentDoc?.balance || 0;
-    const card    = document.getElementById('agentBalanceCard');
-    const warnEl  = document.getElementById('agentBalanceWarn');
-
-    document.getElementById('agentBalanceAmount').textContent =
-      new Intl.NumberFormat('en-US').format(balance) + ' د.ع';
-    document.getElementById('agentPkgInfo').textContent =
-      new Intl.NumberFormat('en-US').format(AGENT_PAY_AMOUNT) +
-      ' ← ' +
-      new Intl.NumberFormat('en-US').format(AGENT_CREDIT_AMOUNT);
-
-    // color
-    if (balance <= 0)          card.className = 'agent-balance-card red';
-    else if (balance < 20000)  card.className = 'agent-balance-card amber';
-    else if (balance < 50000)  card.className = 'agent-balance-card blue';
-    else                       card.className = 'agent-balance-card green';
-
-    warnEl.style.display = balance < BALANCE_WARN_THRESH ? 'flex' : 'none';
-  }
-
-  // ────────────────────────────────────────────
-  // DRIVERS
-  // ────────────────────────────────────────────
-  async function loadDrivers() {
-    if (!agentDoc) return;
-    myDrivers = await fetchDriversByAgent(agentDoc.id);
-    renderDrivers();
-  }
-
-  function driverBalanceClass(b) {
-    if (b <= 0)         return 'bal-red';
-    if (b < 20000)      return 'bal-amber';
-    if (b < 50000)      return 'bal-blue';
-    return 'bal-green';
-  }
-
-  function renderDrivers() {
-    const el = document.getElementById('driversList');
-    if (!myDrivers.length) {
-      el.innerHTML = `<div class="empty-state"><i class="fas fa-motorcycle"></i><div>لم تضف أي سائق بعد</div></div>`;
-      return;
-    }
-    el.innerHTML = myDrivers.map(d => {
-      const bal = d.balance || 0;
-      const balFmt = new Intl.NumberFormat('en-US').format(bal) + ' د.ع';
-      const balClass = driverBalanceClass(bal);
-      return `
-        <div class="driver-card">
-          <div class="driver-card-avatar">🛵</div>
-          <div class="driver-card-info">
-            <div class="driver-card-name">${d.name}</div>
-            <div class="driver-card-phone">${d.phone || '—'} · ${d.commissionRate ?? 15}% عمولة</div>
-            <div class="driver-card-balance ${balClass}">
-              <i class="fas fa-wallet" style="font-size:0.7rem;"></i> ${balFmt}
-            </div>
-          </div>
-          <div class="driver-card-actions">
-            <button class="driver-action-btn topup" onclick="openTopupModal('${d.id}')">
-              <i class="fas fa-plus"></i> تعزيز
-            </button>
-            <button class="driver-action-btn del" onclick="confirmDeleteDriver('${d.id}','${d.name}')">
-              <i class="fas fa-trash"></i> حذف
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // ── Add Driver Modal ─────────────────────────
-  window.openAddDriverModal = function() {
-    document.getElementById('driverName').value       = '';
-    document.getElementById('driverPhone').value      = '';
-    document.getElementById('driverUserId').value     = '';
-    document.getElementById('driverTelegramId').value = '';
-    document.getElementById('driverRate').value       = '15';
-    document.getElementById('addDriverModal').classList.add('open');
-  };
-  window.closeAddDriverModal = function() {
-    document.getElementById('addDriverModal').classList.remove('open');
-  };
-
-  window.saveNewDriver = async function() {
-    const name       = document.getElementById('driverName').value.trim();
-    const phone      = document.getElementById('driverPhone').value.trim();
-    const userId     = document.getElementById('driverUserId').value.trim() || null;
-    const telegramId = document.getElementById('driverTelegramId').value.trim() || null;
-    const rate       = parseFloat(document.getElementById('driverRate').value) || 15;
-    if (!name || !phone) { showToast('الاسم ورقم الهاتف مطلوبان', 'warning'); return; }
-    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل', 'warning'); return; }
-    try {
-      await addDriver({ agentId: agentDoc.id, name, phone, userId, telegramId, commissionRate: rate });
-      showToast('✅ تم إضافة السائق بنجاح', 'success');
-      closeAddDriverModal();
-      await loadDrivers();
-    } catch { showToast('حدث خطأ أثناء الحفظ', 'error'); }
-  };
-
-  window.confirmDeleteDriver = async function(id, name) {
-    if (!confirm(`هل أنت متأكد من حذف السائق "${name}"؟`)) return;
-    try {
-      await deleteDriver(id);
-      showToast('تم حذف السائق', 'info');
-      await loadDrivers();
-    } catch { showToast('حدث خطأ أثناء الحذف', 'error'); }
-  };
-
-  // ── Top-up Modal ─────────────────────────────
-  function buildPresets() {
-    const container = document.getElementById('topupPresets');
-    const multiples = [1, 2, 3];
-    container.innerHTML = multiples.map(m => {
-      const pay    = DRIVER_PAY_AMOUNT * m;
-      const credit = DRIVER_CREDIT_AMOUNT * m;
-      const profit = pay - (AGENT_PAY_AMOUNT * m); // agent profit per unit
-      return `
-        <div class="topup-preset-btn" onclick="selectPreset(${pay},${credit})">
-          <div class="topup-preset-pay">${new Intl.NumberFormat('en-US').format(pay)} د.ع</div>
-          <div class="topup-preset-credit">+${new Intl.NumberFormat('en-US').format(credit)}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  window.selectPreset = function(pay, credit) {
-    document.getElementById('topupPaid').value   = pay;
-    document.getElementById('topupCredit').value = credit;
-    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    updateTopupSummary();
-  };
-  window.clearPresetSelection = function() {
-    document.querySelectorAll('.topup-preset-btn').forEach(b => b.classList.remove('selected'));
-    updateTopupSummary();
-  };
-  window.onTopupManual = function() {
-    clearPresetSelection();
-    // auto-fill credit based on package ratio
-    const paid = parseFloat(document.getElementById('topupPaid').value) || 0;
-    if (paid > 0) {
-      const ratio  = DRIVER_CREDIT_AMOUNT / DRIVER_PAY_AMOUNT;
-      const credit = Math.round(paid * ratio);
-      document.getElementById('topupCredit').value = credit;
-    }
-    updateTopupSummary();
-  };
-
-  function updateTopupSummary() {
-    const paid   = parseFloat(document.getElementById('topupPaid').value)   || 0;
-    const credit = parseFloat(document.getElementById('topupCredit').value) || 0;
-    const fmt    = n => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
-    // Agent profit = what driver paid minus what agent paid to platform for equivalent credit
-    const agentCostPerUnit = AGENT_PAY_AMOUNT / AGENT_CREDIT_AMOUNT;
-    const agentCost        = Math.round(credit * agentCostPerUnit);
-    const profit           = paid - agentCost;
-    document.getElementById('summPaid').textContent   = paid   > 0 ? fmt(paid)   : '—';
-    document.getElementById('summCredit').textContent = credit > 0 ? fmt(credit) : '—';
-    document.getElementById('summProfit').textContent = paid   > 0 ? fmt(profit) : '—';
-  }
-
-  window.openTopupModal = function(driverId) {
-    const driver = myDrivers.find(d => d.id === driverId);
-    if (!driver) return;
-    activeTopupDriverId = driverId;
-    document.getElementById('topupDriverName').textContent =
-      driver.name;
-    document.getElementById('topupDriverBalance').textContent =
-      new Intl.NumberFormat('en-US').format(driver.balance || 0) + ' د.ع';
-    document.getElementById('topupPaid').value   = '';
-    document.getElementById('topupCredit').value = '';
-    document.getElementById('topupNote').value   = '';
-    document.getElementById('summPaid').textContent   = '—';
-    document.getElementById('summCredit').textContent = '—';
-    document.getElementById('summProfit').textContent = '—';
-    buildPresets();
-    document.getElementById('topupModal').classList.add('open');
-  };
-  window.closeTopupModal = function() {
-    document.getElementById('topupModal').classList.remove('open');
-    activeTopupDriverId = null;
-  };
-
-  window.confirmTopup = async function() {
-    const paid   = parseFloat(document.getElementById('topupPaid').value);
-    const credit = parseFloat(document.getElementById('topupCredit').value);
-    const note   = document.getElementById('topupNote').value.trim();
-    if (!paid || !credit || paid <= 0 || credit <= 0) {
-      showToast('أدخل المبلغ المدفوع والرصيد المُضاف', 'warning'); return;
-    }
-    if (!activeTopupDriverId || !agentDoc) return;
-    const btn = document.getElementById('confirmTopupBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعزيز...';
-    try {
-      await topUpDriverBalance(activeTopupDriverId, credit, paid, agentDoc.id, note);
-      showToast('✅ تم تعزيز رصيد السائق بنجاح', 'success');
-      closeTopupModal();
-      await loadDrivers();
-    } catch { showToast('حدث خطأ أثناء التعزيز', 'error'); }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد التعزيز';
+    } catch (e) { showToast(e.message || 'حدث خطأ', 'error'); }
   };
 </script>
 <script src="../js/pwa.js"></script>
