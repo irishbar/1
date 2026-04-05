@@ -166,6 +166,10 @@ service cloud.firestore {
       allow read:  if true;   // الزبون يحتاجها قبل تسجيل الدخول لحساب أجرة التوصيل
       allow write: if isAdmin();
     }
+    match /settings/status {
+      allow read:  if true;   // وضع الصيانة — يُقرأ من الزوار قبل تسجيل الدخول
+      allow write: if isAdmin();
+    }
     match /settings/{docId} {
       allow read:  if isAdmin();
       allow write: if isAdmin();
