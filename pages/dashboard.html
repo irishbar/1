@@ -3357,6 +3357,37 @@
         <p style="color:var(--text-muted);font-size:0.85rem;">جميع المفاتيح والإعدادات تُخزَّن بأمان في قاعدة البيانات</p>
       </div>
 
+      <!-- 0. Maintenance Mode -->
+      <div class="section-card" style="margin-bottom:18px;border:1.5px solid ${general.maintenanceMode ? 'rgba(220,53,69,0.4)' : 'var(--border-card)'};">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <span style="font-size:1.1rem;">🔧</span> وضع الصيانة
+          </div>
+          <span style="font-size:0.78rem;padding:3px 10px;border-radius:20px;font-weight:700;
+            background:${general.maintenanceMode ? 'rgba(220,53,69,0.12)' : 'rgba(45,106,79,0.12)'};
+            color:${general.maintenanceMode ? '#dc3545' : 'var(--green)'};">
+            ${general.maintenanceMode ? '🔴 مفعّل' : '🟢 معطّل'}
+          </span>
+        </div>
+        <div class="section-card-body">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+            <div id="maintenanceToggle"
+              class="toggle-switch ${general.maintenanceMode ? 'on' : ''}"
+              onclick="toggleMaintenanceMode(this)"
+              title="تفعيل/تعطيل وضع الصيانة">
+            </div>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">
+                ${general.maintenanceMode ? 'الموقع محجوب — صفحة الصيانة تظهر للزوار' : 'الموقع يعمل بشكل طبيعي'}
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                عند التفعيل تظهر رسالة "ترقبوا الافتتاح قريباً" للزوار — الأدمن يدخل بشكل طبيعي
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 1. ImgBB -->
       <div class="section-card" style="margin-bottom:18px;">
         <div class="section-card-header">
@@ -3623,6 +3654,29 @@
         </div>
       </div>
     `;
+
+    // ── Maintenance Mode Toggle ──
+    window.toggleMaintenanceMode = async function(el) {
+      const { setDoc, doc } =
+        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const isOn = el.classList.toggle('on');
+      try {
+        await setDoc(doc(db, 'settings', 'general'), { maintenanceMode: isOn }, { merge: true });
+        // Update badge
+        const card = el.closest('.section-card');
+        const badge = card.querySelector('.section-card-header span:last-child');
+        badge.style.background = isOn ? 'rgba(220,53,69,0.12)' : 'rgba(45,106,79,0.12)';
+        badge.style.color = isOn ? '#dc3545' : 'var(--green)';
+        badge.textContent = isOn ? '🔴 مفعّل' : '🟢 معطّل';
+        card.style.borderColor = isOn ? 'rgba(220,53,69,0.4)' : 'var(--border-card)';
+        const desc = el.nextElementSibling.querySelector('div:first-child');
+        if (desc) desc.textContent = isOn ? 'الموقع محجوب — صفحة الصيانة تظهر للزوار' : 'الموقع يعمل بشكل طبيعي';
+        showToast(isOn ? '🔧 تم تفعيل وضع الصيانة' : '✅ تم إلغاء وضع الصيانة', isOn ? 'warning' : 'success');
+      } catch {
+        el.classList.toggle('on'); // revert
+        showToast('حدث خطأ أثناء الحفظ', 'error');
+      }
+    };
 
     // ── Helper: toggle password visibility ──
     window.toggleVisibility = function(id) {
