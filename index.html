@@ -68,6 +68,55 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
+<!-- ── Maintenance Mode Overlay ── -->
+<div id="maintenanceOverlay" style="display:none;position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(145deg,#0a0a0a 0%,#1a1207 50%,#0a0a0a 100%);
+  display:none;align-items:center;justify-content:center;flex-direction:column;
+  text-align:center;padding:32px;">
+  <div style="max-width:420px;width:100%;">
+    <!-- Icon -->
+    <div style="font-size:5rem;margin-bottom:24px;animation:maint-pulse 2s ease-in-out infinite;">
+      🔧
+    </div>
+    <!-- Logo -->
+    <div style="font-family:'Barlow Condensed','Barlow',sans-serif;font-weight:900;
+      font-size:2rem;letter-spacing:6px;color:#b8922a;margin-bottom:4px;">
+      IRISH BAR
+    </div>
+    <div style="font-size:0.7rem;letter-spacing:4px;color:#6b5a2a;margin-bottom:36px;
+      text-transform:uppercase;font-family:'Barlow',sans-serif;">
+      PREMIUM IRISH SELECTION
+    </div>
+    <!-- Title -->
+    <div style="color:#fff;font-size:1.5rem;font-weight:700;margin-bottom:12px;
+      font-family:'Cairo','Tajawal',sans-serif;">
+      الموقع تحت الصيانة
+    </div>
+    <!-- Message -->
+    <div style="color:#b8922a;font-size:1.05rem;font-weight:600;margin-bottom:8px;
+      font-family:'Cairo','Tajawal',sans-serif;line-height:1.7;">
+      ترقبوا الافتتاح قريباً جداً ✨
+    </div>
+    <div style="color:rgba(255,255,255,0.45);font-size:0.85rem;
+      font-family:'Cairo','Tajawal',sans-serif;line-height:1.8;">
+      نعمل على تحسين تجربتك<br>سنعود قريباً بشيء رائع
+    </div>
+    <!-- Divider -->
+    <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#b8922a,transparent);
+      margin:28px auto;"></div>
+    <!-- Social or contact hint (optional) -->
+    <div style="color:rgba(255,255,255,0.25);font-size:0.75rem;letter-spacing:1px;">
+      COMING SOON
+    </div>
+  </div>
+  <style>
+    @keyframes maint-pulse {
+      0%,100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.1) rotate(-8deg); }
+    }
+  </style>
+</div>
+
 <!-- ── Header ── -->
 <header class="site-header">
   <a class="header-logo" href="index.html">
@@ -461,6 +510,23 @@
 
   window.closeModal = closeModal;
 
+  // ── Maintenance Mode Check ──
+  async function checkMaintenanceMode() {
+    try {
+      const { getDoc, doc } =
+        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const { db } = await import('./js/firebase-config.js');
+      const snap = await getDoc(doc(db, 'settings', 'general'));
+      if (snap.exists() && snap.data().maintenanceMode === true) {
+        document.getElementById('page-loader').style.display = 'none';
+        const overlay = document.getElementById('maintenanceOverlay');
+        overlay.style.display = 'flex';
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
   // ── State ──
   let currentUser      = null;
   let currentProfile   = null;
@@ -478,6 +544,11 @@
 
   // ── Init ──
   onAuthChange(async (user, profile) => {
+    // تحقق من وضع الصيانة أولاً (الأدمن يتجاوزه دائماً)
+    if (profile?.role !== 'admin' && profile?.role !== 'manager') {
+      const inMaintenance = await checkMaintenanceMode();
+      if (inMaintenance) return;
+    }
     currentUser    = user;
     currentProfile = profile;
     // توجيه الوكيل والسائق لصفحاتهم مباشرة
