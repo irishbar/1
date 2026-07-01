@@ -68,9 +68,13 @@ service cloud.firestore {
         (isAgent() && resource.data.agentId == request.auth.uid) ||
         (isDriver() && resource.data.driverId == request.auth.uid)
       );
-      allow create: if isSignedIn() && (
+      allow create: if (
+        // Admin/manager
         isManager() ||
-        (isCustomer() && request.resource.data.customerId == request.auth.uid)
+        // Signed-in customer creating their own order
+        (isSignedIn() && isCustomer() && request.resource.data.customerId == request.auth.uid) ||
+        // Guest order (no account required)
+        request.resource.data.customerId == 'guest'
       );
       allow update: if isSignedIn() && (
         isManager() ||
