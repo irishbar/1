@@ -35,23 +35,25 @@ function buildTelegramMessage(order) {
   const fmt = (n) => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
   const shortId = order.id.slice(-6).toUpperCase();
 
-  // Build items list
   const itemLines = (order.items || [])
     .map(i => `  • ${i.name} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
     .join('\n');
 
-  // Map link if location exists
   const mapLine = order.location
     ? `\n📌 [عرض الموقع على الخارطة](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
     : order.address ? `\n📝 ملاحظات: ${order.address}` : '';
 
-  const deliveryFeeStr = order.deliveryFee ? fmt(order.deliveryFee) : '—';
-
   const productsTotal = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0);
-  const grandTotal    = productsTotal + (order.deliveryFee || 0);
+  const agentShare    = order.agentShare    || 0;
+  const platformShare = order.platformShare || 0;
+  const grandTotal    = productsTotal + (order.deliveryFee || 0) + agentShare + platformShare;
+
+  const commissionLines = (agentShare > 0 || platformShare > 0)
+    ? `\n💸 عمولة الوكيل: ${fmt(agentShare)}\n🏢 عمولة المنصة: ${fmt(platformShare)}`
+    : '';
 
   const agentLine = order.suggestedAgentName
-    ? `\n👥 الوكيل المقترح: *${order.suggestedAgentName}* ⏳ تعيين خلال 3 دقائق`
+    ? `\n👥 الوكيل المعتمد: *${order.suggestedAgentName}*`
     : '\n⚠️ لم يُكتشف وكيل قريب — يرجى التعيين يدوياً';
 
   return (
@@ -65,8 +67,8 @@ function buildTelegramMessage(order) {
 🛒 *المنتجات:*
 ${itemLines}
 ━━━━━━━━━━━━━━━━━━
-🚚 أجرة التوصيل: ${deliveryFeeStr}
-💰 *الإجمالي: ${fmt(grandTotal)}*
+🚚 أجرة التوصيل: ${order.deliveryFee ? fmt(order.deliveryFee) : '—'}${commissionLines}
+💰 *المجموع الكلي: ${fmt(grandTotal)}*
 ━━━━━━━━━━━━━━━━━━${agentLine}${mapLine}`
   );
 }
@@ -85,8 +87,14 @@ async function sendAgentTelegramNotification(order, agent) {
       ? `\n📌 [موقع الزبون](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
       : order.address ? `\n📝 العنوان: ${order.address}` : '';
     const productsTotal = (order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0);
-    const grandTotal = productsTotal + (order.deliveryFee || 0);
+    const agentShare2    = order.agentShare    || 0;
+    const platformShare2 = order.platformShare || 0;
+    const grandTotal = productsTotal + (order.deliveryFee || 0) + agentShare2 + platformShare2;
     const orderLink = `${APP_BASE_URL}/pages/agent-dashboard.html`;
+
+    const commissionLines2 = (agentShare2 > 0 || platformShare2 > 0)
+      ? `\n💸 عمولتك: ${fmt(agentShare2)}\n🏢 عمولة المنصة: ${fmt(platformShare2)}`
+      : '';
 
     const message =
 `✅ *تم تأكيد طلب جديد لك — Irish Bar*
@@ -99,8 +107,8 @@ async function sendAgentTelegramNotification(order, agent) {
 🛒 *المنتجات:*
 ${itemLines}
 ━━━━━━━━━━━━━━━━━━
-🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}
-💰 *الإجمالي: ${fmt(grandTotal)}*
+🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}${commissionLines2}
+💰 *المجموع الكلي: ${fmt(grandTotal)}*
 ━━━━━━━━━━━━━━━━━━${mapLine}
 🔗 [افتح لوحة الوكيل لتعيين السائق](${orderLink})`;
 

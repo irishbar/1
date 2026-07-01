@@ -372,9 +372,9 @@
           <span class="totals-row-label">أجرة التوصيل</span>
           <span class="totals-row-value" style="color:var(--gold);" id="summaryDeliveryFee">—</span>
         </div>
-        <!-- Profit split (shown when agent is assigned) -->
+        <!-- العمولات المضافة (تظهر دائماً عند تحديد الموقع) -->
         <div id="profitSplitRow" style="display:none;">
-          <div style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 2px;font-weight:600;">↳ توزيع أجرة التوصيل</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 2px;font-weight:600;">💸 العمولات المضافة</div>
           <div class="totals-row" style="margin-top:2px;">
             <span class="totals-row-label" id="agentShareLabel" style="color:var(--green);font-weight:600;">
               <i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>عمولة الوكيل
@@ -1022,24 +1022,26 @@
     document.getElementById('summaryDeliveryFee').textContent   = selectedLocation
       ? formatPrice(fee)
       : 'حدد موقعك';
-    // Show profit split if agent assigned
+    // العمولة تظهر دائماً عند تحديد الموقع (سواء كان هناك وكيل أم لا)
     const splitRow = document.getElementById('profitSplitRow');
-    if (selectedLocation?.agent && fee > 0) {
-      const agent = selectedLocation.agent;
+    if (selectedLocation && fee >= 0) {
+      const agent = selectedLocation.agent || null;
       const { agentShare, platformShare } = calcProfitSplit(products + fee, fee, agent);
-      document.getElementById('agentShare').textContent    = formatPrice(agentShare);
-      document.getElementById('platformShare').textContent = formatPrice(platformShare);
-      // المجموع الكلي = منتجات + توصيل + عمولة وكيل + عمولة منصة (كلٌّ مستقل)
-      document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + agentShare + platformShare);
-      // Agent label
+      const safeA = isNaN(agentShare)    ? 0 : (agentShare    || 0);
+      const safeP = isNaN(platformShare) ? 0 : (platformShare || 0);
+      document.getElementById('agentShare').textContent    = formatPrice(safeA);
+      document.getElementById('platformShare').textContent = formatPrice(safeP);
+      document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + safeA + safeP);
+      // تسمية الوكيل
       const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
       const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
       const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
       const agentLabel = aType === 'fixed'
         ? `الوكيل (${aVal.toLocaleString('en-US')} د.ع)`
         : `الوكيل (${aVal}%)`;
-      document.getElementById('agentShareLabel').textContent = agentLabel;
-      // Platform label
+      document.getElementById('agentShareLabel').innerHTML =
+        `<i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>${agentLabel}`;
+      // تسمية المنصة
       let platLabel;
       if (PLATFORM_COMMISSION_VALUE != null) {
         platLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
@@ -1048,13 +1050,12 @@
       } else {
         platLabel = `المنصة (${100 - aVal}%)`;
       }
-      document.getElementById('platformShareLabel').textContent = platLabel;
+      document.getElementById('platformShareLabel').innerHTML =
+        `<i class="fas fa-building" style="margin-left:5px;font-size:0.75rem;"></i>${platLabel}`;
       splitRow.style.display = 'block';
     } else {
       splitRow.style.display = 'none';
-      document.getElementById('summaryGrandTotal').textContent = selectedLocation
-        ? formatPrice(products + fee)
-        : formatPrice(products);
+      document.getElementById('summaryGrandTotal').textContent = formatPrice(products);
     }
 
     // Summary items
@@ -1243,11 +1244,12 @@
       document.getElementById('ciProductsTotal').textContent = formatPrice(invoiceProductsTotal);
       document.getElementById('ciDeliveryFee').textContent   = formatPrice(invoiceFee);
       document.getElementById('ciGrandTotal').textContent    = formatPrice(invoiceGrandTotal);
-      if (invoiceAgent) {
-        // Build labels with percentages
-        const agentHasOwn2 = invoiceAgent.commissionType != null && invoiceAgent.commissionRate != null;
-        const aType2 = agentHasOwn2 ? invoiceAgent.commissionType : AGENT_COMMISSION_TYPE;
-        const aVal2  = agentHasOwn2 ? invoiceAgent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+      // إظهار العمولات دائماً متى كانت موجودة
+      if ((invoiceAgentShare || 0) > 0 || (invoicePlatformShare || 0) > 0) {
+        const agnt = invoiceAgent || null;
+        const agentHasOwn2 = agnt?.commissionType != null && agnt?.commissionRate != null;
+        const aType2 = agentHasOwn2 ? agnt.commissionType : AGENT_COMMISSION_TYPE;
+        const aVal2  = agentHasOwn2 ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
         const aLabel = aType2 === 'fixed'
           ? `عمولة الوكيل (${aVal2.toLocaleString('en-US')} د.ع ثابت)`
           : `عمولة الوكيل (${aVal2}%)`;
@@ -1261,8 +1263,8 @@
         }
         document.getElementById('ciAgentLabel').textContent    = aLabel;
         document.getElementById('ciPlatformLabel').textContent = pLabel;
-        document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare);
-        document.getElementById('ciPlatformShare').textContent = formatPrice(invoicePlatformShare);
+        document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare || 0);
+        document.getElementById('ciPlatformShare').textContent = formatPrice(invoicePlatformShare || 0);
         document.getElementById('ciCommissionsBlock').style.display = 'block';
       } else {
         document.getElementById('ciCommissionsBlock').style.display = 'none';
