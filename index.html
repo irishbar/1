@@ -58,6 +58,105 @@
 </head>
 <body>
 
+<!-- Age Gate -->
+<div id="ageGate" style="
+  position:fixed; inset:0; z-index:99999;
+  background:linear-gradient(160deg,#0a0a0a 0%,#1a1008 50%,#0d0d0d 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px; text-align:center;
+">
+  <div style="max-width:380px; width:100%;">
+    <!-- Logo -->
+    <div style="
+      font-family:'Georgia',serif; font-size:clamp(2rem,8vw,3rem);
+      font-weight:900; letter-spacing:4px; color:#b8922a;
+      text-shadow:0 0 40px rgba(184,146,42,0.4);
+      margin-bottom:4px;
+    ">🥃 IRISH BAR</div>
+    <div style="font-size:0.78rem; color:rgba(184,146,42,0.55); letter-spacing:3px; margin-bottom:36px; text-transform:uppercase;">Premium Irish Selection</div>
+
+    <!-- Card -->
+    <div style="
+      background:rgba(255,255,255,0.04); border:1px solid rgba(184,146,42,0.2);
+      border-radius:20px; padding:32px 24px; backdrop-filter:blur(10px);
+    ">
+      <div style="font-size:3rem; margin-bottom:16px;">🔞</div>
+      <div style="
+        font-size:clamp(1.1rem,4vw,1.35rem); font-weight:800; color:#fff;
+        margin-bottom:10px; line-height:1.4;
+      ">تحقق من العمر</div>
+      <div style="
+        font-size:clamp(0.82rem,2.5vw,0.92rem); color:rgba(255,255,255,0.55);
+        line-height:1.7; margin-bottom:28px;
+      ">
+        هذا الموقع يحتوي على مواد كحولية.<br>
+        هل عمرك <strong style="color:#b8922a;">18 سنة أو أكثر؟</strong>
+      </div>
+
+      <button onclick="ageConfirm(true)" style="
+        width:100%; padding:15px; border:none; border-radius:12px;
+        background:linear-gradient(135deg,#b8922a,#d4a843);
+        color:#fff; font-size:1rem; font-weight:800;
+        cursor:pointer; margin-bottom:12px;
+        box-shadow:0 4px 20px rgba(184,146,42,0.35);
+        transition:transform 0.15s;
+      " onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">
+        ✅ نعم، عمري 18 سنة أو أكثر
+      </button>
+
+      <button onclick="ageConfirm(false)" style="
+        width:100%; padding:13px; border:1.5px solid rgba(255,255,255,0.12);
+        border-radius:12px; background:transparent;
+        color:rgba(255,255,255,0.45); font-size:0.88rem; font-weight:600;
+        cursor:pointer; transition:border-color 0.2s;
+      " onmouseover="this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
+        ❌ لا، عمري أقل من 18 سنة
+      </button>
+    </div>
+
+    <div style="margin-top:20px; font-size:0.72rem; color:rgba(255,255,255,0.2); line-height:1.6;">
+      بالضغط على "نعم" تقر بأن عمرك يتجاوز 18 سنة<br>
+      وتوافق على شروط الاستخدام وسياسة الخصوصية
+    </div>
+  </div>
+</div>
+
+<!-- Underage Block (shown if user is underage) -->
+<div id="underageBlock" style="
+  display:none; position:fixed; inset:0; z-index:99999;
+  background:#0a0a0a;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:24px; text-align:center;
+">
+  <div style="font-size:4rem; margin-bottom:16px;">🚫</div>
+  <div style="font-size:1.3rem; font-weight:800; color:#fff; margin-bottom:10px;">عذراً، لا يمكنك الدخول</div>
+  <div style="font-size:0.88rem; color:rgba(255,255,255,0.4); max-width:280px; line-height:1.7;">
+    هذا الموقع مخصص للأشخاص الذين يبلغون من العمر 18 عاماً أو أكثر.
+  </div>
+</div>
+
+<script>
+  (function() {
+    if (localStorage.getItem('ageVerified') === '1') {
+      document.getElementById('ageGate').style.display = 'none';
+    }
+  })();
+
+  function ageConfirm(ok) {
+    if (ok) {
+      localStorage.setItem('ageVerified', '1');
+      const gate = document.getElementById('ageGate');
+      gate.style.transition = 'opacity 0.4s';
+      gate.style.opacity = '0';
+      setTimeout(() => gate.style.display = 'none', 400);
+    } else {
+      document.getElementById('ageGate').style.display = 'none';
+      const block = document.getElementById('underageBlock');
+      block.style.display = 'flex';
+    }
+  }
+</script>
+
 <!-- Page Loader -->
 <div id="page-loader">
   <div class="loader-logo">IRISH BAR</div>
