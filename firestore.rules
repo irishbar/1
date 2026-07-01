@@ -32,19 +32,17 @@ service cloud.firestore {
     }
 
     // ─── users ────────────────────────────────────────────────────────────────
-    // Admin reads/writes all. User reads/updates own profile only.
     match /users/{userId} {
       allow read:   if isSignedIn() && (request.auth.uid == userId || isManager());
       allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow update: if isSignedIn() && (
-        request.auth.uid == userId ||   // own profile
-        isAdmin()                        // admin manages any user
+        request.auth.uid == userId ||
+        isAdmin()
       );
       allow delete: if isAdmin();
     }
 
     // ─── products ─────────────────────────────────────────────────────────────
-    // Public read. Admin write.
     match /products/{id} {
       allow read:  if true;
       allow write: if isManager();
@@ -63,9 +61,6 @@ service cloud.firestore {
     }
 
     // ─── orders ───────────────────────────────────────────────────────────────
-    // Customer creates their own orders, reads their own orders.
-    // Admin/manager reads & updates all.
-    // Agent can read orders assigned to them.
     match /orders/{orderId} {
       allow read: if isSignedIn() && (
         isManager() ||
@@ -75,16 +70,12 @@ service cloud.firestore {
       );
       allow create: if isSignedIn() && (
         isManager() ||
-        // Customer creates — must set their own customerId
         (isCustomer() && request.resource.data.customerId == request.auth.uid)
       );
       allow update: if isSignedIn() && (
         isManager() ||
-        // Agent can update orders assigned to them (e.g., change status)
         (isAgent() && resource.data.agentId == request.auth.uid) ||
-        // Driver can update their assigned order status
         (isDriver() && resource.data.driverId == request.auth.uid) ||
-        // Customer can only cancel (set status to 'ملغي') while order is in cancellable statuses
         (
           isCustomer() &&
           resource.data.customerId == request.auth.uid &&
@@ -98,17 +89,19 @@ service cloud.firestore {
     }
 
     // ─── agents ───────────────────────────────────────────────────────────────
-    // Authenticated users can read agents (needed for coverage checks).
-    // Admin creates/deletes. Agent can update their own document.
+    // Agent can update their own doc but NOT change commissionRate (set by admin only)
     match /agents/{agentId} {
       allow read:   if isSignedIn();
       allow create: if isAdmin();
-      allow update: if isAdmin() || (isAgent() && request.auth.uid == resource.data.userId);
+      allow update: if isAdmin() || (
+        isAgent() &&
+        request.auth.uid == resource.data.userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['commissionRate'])
+      );
       allow delete: if isAdmin();
     }
 
     // ─── drivers ──────────────────────────────────────────────────────────────
-    // Agent manages their own drivers. Driver reads their own record. Admin reads all.
     match /drivers/{driverId} {
       allow read: if isSignedIn() && (
         isManager() ||
@@ -124,36 +117,61 @@ service cloud.firestore {
     }
 
     // ─── balance_topups ───────────────────────────────────────────────────────
-    // Agents create topup records for their drivers. Admin reads all. Driver reads own.
+    // Agent can only create topups for their own drivers (agentId must match)
     match /balance_topups/{id} {
       allow read: if isSignedIn() && (
         isManager() ||
         (isAgent() && resource.data.agentId == request.auth.uid) ||
         (isDriver() && resource.data.targetId == request.auth.uid)
       );
-      allow create: if isSignedIn() && (isManager() || isAgent());
+      allow create: if isSignedIn() && (
+        isManager() ||
+        (isAgent() && request.resource.data.agentId == request.auth.uid)
+      );
       allow update, delete: if isAdmin();
     }
 
     // ─── balance_deductions ───────────────────────────────────────────────────
-    // Created server-side (cloud functions) or by admin. Driver reads own.
+    // Driver reads own. Agent reads their own deductions.
     match /balance_deductions/{id} {
       allow read: if isSignedIn() && (
         isManager() ||
-        (isDriver() && resource.data.driverId == request.auth.uid)
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        (isAgent() && resource.data.agentId == request.auth.uid)
       );
       allow create: if isManager() || isAgent();
       allow update, delete: if isAdmin();
     }
 
+    // ─── agent_purchases ──────────────────────────────────────────────────────
+    // Agent creates and reads their own purchases. Admin reads all.
+    match /agent_purchases/{id} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid)
+      );
+      allow create: if isAgent() && request.resource.data.agentId == request.auth.uid;
+      allow update: if isAdmin() || (isAgent() && resource.data.agentId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // ─── coverage_requests ────────────────────────────────────────────────────
+    // Agent creates requests for coverage changes. Admin manages them.
+    match /coverage_requests/{id} {
+      allow read: if isSignedIn() && (
+        isManager() ||
+        (isAgent() && resource.data.agentId == request.auth.uid)
+      );
+      allow create: if isAgent() && request.resource.data.agentId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     // ─── purchases ────────────────────────────────────────────────────────────
-    // Admin only.
     match /purchases/{id} {
       allow read, write: if isManager();
     }
 
     // ─── settings ─────────────────────────────────────────────────────────────
-    // packages + agents + delivery: يحتاجها الوكيل والسائق والزبون لحسابات التوصيل والعمولة
     match /settings/packages {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
@@ -163,11 +181,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /settings/delivery {
-      allow read:  if true;   // الزبون يحتاجها قبل تسجيل الدخول لحساب أجرة التوصيل
+      allow read:  if true;
       allow write: if isAdmin();
     }
     match /settings/status {
-      allow read:  if true;   // وضع الصيانة — يُقرأ من الزوار قبل تسجيل الدخول
+      allow read:  if true;
       allow write: if isAdmin();
     }
     match /settings/{docId} {

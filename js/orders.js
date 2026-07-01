@@ -4,7 +4,7 @@
 import { db } from './firebase-config.js';
 import {
   collection, addDoc, getDocs, doc, updateDoc, getDoc,
-  query, orderBy, where, onSnapshot, increment
+  query, orderBy, where, onSnapshot, increment, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // الحالات التي يُسمح فيها للزبون بالإلغاء (قبل خروج السائق)
@@ -332,6 +332,28 @@ export async function fetchAllOrders() {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// ── Fetch Agent Orders (filtered query — fast) ──
+export async function fetchAgentOrders(agentId) {
+  const q = query(
+    collection(db, 'orders'),
+    where('agentId', '==', agentId),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── Fetch Driver Active Orders ──
+export async function fetchDriverOrders(driverId) {
+  const q = query(
+    collection(db, 'orders'),
+    where('driverId', '==', driverId),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
 // ── Fetch Customer Orders ──
 export async function fetchMyOrders(customerId) {
   const q = query(
@@ -411,79 +433,90 @@ ${itemLines}
 }
 
 // ── Assign Driver to Order (called by agent) ──────────────────────────────────
-// يستقطع قيمة الطلب الكاملة من رصيد الوكيل ومن رصيد السائق
+// يستخدم Firestore Transaction لمنع Race Condition عند تزامن التعيين
 export async function assignDriverToOrder(orderId, driver) {
-  const orderSnap = await getDoc(doc(db, 'orders', orderId));
-  if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
-  const order = { id: orderId, ...orderSnap.data() };
+  const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
 
-  // قيمة الطلب الكاملة = المنتجات + التوصيل
-  const orderBase = order.orderBase ||
-    ((order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0));
+  const orderRef  = doc(db, 'orders',  orderId);
+  const driverRef = doc(db, 'drivers', driver.id);
 
-  // ── التحقق من رصيد السائق ─────────────────────────────────────────────────
-  const driverSnap = await getDoc(doc(db, 'drivers', driver.id));
-  const driverBalance = (driverSnap.exists() ? driverSnap.data().balance : 0) || 0;
-  if (driverBalance < orderBase) {
-    const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
-    throw new Error(
-      `رصيد السائق ${driver.name} غير كافٍ — الرصيد الحالي: ${fmt(driverBalance)} د.ع، قيمة الطلب: ${fmt(orderBase)} د.ع`
-    );
-  }
+  // نُنشئ مراجع السجلات الجديدة مسبقاً (لا يمكن استخدام addDoc داخل transaction)
+  const driverDeductRef = doc(collection(db, 'balance_deductions'));
+  const agentDeductRef  = doc(collection(db, 'balance_deductions'));
 
-  // ── التحقق من رصيد الوكيل ────────────────────────────────────────────────
-  if (order.agentId) {
-    const agentSnap = await getDoc(doc(db, 'agents', order.agentId));
-    const agentBalance = (agentSnap.exists() ? agentSnap.data().balance : 0) || 0;
-    if (agentBalance < orderBase) {
-      const fmt = (n) => new Intl.NumberFormat('en-US').format(n);
+  let capturedOrder = null;
+
+  await runTransaction(db, async (transaction) => {
+    const orderSnap  = await transaction.get(orderRef);
+    const driverSnap = await transaction.get(driverRef);
+
+    if (!orderSnap.exists()) throw new Error('الطلب غير موجود');
+    const order = { id: orderId, ...orderSnap.data() };
+
+    // التحقق من حالة الطلب
+    if (!['جديد', 'قيد التجهيز'].includes(order.status)) {
+      throw new Error('لا يمكن تعيين سائق لهذا الطلب — الحالة: ' + order.status);
+    }
+
+    const orderBase = order.orderBase ||
+      ((order.items || []).reduce((s, i) => s + (i.price * i.quantity), 0) + (order.deliveryFee || 0));
+
+    // التحقق من رصيد السائق
+    const driverBalance = driverSnap.exists() ? (driverSnap.data().balance || 0) : 0;
+    if (driverBalance < orderBase) {
       throw new Error(
-        `رصيد الوكيل غير كافٍ — الرصيد الحالي: ${fmt(agentBalance)} د.ع، قيمة الطلب: ${fmt(orderBase)} د.ع`
+        `رصيد السائق ${driver.name} غير كافٍ — الرصيد: ${fmt(driverBalance)} د.ع، الطلب: ${fmt(orderBase)} د.ع`
       );
     }
-  }
 
-  // ── تحديث الطلب ───────────────────────────────────────────────────────────
-  await updateDoc(doc(db, 'orders', orderId), {
-    driverId:        driver.id,
-    driverName:      driver.name,
-    driverDeduction: orderBase,
-    agentDeduction:  orderBase,
-    status:          'في التوصيل',
-    assignedAt:      new Date().toISOString()
-  });
+    // التحقق من رصيد الوكيل
+    let agentRef = null;
+    if (order.agentId) {
+      agentRef = doc(db, 'agents', order.agentId);
+      const agentSnap = await transaction.get(agentRef);
+      const agentBalance = agentSnap.exists() ? (agentSnap.data().balance || 0) : 0;
+      if (agentBalance < orderBase) {
+        throw new Error(
+          `رصيد الوكيل غير كافٍ — الرصيد: ${fmt(agentBalance)} د.ع، الطلب: ${fmt(orderBase)} د.ع`
+        );
+      }
+    }
 
-  // ── استقطاع رصيد السائق (القيمة الكاملة) ─────────────────────────────────
-  await updateDoc(doc(db, 'drivers', driver.id), {
-    balance:   increment(-orderBase),
-    updatedAt: new Date().toISOString()
-  });
-  await addDoc(collection(db, 'balance_deductions'), {
-    driverId:  driver.id,
-    amount:    orderBase,
-    orderId,
-    note: `طلب #${orderId.slice(-6).toUpperCase()} — قيمة كاملة`,
-    createdAt: new Date().toISOString()
-  });
+    const now = new Date().toISOString();
+    const shortId = orderId.slice(-6).toUpperCase();
 
-  // ── استقطاع رصيد الوكيل (القيمة الكاملة) ─────────────────────────────────
-  if (order.agentId) {
-    await updateDoc(doc(db, 'agents', order.agentId), {
-      balance:   increment(-orderBase),
-      updatedAt: new Date().toISOString()
+    // تحديث الطلب
+    transaction.update(orderRef, {
+      driverId:        driver.id,
+      driverName:      driver.name,
+      driverDeduction: orderBase,
+      agentDeduction:  order.agentId ? orderBase : 0,
+      orderBase,
+      status:          'في التوصيل',
+      assignedAt:      now
     });
-    await addDoc(collection(db, 'balance_deductions'), {
-      agentId:  order.agentId,
-      amount:   orderBase,
-      orderId,
-      note: `طلب #${orderId.slice(-6).toUpperCase()} — قيمة كاملة`,
-      createdAt: new Date().toISOString()
-    });
-  }
 
-  // 🔔 إشعار تلجرام للسائق مع رابط لوحة التحكم
-  const fullOrder = { ...order, driverId: driver.id, driverName: driver.name, orderBase };
-  sendDriverTelegramNotification(fullOrder, driver);
+    // استقطاع رصيد السائق
+    transaction.update(driverRef, { balance: increment(-orderBase), updatedAt: now });
+    transaction.set(driverDeductRef, {
+      driverId: driver.id, amount: orderBase, orderId,
+      note: `طلب #${shortId}`, createdAt: now
+    });
+
+    // استقطاع رصيد الوكيل
+    if (agentRef) {
+      transaction.update(agentRef, { balance: increment(-orderBase), updatedAt: now });
+      transaction.set(agentDeductRef, {
+        agentId: order.agentId, amount: orderBase, orderId,
+        note: `طلب #${shortId}`, createdAt: now
+      });
+    }
+
+    capturedOrder = { ...order, driverId: driver.id, driverName: driver.name, orderBase };
+  });
+
+  // 🔔 إشعار تلجرام للسائق (بعد نجاح التحويل)
+  if (capturedOrder) sendDriverTelegramNotification(capturedOrder, driver);
 }
 
 // ── Self-Process Order (agent handles delivery personally) ────────────────────

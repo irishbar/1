@@ -138,12 +138,13 @@ export async function fetchTopupHistory(targetId) {
   } catch { return []; }
 }
 
-// ─── Fetch deduction history for a driver ────────────────────────────────────
-export async function fetchDeductionHistory(driverId) {
+// ─── Fetch deduction history for a driver or agent ────────────────────────────
+export async function fetchDeductionHistory(id, type = 'driver') {
   try {
+    const field = type === 'agent' ? 'agentId' : 'driverId';
     const q = query(
       collection(db, 'balance_deductions'),
-      where('driverId', '==', driverId),
+      where(field, '==', id),
       orderBy('createdAt', 'desc')
     );
     const snap = await getDocs(q);

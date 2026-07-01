@@ -876,7 +876,7 @@
   import { onAuthChange, logout } from '../js/auth.js';
   import { showToast, formatPrice } from '../js/ui.js';
   import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
-  import { fetchAllOrders, assignDriverToOrder, selfProcessOrder } from '../js/orders.js';
+  import { fetchAgentOrders, assignDriverToOrder, selfProcessOrder } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
   import {
     fetchDriversByAgent, addDriver, deleteDriver,
@@ -1224,8 +1224,7 @@
   async function loadAgentData() {
     if (!agentDoc) return;
     try {
-      const orders = await fetchAllOrders();
-      const myOrders = orders.filter(o => o.agentId === agentDoc.id);
+      const myOrders = await fetchAgentOrders(agentDoc.id);
       const totalCommission = myOrders.reduce((s, o) => s + (o.agentShare || 0), 0);
       document.getElementById('statOrders').textContent     = myOrders.length;
       document.getElementById('statCommission').textContent = totalCommission.toLocaleString('en-US');

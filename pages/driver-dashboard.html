@@ -213,6 +213,48 @@
     .empty-state i { font-size:2.5rem; opacity:0.2; margin-bottom:10px; display:block; }
     .empty-state div { font-size:clamp(0.82rem,2.2vw,0.9rem); }
 
+    /* ── Active Order Card ── */
+    .active-order-card {
+      background:var(--bg-card); border:2px solid rgba(45,106,79,0.3);
+      border-radius:var(--radius-lg); padding:18px; margin-bottom:12px;
+      box-shadow:0 2px 12px rgba(45,106,79,0.1);
+      position:relative; overflow:hidden;
+    }
+    .active-order-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:linear-gradient(90deg,#40916c,#2d6a4f);
+    }
+    .active-order-id {
+      font-family:var(--font-en-body); font-size:0.78rem;
+      color:var(--text-muted); font-weight:700; margin-bottom:6px;
+    }
+    .active-order-customer {
+      font-weight:800; font-size:clamp(0.9rem,2.5vw,1rem);
+      color:var(--text-primary); margin-bottom:4px;
+    }
+    .active-order-meta {
+      font-size:clamp(0.76rem,2vw,0.82rem); color:var(--text-secondary);
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;
+    }
+    .active-order-amount {
+      font-family:var(--font-en-body); font-weight:900;
+      color:var(--gold-dark); font-size:1rem;
+    }
+    .btn-confirm-delivery {
+      width:100%; padding:12px;
+      background:linear-gradient(135deg,#2d6a4f,#40916c);
+      color:#fff; border:none; border-radius:var(--radius-md);
+      font-size:clamp(0.88rem,2.5vw,0.95rem); font-weight:800;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:var(--transition);
+    }
+    .btn-confirm-delivery:active { transform:scale(0.98); }
+    .btn-map-link {
+      display:inline-flex; align-items:center; gap:5px;
+      color:#1a56db; font-size:0.78rem; font-weight:600;
+      text-decoration:none; margin-top:6px;
+    }
+
     /* ── Commission Rate badge ── */
     .rate-badge {
       display:inline-flex; align-items:center; gap:6px;
@@ -276,6 +318,12 @@
       <span class="stat-value" id="statRate">15%</span>
       <span class="stat-label">نسبة العمولة</span>
     </div>
+  </div>
+
+  <!-- Active Orders -->
+  <div class="section" id="activeOrdersSection" style="display:none;">
+    <div class="section-title"><i class="fas fa-motorcycle" style="color:var(--gold);"></i> طلباتك النشطة</div>
+    <div id="activeOrdersList"></div>
   </div>
 
   <!-- How to Top-up -->
@@ -384,6 +432,7 @@
     packagesReady,
     DRIVER_PAY_AMOUNT, DRIVER_CREDIT_AMOUNT, BALANCE_WARN_THRESH
   } from '../js/drivers.js';
+  import { fetchDriverOrders, updateOrderStatus } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
 
   let driverDoc = null;
@@ -413,6 +462,7 @@
     renderHeader();
     updatePackageInfo();
     await loadHistory();
+    await loadActiveOrders();
     await initTelegramSetup();
   });
 
@@ -491,6 +541,57 @@
       `).join('');
     }
   }
+
+  // ── Active Orders ──────────────────────────────────────────────────────────
+  async function loadActiveOrders() {
+    if (!driverDoc) return;
+    try {
+      const all = await fetchDriverOrders(driverDoc.id);
+      const active = all.filter(o => o.status === 'في التوصيل');
+      const section = document.getElementById('activeOrdersSection');
+      const list    = document.getElementById('activeOrdersList');
+      if (!active.length) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      list.innerHTML = active.map(o => {
+        const productsTotal = (o.items || []).reduce((s, i) => s + ((i.price||0) * (i.quantity||1)), 0);
+        const orderTotal    = productsTotal + (o.deliveryFee || 0);
+        const mapUrl = o.location
+          ? `https://www.google.com/maps?q=${o.location.lat},${o.location.lng}`
+          : null;
+        return `
+        <div class="active-order-card">
+          <div class="active-order-id">#${o.id.slice(-6).toUpperCase()} · ${(o.createdAt||'').slice(0,10)}</div>
+          <div class="active-order-customer">${o.customerName || '—'}</div>
+          <div class="active-order-meta">
+            <span><i class="fas fa-phone" style="color:var(--gold);"></i> ${o.phone || '—'}</span>
+            <span><i class="fas fa-clock" style="color:var(--gold);"></i> ${o.deliveryTime || 'اسرع وقت'}</span>
+            <span class="active-order-amount">${new Intl.NumberFormat('en-US').format(orderTotal)} د.ع</span>
+          </div>
+          ${mapUrl ? `<a class="btn-map-link" href="${mapUrl}" target="_blank"><i class="fas fa-map-marker-alt"></i> عرض الموقع على الخارطة</a>` : (o.address ? `<div style="font-size:0.78rem;color:var(--text-muted);"><i class="fas fa-map-pin"></i> ${o.address}</div>` : '')}
+          <button class="btn-confirm-delivery" style="margin-top:12px;" onclick="confirmDelivery('${o.id}', this)">
+            <i class="fas fa-check-circle"></i> تأكيد التوصيل
+          </button>
+        </div>`;
+      }).join('');
+    } catch (e) { console.error('loadActiveOrders:', e); }
+  }
+
+  window.confirmDelivery = async function(orderId, btn) {
+    if (!confirm('هل تأكد تسليم الطلب للزبون؟')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التأكيد...';
+    try {
+      await updateOrderStatus(orderId, 'مكتمل');
+      showToast('✅ تم تأكيد التوصيل بنجاح!', 'success');
+      await loadActiveOrders();
+      await loadHistory();
+      renderHeader();
+    } catch (e) {
+      showToast('حدث خطأ: ' + (e.message || ''), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-circle"></i> تأكيد التوصيل';
+    }
+  };
 
   // ── Telegram Setup ─────────────────────────────────────────────────────────
   async function initTelegramSetup() {
