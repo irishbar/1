@@ -13,8 +13,21 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>Irish Bar — المتجر</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- Preconnect to external domains early -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://unpkg.com">
+  <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+
+  <!-- Font Awesome — non-blocking (لا يوقف التحميل) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
+  <!-- Leaflet CSS — lazy (يُحمَّل فقط عند فتح الخارطة) -->
+
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/store.css">
   <script>
@@ -1277,6 +1290,14 @@
 
   // ── Map Modal ──
   window.openMapModal = function() {
+    // تحميل Leaflet CSS عند أول فتح للخارطة فقط
+    if (!document.getElementById('leaflet-css')) {
+      const lnk = document.createElement('link');
+      lnk.id = 'leaflet-css';
+      lnk.rel = 'stylesheet';
+      lnk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(lnk);
+    }
     document.getElementById('mapModal').classList.add('open');
     document.body.style.overflow = 'hidden';
     setTimeout(() => initMap(), 300);

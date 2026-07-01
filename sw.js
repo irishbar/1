@@ -2,7 +2,7 @@
    Irish Bar — Service Worker (PWA Full Offline)
    ============================================= */
 
-const CACHE_NAME     = 'irish-bar-v3';
+const CACHE_NAME     = 'irish-bar-v5';
 
 // Build absolute URLs relative to SW scope (works on GitHub Pages and any subdirectory)
 const BASE = self.registration.scope; // e.g. https://user.github.io/repo/
@@ -67,14 +67,13 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
 
   // 3. Skip ALL external/third-party requests — let browser handle them directly
-  //    This includes: Firebase, Firestore, Google APIs, ImgBB, Telegram, Leaflet data, etc.
   if (!url.href.startsWith(BASE)) {
-    // Only intercept known CDN resources we want to cache for offline use
     const isCDN = (
       url.hostname.includes('cdnjs.cloudflare.com') ||
       url.hostname.includes('unpkg.com') ||
       url.hostname.includes('fonts.googleapis.com') ||
-      url.hostname.includes('fonts.gstatic.com')
+      url.hostname.includes('fonts.gstatic.com') ||
+      url.hostname.includes('tile.openstreetmap.org')
     );
 
     if (!isCDN) return; // Let Firebase, Firestore, ImgBB, etc. pass through untouched
