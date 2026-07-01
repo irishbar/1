@@ -1172,13 +1172,12 @@
       }));
 
       const fee = Number(selectedLocation.fee) || 0;
-      const hasAgent = !!(selectedLocation.agent);
-      const { agentShare, platformShare } = hasAgent
-        ? calcProfitSplit(_cartTotal + fee, fee, selectedLocation.agent)
-        : { agentShare: 0, platformShare: 0 };
-
-      const safeAgentShare    = isNaN(agentShare)    ? 0 : agentShare;
-      const safePlatformShare = isNaN(platformShare) ? 0 : platformShare;
+      // العمولة تُحسب دائماً — مع وكيل أو بدون (تستخدم النسبة العامة إذا لم يكن هناك وكيل)
+      const { agentShare, platformShare } = calcProfitSplit(
+        _cartTotal + fee, fee, selectedLocation.agent || null
+      );
+      const safeAgentShare    = isNaN(agentShare)    ? 0 : (agentShare    || 0);
+      const safePlatformShare = isNaN(platformShare) ? 0 : (platformShare  || 0);
       const grandTotal = _cartTotal + fee + safeAgentShare + safePlatformShare;
 
       const order = await createOrder({
