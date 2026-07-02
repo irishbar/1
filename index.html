@@ -18,8 +18,20 @@
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
   <link rel="dns-prefetch" href="https://unpkg.com">
   <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+
+  <!-- Preload Firebase SDK modules بالتوازي مع تحليل HTML -->
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js">
+  <link rel="modulepreload" href="./js/firebase-config.js">
+  <link rel="modulepreload" href="./js/auth.js">
+  <link rel="modulepreload" href="./js/store.js">
+  <link rel="modulepreload" href="./js/orders.js">
+  <link rel="modulepreload" href="./js/ui.js">
+  <link rel="modulepreload" href="./js/agents.js">
 
   <!-- Font Awesome — non-blocking (لا يوقف التحميل) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -608,8 +620,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/pwa.js"></script>
+<script src="js/pwa.js" defer></script>
 <script type="module">
   import { onAuthChange } from './js/auth.js';
   import {
@@ -627,19 +638,23 @@
 
   window.closeModal = closeModal;
 
-  // ── Maintenance Mode Check ──
+  // ── Maintenance Mode Check (cached per session) ──
   async function checkMaintenanceMode() {
+    // تجنب طلب Firestore إضافي في نفس الجلسة
+    const cached = sessionStorage.getItem('_maint');
+    if (cached === '0') return false;
     try {
       const { getDoc, doc } =
         await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
       const { db } = await import('./js/firebase-config.js');
       const snap = await getDoc(doc(db, 'settings', 'status'));
-      if (snap.exists() && snap.data().maintenanceMode === true) {
+      const isMaint = snap.exists() && snap.data().maintenanceMode === true;
+      if (isMaint) {
         document.getElementById('page-loader').style.display = 'none';
-        const overlay = document.getElementById('maintenanceOverlay');
-        overlay.style.display = 'flex';
+        document.getElementById('maintenanceOverlay').style.display = 'flex';
         return true;
       }
+      sessionStorage.setItem('_maint', '0'); // تخزين نتيجة "ليس في الصيانة"
     } catch {}
     return false;
   }
@@ -1291,18 +1306,35 @@
   });
 
   // ── Map Modal ──
-  window.openMapModal = function() {
-    // تحميل Leaflet CSS عند أول فتح للخارطة فقط
-    if (!document.getElementById('leaflet-css')) {
-      const lnk = document.createElement('link');
-      lnk.id = 'leaflet-css';
-      lnk.rel = 'stylesheet';
-      lnk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(lnk);
-    }
+  // تحميل Leaflet (CSS + JS) عند أول فتح للخارطة فقط
+  let _leafletReady = null;
+  function loadLeaflet() {
+    if (_leafletReady) return _leafletReady;
+    _leafletReady = new Promise((resolve, reject) => {
+      if (window.L) { resolve(); return; }
+      // CSS
+      if (!document.getElementById('leaflet-css')) {
+        const lnk = document.createElement('link');
+        lnk.id = 'leaflet-css';
+        lnk.rel = 'stylesheet';
+        lnk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(lnk);
+      }
+      // JS
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    return _leafletReady;
+  }
+
+  window.openMapModal = async function() {
     document.getElementById('mapModal').classList.add('open');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => initMap(), 300);
+    await loadLeaflet();
+    setTimeout(() => initMap(), 100);
   };
   window.closeMapModal = function() {
     document.getElementById('mapModal').classList.remove('open');
