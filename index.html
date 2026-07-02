@@ -747,13 +747,29 @@
   // ── Categories ──
   let categoriesOpen = false;
 
+  // ترتيب المتاح أولاً
+  function sortAvailableFirst(products) {
+    return [...products].sort((a, b) =>
+      (b.available !== false ? 1 : 0) - (a.available !== false ? 1 : 0)
+    );
+  }
+
+  // ترتيب الفئات: التي فيها منتجات متاحة تأتي أولاً (مع الحفاظ على الترتيب الأصلي بداخل كل مجموعة)
+  function sortedCategories() {
+    return [...categories].sort((a, b) => {
+      const aHas = allProducts.some(p => p.categoryId === a.id && p.available !== false) ? 1 : 0;
+      const bHas = allProducts.some(p => p.categoryId === b.id && p.available !== false) ? 1 : 0;
+      return bHas - aHas;
+    });
+  }
+
   function renderCategories() {
     const el = document.getElementById('categoriesContainer');
     el.innerHTML =
       `<button class="category-pill active" data-id="all" onclick="selectCategory('all')">
         <i class="fas fa-th-large"></i> الكل
        </button>` +
-      categories.map(c => `
+      sortedCategories().map(c => `
         <button class="category-pill" data-id="${c.id}" onclick="selectCategory('${c.id}')">
           <span>${c.icon || '🍺'}</span> ${c.name}
         </button>
@@ -813,7 +829,7 @@
       const cat = categories.find(c => c.id === catId);
       label.style.display = 'block';
       label.textContent = cat ? cat.name : 'المنتجات';
-      const filtered = allProducts.filter(p => p.categoryId === catId);
+      const filtered = sortAvailableFirst(allProducts.filter(p => p.categoryId === catId));
       document.getElementById('productsGrid').innerHTML =
         `<div class="products-grid">${renderProductCards(filtered)}</div>`;
     }
@@ -823,8 +839,8 @@
     const grid = document.getElementById('productsGrid');
     if (!categories.length) { grid.innerHTML = emptyState(); return; }
     let html = '';
-    categories.forEach(cat => {
-      const prods = allProducts.filter(p => p.categoryId === cat.id);
+    sortedCategories().forEach(cat => {
+      const prods = sortAvailableFirst(allProducts.filter(p => p.categoryId === cat.id));
       if (!prods.length) return;
       html += `
         <div class="cat-section-title">
@@ -835,7 +851,7 @@
         <div class="products-grid">${renderProductCards(prods)}</div>
       `;
     });
-    const noCat = allProducts.filter(p => !p.categoryId);
+    const noCat = sortAvailableFirst(allProducts.filter(p => !p.categoryId));
     if (noCat.length) html += `<div class="products-grid">${renderProductCards(noCat)}</div>`;
     grid.innerHTML = html || emptyState();
   }
@@ -885,10 +901,10 @@
     }
     label.style.display = 'block';
     label.textContent = `نتائج البحث: "${q}"`;
-    const results = allProducts.filter(p =>
+    const results = sortAvailableFirst(allProducts.filter(p =>
       p.name.toLowerCase().includes(term) ||
       (p.description || '').toLowerCase().includes(term)
-    );
+    ));
     document.getElementById('productsGrid').innerHTML =
       results.length
         ? `<div class="products-grid">${renderProductCards(results)}</div>`
