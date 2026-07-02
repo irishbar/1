@@ -755,21 +755,19 @@
   function renderCategories() {
     const el = document.getElementById('categoriesContainer');
     el.innerHTML =
-      `<button class="category-card active" data-id="all" onclick="selectCategory('all')">
-        <span class="c-icon"><i class="fas fa-th-large"></i></span>
-        <span class="c-name">الكل</span>
+      `<button class="category-chip active" data-id="all" onclick="selectCategory('all')">
+        <span class="c-icon">✦</span> الكل
        </button>` +
       sortedCategories().map(c => `
-        <button class="category-card" data-id="${c.id}" onclick="selectCategory('${c.id}')">
-          <span class="c-icon">${c.icon || '🍺'}</span>
-          <span class="c-name">${c.name}</span>
+        <button class="category-chip" data-id="${c.id}" onclick="selectCategory('${c.id}')">
+          <span class="c-icon">${c.icon || '🍺'}</span>${c.name}
         </button>
       `).join('');
   }
 
   window.selectCategory = function(catId) {
     activeCatId = catId;
-    document.querySelectorAll('.category-card').forEach(el =>
+    document.querySelectorAll('.category-chip').forEach(el =>
       el.classList.toggle('active', el.dataset.id === catId)
     );
     const label = document.getElementById('productsLabel');
