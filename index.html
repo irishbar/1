@@ -222,18 +222,8 @@
 
 <!-- ── Categories ── -->
 <div class="categories-section">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div class="section-label" style="margin-bottom:0;">الفئات</div>
-    <button id="categoriesToggleBtn" onclick="toggleCategories()"
-      style="display:flex;align-items:center;gap:7px;background:var(--gold-pale);border:1.5px solid var(--gold-border);
-             color:var(--gold-dark);font-family:var(--font-body);font-size:0.83rem;font-weight:700;
-             padding:7px 14px;border-radius:30px;cursor:pointer;transition:all 0.2s;white-space:nowrap;">
-      <i class="fas fa-th-large" id="categoriesToggleIcon"></i>
-      <span id="categoriesToggleLabel">عرض الفئات</span>
-    </button>
-  </div>
-  <div class="categories-scroll" id="categoriesContainer"
-    style="max-height:0;overflow:hidden;transition:max-height 0.35s ease,opacity 0.25s ease;opacity:0;"></div>
+  <div class="section-label">الفئات</div>
+  <div class="categories-track" id="categoriesContainer"></div>
 </div>
 
 <!-- ── Products ── -->
@@ -745,7 +735,6 @@
   }
 
   // ── Categories ──
-  let categoriesOpen = false;
 
   // ترتيب المتاح أولاً
   function sortAvailableFirst(products) {
@@ -766,61 +755,23 @@
   function renderCategories() {
     const el = document.getElementById('categoriesContainer');
     el.innerHTML =
-      `<button class="category-pill active" data-id="all" onclick="selectCategory('all')">
-        <i class="fas fa-th-large"></i> الكل
+      `<button class="category-card active" data-id="all" onclick="selectCategory('all')">
+        <span class="c-icon"><i class="fas fa-th-large"></i></span>
+        <span class="c-name">الكل</span>
        </button>` +
       sortedCategories().map(c => `
-        <button class="category-pill" data-id="${c.id}" onclick="selectCategory('${c.id}')">
-          <span>${c.icon || '🍺'}</span> ${c.name}
+        <button class="category-card" data-id="${c.id}" onclick="selectCategory('${c.id}')">
+          <span class="c-icon">${c.icon || '🍺'}</span>
+          <span class="c-name">${c.name}</span>
         </button>
       `).join('');
-    // keep closed on initial render
-    el.style.maxHeight = '0';
-    el.style.opacity   = '0';
-    categoriesOpen = false;
-    updateToggleBtn();
-  }
-
-  window.toggleCategories = function() {
-    categoriesOpen = !categoriesOpen;
-    const el = document.getElementById('categoriesContainer');
-    if (categoriesOpen) {
-      el.style.maxHeight = el.scrollHeight + 80 + 'px';
-      el.style.opacity   = '1';
-    } else {
-      el.style.maxHeight = '0';
-      el.style.opacity   = '0';
-    }
-    updateToggleBtn();
-  };
-
-  function updateToggleBtn() {
-    const icon  = document.getElementById('categoriesToggleIcon');
-    const label = document.getElementById('categoriesToggleLabel');
-    const btn   = document.getElementById('categoriesToggleBtn');
-    if (!icon || !label) return;
-    if (categoriesOpen) {
-      icon.className  = 'fas fa-times';
-      label.textContent = 'إخفاء الفئات';
-      btn.style.background = 'var(--gold-border)';
-    } else {
-      icon.className  = 'fas fa-th-large';
-      label.textContent = 'عرض الفئات';
-      btn.style.background = 'var(--gold-pale)';
-    }
   }
 
   window.selectCategory = function(catId) {
     activeCatId = catId;
-    document.querySelectorAll('.category-pill').forEach(el =>
+    document.querySelectorAll('.category-card').forEach(el =>
       el.classList.toggle('active', el.dataset.id === catId)
     );
-    // Auto-close the panel after selection
-    const cont = document.getElementById('categoriesContainer');
-    cont.style.maxHeight = '0';
-    cont.style.opacity   = '0';
-    categoriesOpen = false;
-    updateToggleBtn();
     const label = document.getElementById('productsLabel');
     if (catId === 'all') {
       label.style.display = 'none';
