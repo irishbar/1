@@ -756,7 +756,7 @@
     const el = document.getElementById('categoriesContainer');
     el.innerHTML =
       `<button class="category-chip active" data-id="all" onclick="selectCategory('all')">
-        <span class="c-icon">✦</span> الكل
+        <span class="c-icon">🏷️</span>الكل
        </button>` +
       sortedCategories().map(c => `
         <button class="category-chip" data-id="${c.id}" onclick="selectCategory('${c.id}')">
