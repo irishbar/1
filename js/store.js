@@ -38,11 +38,12 @@ export async function fetchProducts(categoryId = null) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-export async function addProduct({ name, price, description, emoji, imageUrl = '', categoryId, available = true, unavailableFrom = null, unavailableUntil = null, costPrice = 0 }) {
+export async function addProduct({ name, price, description, emoji, imageUrl = '', categoryId, available = true, unavailableFrom = null, unavailableUntil = null, costPrice = 0, sizes = [] }) {
   const data = { name, price: Number(price), description, emoji, imageUrl, categoryId, available };
   if (costPrice) data.costPrice = Number(costPrice);
   if (unavailableFrom)  data.unavailableFrom  = unavailableFrom;
   if (unavailableUntil) data.unavailableUntil = unavailableUntil;
+  if (sizes && sizes.length > 0) data.sizes = sizes;
   return await addDoc(collection(db, 'products'), data);
 }
 

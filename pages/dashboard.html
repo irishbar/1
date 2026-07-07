@@ -1065,7 +1065,20 @@
   // PRODUCTS PAGE
   // ─────────────────────────────────────
   async function renderProductsPage(content) {
-    [categories, products] = await Promise.all([fetchCategories(), fetchProducts()]);
+    try {
+      [categories, products] = await Promise.all([fetchCategories(), fetchProducts()]);
+    } catch (err) {
+      content.innerHTML = `
+        <div style="text-align:center;padding:60px 20px;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px;">تعذّر تحميل المنتجات</div>
+          <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px;">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</div>
+          <button class="btn btn-primary" onclick="renderPage('products')">
+            <i class="fas fa-redo"></i> إعادة التحميل
+          </button>
+        </div>`;
+      return;
+    }
     const catOptions = categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
     document.getElementById('apCategory').innerHTML = '<option value="">اختر الفئة</option>' + catOptions;
 
