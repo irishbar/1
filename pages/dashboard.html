@@ -1821,7 +1821,18 @@
       closeModal('userModal');
       await renderPage('users');
     } catch (err) {
-      showToast('حدث خطأ: ' + err.message, 'error');
+      const authErrors = {
+        'auth/email-already-in-use': 'هذا البريد الإلكتروني مسجّل مسبقاً، جرّب بريداً آخر',
+        'auth/weak-password':        'كلمة المرور ضعيفة — يجب أن تكون 6 أحرف على الأقل',
+        'auth/invalid-email':        'صيغة البريد الإلكتروني غير صحيحة',
+        'auth/too-many-requests':    'محاولات كثيرة، انتظر قليلاً ثم أعد المحاولة',
+        'auth/user-not-found':       'المستخدم غير موجود',
+        'auth/wrong-password':       'كلمة المرور غير صحيحة',
+        'auth/network-request-failed': 'تحقق من اتصالك بالإنترنت',
+      };
+      const code = err.code || '';
+      const msg  = authErrors[code] || err.message || 'حدث خطأ غير متوقع';
+      showToast(msg, 'error');
     }
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
