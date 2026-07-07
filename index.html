@@ -623,7 +623,7 @@
   import {
     fetchAgents, findNearestAgent, getCoverageStatus,
     calcProfitSplit, AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE, AGENT_COMMISSION_TYPE,
-    PLATFORM_COMMISSION_TYPE, PLATFORM_COMMISSION_VALUE, agentSettingsReady
+    agentSettingsReady
   } from './js/agents.js';
 
   window.closeModal = closeModal;
@@ -1098,24 +1098,22 @@
       document.getElementById('platformShare').textContent = formatPrice(safeP);
       document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + safeA + safeP);
       // تسمية الوكيل
-      const agentLabel = agent
-        ? (() => {
-            const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
-            const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
-            const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-            return aType === 'fixed'
-              ? `الوكيل (${aVal.toLocaleString('en-US')} د.ع)`
-              : `الوكيل (${aVal}%)`;
-          })()
-        : 'خدمة التوصيل';
+      let agentLabel;
+      if (agent) {
+        const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
+        const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
+        const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+        agentLabel = aType === 'fixed'
+          ? `عمولة الوكيل (${Number(aVal).toLocaleString('en-US')} د.ع)`
+          : `عمولة الوكيل (${aVal}%)`;
+      } else {
+        agentLabel = 'عمولة الوكيل (500 د.ع)';
+      }
       document.getElementById('agentShareLabel').innerHTML =
         `<i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>${agentLabel}`;
-      // تسمية المنصة
-      const platLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
-        ? `المنصة (${Number(PLATFORM_COMMISSION_VALUE).toLocaleString('en-US')} د.ع ثابت)`
-        : `المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
+      // تسمية المنصة — ثابتة دائماً
       document.getElementById('platformShareLabel').innerHTML =
-        `<i class="fas fa-building" style="margin-left:5px;font-size:0.75rem;"></i>${platLabel}`;
+        `<i class="fas fa-building" style="margin-left:5px;font-size:0.75rem;"></i>عمولة المنصة (1,500 د.ع ثابت)`;
       splitRow.style.display = 'block';
     } else {
       splitRow.style.display = 'none';
@@ -1312,21 +1310,19 @@
       // إظهار عمولة المنصة دائماً، وعمولة الوكيل فقط إذا كانت > 0
       {
         const agnt = invoiceAgent || null;
-        const aLabel = agnt
-          ? (() => {
-              const own = agnt.commissionType != null && agnt.commissionRate != null;
-              const t = own ? agnt.commissionType : AGENT_COMMISSION_TYPE;
-              const v = own ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-              return t === 'fixed'
-                ? `عمولة الوكيل (${v.toLocaleString('en-US')} د.ع ثابت)`
-                : `عمولة الوكيل (${v}%)`;
-            })()
-          : 'خدمة التوصيل';
-        const pLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
-          ? `عمولة المنصة (${Number(PLATFORM_COMMISSION_VALUE).toLocaleString('en-US')} د.ع ثابت)`
-          : `عمولة المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
+        let aLabel;
+        if (agnt) {
+          const own = agnt.commissionType != null && agnt.commissionRate != null;
+          const t = own ? agnt.commissionType : AGENT_COMMISSION_TYPE;
+          const v = own ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+          aLabel = t === 'fixed'
+            ? `عمولة الوكيل (${Number(v).toLocaleString('en-US')} د.ع)`
+            : `عمولة الوكيل (${v}%)`;
+        } else {
+          aLabel = 'عمولة الوكيل (500 د.ع)';
+        }
         document.getElementById('ciAgentLabel').textContent    = aLabel;
-        document.getElementById('ciPlatformLabel').textContent = pLabel;
+        document.getElementById('ciPlatformLabel').textContent = 'عمولة المنصة (1,500 د.ع ثابت)';
         document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare || 0);
         document.getElementById('ciPlatformShare').textContent = formatPrice(invoicePlatformShare || 0);
         document.getElementById('ciCommissionsBlock').style.display = 'block';

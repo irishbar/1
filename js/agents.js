@@ -75,9 +75,13 @@ export function getCoverageStatus(userLat, userLng, agents) {
 // agentShare   = عمولة الوكيل (تُضاف للمجموع بشكل مستقل)
 // platformShare = عمولة المنصة (تُضاف للمجموع بشكل مستقل)
 // المجموع الكلي = منتجات + توصيل + agentShare + platformShare
+// ثوابت صلبة — لا تُستبدل من Firestore
+const _PLATFORM_SHARE_FIXED = 1500; // عمولة المنصة دائماً 1500 دينار
+const _NO_AGENT_SHARE_FIXED =  500; // عمولة افتراضية عند غياب الوكيل
+
 export function calcProfitSplit(orderTotal, deliveryFee, agent = null) {
-  // عمولة الوكيل — 0 إذا لم يُحدَّد وكيل، وإلا تُحسب بحسب إعداد الوكيل أو الإعداد العام
-  let agentShare = 0;
+  // عمولة الوكيل: 500 إذا لم يُحدَّد وكيل، أو بحسب إعداد الوكيل/الإعداد العام
+  let agentShare;
   if (agent != null) {
     const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
     const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
@@ -85,12 +89,12 @@ export function calcProfitSplit(orderTotal, deliveryFee, agent = null) {
     agentShare = aType === 'fixed'
       ? Number(aVal)
       : Math.round(orderTotal * aVal / 100);
+  } else {
+    agentShare = _NO_AGENT_SHARE_FIXED;
   }
 
-  // عمولة المنصة — ثابتة 1500 دينار افتراضياً (أو ما يحدده الأدمن)
-  const platformShare = PLATFORM_COMMISSION_TYPE === 'fixed'
-    ? Number(PLATFORM_COMMISSION_VALUE)
-    : Math.round(orderTotal * PLATFORM_COMMISSION_VALUE / 100);
+  // عمولة المنصة — ثابتة 1500 دائماً بغض النظر عن أي إعداد
+  const platformShare = _PLATFORM_SHARE_FIXED;
 
   return { agentShare, platformShare };
 }
