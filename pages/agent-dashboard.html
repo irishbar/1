@@ -1219,36 +1219,48 @@
         btn.disabled = false; btn.innerHTML = '<i class="fab fa-telegram"></i> إرسال رسالة تجريبية';
         return;
       }
-      const res  = await fetch(`https://api.telegram.org/bot${tg.botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id:    agentDoc.telegramId,
-          text:       `✅ *Irish Bar — رسالة تجريبية*\n\nمرحباً ${agentDoc.name || 'الوكيل'}!\nتم ربط حسابك بنجاح. ستصلك إشعارات الطلبات الجديدة هنا فوراً. 🎉`,
-          parse_mode: 'Markdown'
-        })
-      });
-      const data = await res.json();
+      const token = tg.botToken.trim();
+      const chatId = String(agentDoc.telegramId).trim();
+      let res, data;
+      try {
+        res  = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id:    chatId,
+            text:       `✅ Irish Bar — رسالة تجريبية\n\nمرحباً ${agentDoc.name || 'الوكيل'}!\nتم ربط حسابك بنجاح. ستصلك إشعارات الطلبات الجديدة هنا فوراً 🎉`,
+          })
+        });
+        data = await res.json();
+      } catch (fetchErr) {
+        showToast('تعذّر الوصول لتيليجرام — تحقق من الإنترنت', 'error');
+        btn.disabled = false; btn.innerHTML = '<i class="fab fa-telegram"></i> إرسال رسالة تجريبية';
+        return;
+      }
       if (data.ok) {
         showToast('✅ وصلت الرسالة التجريبية على تيليجرام', 'success');
       } else {
         const errMsg = data.description || '';
-        if (errMsg.includes('chat not found') || errMsg.includes('bot was blocked') || errMsg.includes('user is deactivated')) {
-          showToast('⚠️ تأكد أنك أرسلت /start للبوت أولاً ثم أعد المحاولة', 'warning');
+        if (errMsg.includes('chat not found') || errMsg.includes('PEER_ID_INVALID')) {
+          showToast('⚠️ Chat ID غير صحيح — تأكد من الرقم وأرسل /start للبوت أولاً', 'warning');
+        } else if (errMsg.includes('bot was blocked') || errMsg.includes('bot is not a member')) {
+          showToast('⚠️ البوت محجوب — افتح المحادثة مع البوت وأرسل /start', 'warning');
+        } else if (errMsg.includes('Unauthorized') || errMsg.includes('invalid token')) {
+          showToast('❌ توكن البوت غير صحيح — تواصل مع الإدارة', 'error');
         } else {
-          showToast('فشل الإرسال: ' + (errMsg || 'تحقق من Chat ID'), 'error');
+          showToast('فشل الإرسال: ' + (errMsg || 'خطأ غير معروف'), 'error');
         }
       }
-    } catch { showToast('خطأ في الاتصال — تحقق من الإنترنت', 'error'); }
+    } catch (e) { showToast('خطأ غير متوقع: ' + (e?.message || e), 'error'); }
     btn.disabled = false; btn.innerHTML = '<i class="fab fa-telegram"></i> إرسال رسالة تجريبية';
   };
 
   // ── Commission Calculator ──────────────────────────────────────────────────
   window.calcCommission = function(val) {
-    const fee  = parseFloat(val) || 0;
-    const rate = agentDoc?.commissionRate != null ? agentDoc.commissionRate / 100 : AGENT_COMMISSION_RATE;
+    const fee        = parseFloat(val) || 0;
+    const commission = agentDoc?.commissionRate != null ? Number(agentDoc.commissionRate) : 500;
     document.getElementById('calcResult').textContent =
-      fee > 0 ? Math.round(fee * rate).toLocaleString('en-US') + ' د.ع' : '—';
+      fee > 0 ? commission.toLocaleString('en-US') + ' د.ع' : '—';
   };
 
   // ── Change Password ────────────────────────────────────────────────────────
