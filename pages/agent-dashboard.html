@@ -577,40 +577,6 @@
       </div>
     </div>
 
-    <!-- Email Notification Settings -->
-    <div class="section">
-      <div class="section-title"><i class="fas fa-envelope"></i> إشعارات البريد الإلكتروني</div>
-      <div class="commission-card" style="padding:16px;">
-
-        <!-- Status bar -->
-        <div id="emailStatusBar" style="display:flex;align-items:center;gap:10px;
-          padding:11px 14px;border-radius:var(--radius-md);margin-bottom:16px;
-          background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.2);">
-          <div id="emailStatusDot" style="width:10px;height:10px;border-radius:50%;
-            background:#ef4444;flex-shrink:0;"></div>
-          <div id="emailStatusText" style="font-size:0.82rem;font-weight:700;color:#b91c1c;flex:1;">
-            غير مرتبط — لن تصلك إشعارات بالبريد
-          </div>
-        </div>
-
-        <div style="background:rgba(34,158,217,0.06);border:1px solid rgba(34,158,217,0.2);border-radius:10px;padding:12px;margin-bottom:14px;">
-          <div style="font-size:0.8rem;font-weight:700;color:#0d5f8a;margin-bottom:6px;"><i class="fas fa-info-circle"></i> إشعارات تلقائية</div>
-          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;line-height:1.7;">
-            أدخل بريدك الإلكتروني لتلقي إشعار فوري على بريدك عند وصول كل طلب جديد إليك.
-          </p>
-        </div>
-
-        <div style="display:flex;gap:10px;align-items:center;">
-          <input type="email" id="agentEmailInput" class="form-input" style="flex:1;"
-            placeholder="example@gmail.com" dir="ltr">
-          <button id="saveEmailBtn" class="btn btn-primary btn-sm"
-            onclick="saveAgentEmail()" style="white-space:nowrap;">
-            <i class="fas fa-save"></i> حفظ
-          </button>
-        </div>
-
-      </div>
-    </div>
 
   </div>
 
@@ -1021,10 +987,6 @@
     if (tid) document.getElementById('telegramIdInput').value = tid;
     updateTelegramStatusUI(tid);
 
-    // Email notification status
-    const agentEmail = agentDoc?.email || null;
-    if (agentEmail) document.getElementById('agentEmailInput').value = agentEmail;
-    updateEmailStatusUI(agentEmail);
 
     initAgentMap(agentDoc);
     await packagesReady;
@@ -1403,43 +1365,6 @@
   };
 
   // ── Agent Email Notification ───────────────────────────────────────────────
-  function updateEmailStatusUI(email) {
-    const bar  = document.getElementById('emailStatusBar');
-    const dot  = document.getElementById('emailStatusDot');
-    const text = document.getElementById('emailStatusText');
-    if (!bar) return;
-    if (email) {
-      bar.style.background = 'rgba(45,106,79,0.07)';
-      bar.style.border     = '1.5px solid rgba(45,106,79,0.25)';
-      dot.style.background = '#4ade80';
-      text.style.color     = '#2d6a4f';
-      text.textContent     = `✅ مرتبط — ${email}`;
-    } else {
-      bar.style.background = 'rgba(239,68,68,0.07)';
-      bar.style.border     = '1.5px solid rgba(239,68,68,0.2)';
-      dot.style.background = '#ef4444';
-      text.style.color     = '#b91c1c';
-      text.textContent     = 'غير مرتبط — لن تصلك إشعارات بالبريد';
-    }
-  }
-  window.saveAgentEmail = async function() {
-    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل بعد', 'warning'); return; }
-    const val = document.getElementById('agentEmailInput').value.trim();
-    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-      showToast('أدخل بريد إلكتروني صحيح', 'warning'); return;
-    }
-    const btn = document.getElementById('saveEmailBtn');
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    try {
-      await updateDoc(doc(db, 'agents', agentDoc.id), {
-        email: val || null, updatedAt: new Date().toISOString()
-      });
-      agentDoc.email = val || null;
-      updateEmailStatusUI(val);
-      showToast(val ? '✅ تم حفظ البريد الإلكتروني' : '🔕 تم إلغاء إشعارات البريد', val ? 'success' : 'info');
-    } catch { showToast('خطأ في الحفظ', 'error'); }
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
-  };
 
   // ── Balance Card ───────────────────────────────────────────────────────────
   function renderAgentBalanceCard() {
