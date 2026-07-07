@@ -2,8 +2,8 @@
 export let AGENT_COVERAGE_KM         = 8;
 export let AGENT_COMMISSION_RATE      = 0.35;      // 35% default (decimal)
 export let AGENT_COMMISSION_TYPE      = 'percent'; // 'percent' | 'fixed'
-export let PLATFORM_COMMISSION_TYPE   = 'percent'; // 'percent' | 'fixed'
-export let PLATFORM_COMMISSION_VALUE  = null;      // null = remainder after agent
+export let PLATFORM_COMMISSION_TYPE   = 'fixed';   // 'percent' | 'fixed'
+export let PLATFORM_COMMISSION_VALUE  = 1500;      // 1500 دينار ثابت افتراضياً
 
 // Load dynamic settings from Firestore on startup
 import { db } from './firebase-config.js';
@@ -76,21 +76,21 @@ export function getCoverageStatus(userLat, userLng, agents) {
 // platformShare = عمولة المنصة (تُضاف للمجموع بشكل مستقل)
 // المجموع الكلي = منتجات + توصيل + agentShare + platformShare
 export function calcProfitSplit(orderTotal, deliveryFee, agent = null) {
-  // عمولة الوكيل — نسبة أو مبلغ ثابت على إجمالي الطلب
-  const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
-  const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
-  const aVal  = agentHasOwn ? agent.commissionRate : (AGENT_COMMISSION_RATE * 100);
-  const agentShare = aType === 'fixed'
-    ? Number(aVal)
-    : Math.round(orderTotal * aVal / 100);
-
-  // عمولة المنصة — نسبة أو مبلغ ثابت مستقل
-  let platformShare = 0;
-  if (PLATFORM_COMMISSION_VALUE != null) {
-    platformShare = PLATFORM_COMMISSION_TYPE === 'fixed'
-      ? Number(PLATFORM_COMMISSION_VALUE)
-      : Math.round(orderTotal * PLATFORM_COMMISSION_VALUE / 100);
+  // عمولة الوكيل — 0 إذا لم يُحدَّد وكيل، وإلا تُحسب بحسب إعداد الوكيل أو الإعداد العام
+  let agentShare = 0;
+  if (agent != null) {
+    const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
+    const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
+    const aVal  = agentHasOwn ? agent.commissionRate : (AGENT_COMMISSION_RATE * 100);
+    agentShare = aType === 'fixed'
+      ? Number(aVal)
+      : Math.round(orderTotal * aVal / 100);
   }
+
+  // عمولة المنصة — ثابتة 1500 دينار افتراضياً (أو ما يحدده الأدمن)
+  const platformShare = PLATFORM_COMMISSION_TYPE === 'fixed'
+    ? Number(PLATFORM_COMMISSION_VALUE)
+    : Math.round(orderTotal * PLATFORM_COMMISSION_VALUE / 100);
 
   return { agentShare, platformShare };
 }

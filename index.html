@@ -1098,23 +1098,22 @@
       document.getElementById('platformShare').textContent = formatPrice(safeP);
       document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + safeA + safeP);
       // تسمية الوكيل
-      const agentHasOwn = agent?.commissionType != null && agent?.commissionRate != null;
-      const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
-      const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-      const agentLabel = aType === 'fixed'
-        ? `الوكيل (${aVal.toLocaleString('en-US')} د.ع)`
-        : `الوكيل (${aVal}%)`;
+      const agentLabel = agent
+        ? (() => {
+            const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
+            const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
+            const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+            return aType === 'fixed'
+              ? `الوكيل (${aVal.toLocaleString('en-US')} د.ع)`
+              : `الوكيل (${aVal}%)`;
+          })()
+        : 'خدمة التوصيل';
       document.getElementById('agentShareLabel').innerHTML =
         `<i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>${agentLabel}`;
       // تسمية المنصة
-      let platLabel;
-      if (PLATFORM_COMMISSION_VALUE != null) {
-        platLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
-          ? `المنصة (${PLATFORM_COMMISSION_VALUE.toLocaleString('en-US')} د.ع)`
-          : `المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
-      } else {
-        platLabel = `المنصة (${100 - aVal}%)`;
-      }
+      const platLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
+        ? `المنصة (${Number(PLATFORM_COMMISSION_VALUE).toLocaleString('en-US')} د.ع ثابت)`
+        : `المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
       document.getElementById('platformShareLabel').innerHTML =
         `<i class="fas fa-building" style="margin-left:5px;font-size:0.75rem;"></i>${platLabel}`;
       splitRow.style.display = 'block';
@@ -1240,18 +1239,19 @@
       const cart = getCart();
       const _cartTotal = getCartTotal(cart);
 
-      // تنظيف items — فقط الحقول الأساسية لتجنب رفض Firestore
+      // تنظيف items — الحقول الأساسية + القياس المختار إذا وُجد
       const cleanItems = cart.map(i => ({
         id:       String(i.id   || ''),
         name:     String(i.name || ''),
         price:    Number(i.price)    || 0,
         quantity: Number(i.quantity) || 1,
         emoji:    i.emoji    || '',
-        imageUrl: i.imageUrl || ''
+        imageUrl: i.imageUrl || '',
+        ...(i.selectedSize ? { selectedSize: { name: String(i.selectedSize.name), price: Number(i.selectedSize.price) } } : {})
       }));
 
       const fee = Number(selectedLocation.fee) || 0;
-      // العمولة تُحسب دائماً — مع وكيل أو بدون (تستخدم النسبة العامة إذا لم يكن هناك وكيل)
+      // عمولة الوكيل = 0 إذا لم يُحدَّد وكيل | عمولة المنصة = 1500 ثابت دائماً
       const { agentShare, platformShare } = calcProfitSplit(
         _cartTotal + fee, fee, selectedLocation.agent || null
       );
@@ -1309,30 +1309,27 @@
       document.getElementById('ciProductsTotal').textContent = formatPrice(invoiceProductsTotal);
       document.getElementById('ciDeliveryFee').textContent   = formatPrice(invoiceFee);
       document.getElementById('ciGrandTotal').textContent    = formatPrice(invoiceGrandTotal);
-      // إظهار العمولات دائماً متى كانت موجودة
-      if ((invoiceAgentShare || 0) > 0 || (invoicePlatformShare || 0) > 0) {
+      // إظهار عمولة المنصة دائماً، وعمولة الوكيل فقط إذا كانت > 0
+      {
         const agnt = invoiceAgent || null;
-        const agentHasOwn2 = agnt?.commissionType != null && agnt?.commissionRate != null;
-        const aType2 = agentHasOwn2 ? agnt.commissionType : AGENT_COMMISSION_TYPE;
-        const aVal2  = agentHasOwn2 ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-        const aLabel = aType2 === 'fixed'
-          ? `عمولة الوكيل (${aVal2.toLocaleString('en-US')} د.ع ثابت)`
-          : `عمولة الوكيل (${aVal2}%)`;
-        let pLabel;
-        if (PLATFORM_COMMISSION_VALUE != null) {
-          pLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
-            ? `عمولة المنصة (${PLATFORM_COMMISSION_VALUE.toLocaleString('en-US')} د.ع ثابت)`
-            : `عمولة المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
-        } else {
-          pLabel = `عمولة المنصة (${100 - aVal2}%)`;
-        }
+        const aLabel = agnt
+          ? (() => {
+              const own = agnt.commissionType != null && agnt.commissionRate != null;
+              const t = own ? agnt.commissionType : AGENT_COMMISSION_TYPE;
+              const v = own ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
+              return t === 'fixed'
+                ? `عمولة الوكيل (${v.toLocaleString('en-US')} د.ع ثابت)`
+                : `عمولة الوكيل (${v}%)`;
+            })()
+          : 'خدمة التوصيل';
+        const pLabel = PLATFORM_COMMISSION_TYPE === 'fixed'
+          ? `عمولة المنصة (${Number(PLATFORM_COMMISSION_VALUE).toLocaleString('en-US')} د.ع ثابت)`
+          : `عمولة المنصة (${PLATFORM_COMMISSION_VALUE}%)`;
         document.getElementById('ciAgentLabel').textContent    = aLabel;
         document.getElementById('ciPlatformLabel').textContent = pLabel;
         document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare || 0);
         document.getElementById('ciPlatformShare').textContent = formatPrice(invoicePlatformShare || 0);
         document.getElementById('ciCommissionsBlock').style.display = 'block';
-      } else {
-        document.getElementById('ciCommissionsBlock').style.display = 'none';
       }
       document.getElementById('confirmedInvoice').style.display = 'block';
 
