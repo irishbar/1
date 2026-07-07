@@ -3143,9 +3143,8 @@
 
       return agents.map(a => {
         const cm       = comMap[a.id] || { count: 0, totalCommission: 0, totalProfit: 0 };
-        const rate     = a.commissionRate ?? defaultCommissionRate;
-        const commType = a.commissionType ?? 'percent';
-        const rateLabel = commType === 'fixed' ? `${rate.toLocaleString('en-US')} د.ع` : `${rate}%`;
+        const rate      = a.commissionRate ?? 500;
+        const rateLabel = `${Number(rate).toLocaleString('en-US')} د.ع ثابت`;
         const coverage = a.coverageKm ?? AGENT_COVERAGE_KM_DEFAULT;
         const isActive = a.active !== false;
         return `
@@ -3279,19 +3278,10 @@
             <select class="form-input" id="${prefix}Dist">${distOptions(govVal, distVal)}</select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">نوع العمولة</label>
-            <select class="form-input" id="${prefix}CommType">
-              <option value="percent" ${(a.commissionType||'percent')==='percent'?'selected':''}>نسبة %</option>
-              <option value="fixed"   ${a.commissionType==='fixed'?'selected':''}>مبلغ ثابت</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">قيمة العمولة</label>
-            <input type="number" min="0" class="form-input" id="${prefix}CommRate" value="${a.commissionRate??''}" placeholder="${defaultCommissionRate}" dir="ltr">
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = الافتراضية</div>
-          </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">عمولة الوكيل الثابتة (د.ع)</label>
+          <input type="number" min="0" class="form-input" id="${prefix}CommRate" value="${a.commissionRate??''}" placeholder="500" dir="ltr">
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = الافتراضي (500 د.ع) — مبلغ ثابت يُضاف لكل طلب</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
           <div class="form-group" style="margin:0;">
@@ -3388,7 +3378,7 @@
         if (purchaseSource) agentData.purchaseSource = purchaseSource;
         if (commRaw !== '') {
           agentData.commissionRate = parseFloat(commRaw);
-          agentData.commissionType = document.getElementById('agCommType').value;
+          agentData.commissionType = 'fixed';
         }
         if (pricePerKmRaw !== '') agentData.pricePerKm = parseFloat(pricePerKmRaw);
         if (linkedUserId) {
@@ -3439,7 +3429,7 @@
         };
         if (commRaw !== '') {
           data.commissionRate = parseFloat(commRaw);
-          data.commissionType = document.getElementById('editAgCommType').value;
+          data.commissionType = 'fixed';
         }
         if (coverageRaw !== '') data.coverageKm = parseFloat(coverageRaw);
         const pricePerKmRaw = document.getElementById('editAgPricePerKm').value;
@@ -4268,17 +4258,11 @@
         <div class="section-card-body">
           <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:16px;">
             <div class="form-group" style="margin:0;">
-              <label class="form-label">عمولة الوكيل الافتراضية</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
-                <select class="form-input" id="setupAgentCommType" onchange="updateCommissionPreview()">
-                  <option value="percent" ${(agentsSettings.commissionType || 'percent') === 'percent' ? 'selected' : ''}>نسبة %</option>
-                  <option value="fixed"   ${agentsSettings.commissionType === 'fixed' ? 'selected' : ''}>مبلغ ثابت (د.ع)</option>
-                </select>
-                <input type="number" min="0" class="form-input" id="setupCommissionRate"
-                  value="${agentsSettings.commissionRate ?? 35}"
-                  oninput="updateCommissionPreview()">
-              </div>
-              <div style="font-size:0.75rem;color:var(--text-muted);">القيمة التي يأخذها الوكيل من أجرة التوصيل</div>
+              <label class="form-label">عمولة الوكيل الافتراضية (د.ع ثابت)</label>
+              <input type="number" min="0" class="form-input" id="setupCommissionRate"
+                value="${agentsSettings.commissionRate ?? 500}"
+                oninput="updateCommissionPreview()" placeholder="500">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">مبلغ ثابت بالدينار يُضاف لكل طلب — الافتراضي 500 د.ع</div>
             </div>
             <div style="background:var(--gold-pale);border:1.5px solid var(--gold-border);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center;">
               <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">معاينة — أجرة 3,000 د.ع:</div>
@@ -4399,22 +4383,11 @@
 
     // ── Commission preview ──
     window.updateCommissionPreview = function() {
-      const agentType = document.getElementById('setupAgentCommType')?.value || 'percent';
-      const agentRaw  = document.getElementById('setupCommissionRate').value;
-      const agentVal  = agentRaw === '' ? 0 : (parseFloat(agentRaw) || 0);
-      const platType  = document.getElementById('setupPlatformType')?.value || 'percent';
-      const platRaw   = document.getElementById('setupPlatformValue')?.value;
-      const platVal   = platRaw === '' ? 0 : (parseFloat(platRaw) || 0);
-      const fee = 3000;
-
-      const agentShare = agentType === 'fixed'
-        ? agentVal
-        : Math.round(fee * agentVal / 100);
-
-      const platformShare = platType === 'fixed'
-        ? platVal
-        : Math.round(fee * platVal / 100);
-
+      // عمولة الوكيل — دائماً مبلغ ثابت
+      const agentRaw   = document.getElementById('setupCommissionRate')?.value;
+      const agentShare = agentRaw === '' ? 500 : (parseFloat(agentRaw) || 500);
+      // عمولة المنصة — ثابتة 1500
+      const platformShare = 1500;
       document.getElementById('previewAgentShare').textContent    = agentShare.toLocaleString('ar-IQ') + ' د.ع';
       document.getElementById('previewPlatformShare').textContent = platformShare.toLocaleString('ar-IQ') + ' د.ع';
     };
@@ -4456,14 +4429,16 @@
           await setDoc(doc(db, 'settings', 'payment'), data);
         }
         else if (section === 'agents') {
-          const commissionRate         = parseFloat(document.getElementById('setupCommissionRate').value) || 35;
-          const commissionType         = document.getElementById('setupAgentCommType').value;
-          const coverageKm             = parseFloat(document.getElementById('setupCoverageKm').value) || 8;
-          const platformCommissionType = document.getElementById('setupPlatformType').value;
-          const platRaw                = document.getElementById('setupPlatformValue').value;
-          const data = { commissionRate, commissionType, coverageKm, platformCommissionType };
-          data.platformCommissionValue = platRaw !== '' ? parseFloat(platRaw) : null;
-          await setDoc(doc(db, 'settings', 'agents'), data);
+          // عمولة الوكيل — دائماً مبلغ ثابت بالدينار
+          const commissionRate = parseFloat(document.getElementById('setupCommissionRate').value) || 500;
+          const coverageKm     = parseFloat(document.getElementById('setupCoverageKm').value) || 8;
+          await setDoc(doc(db, 'settings', 'agents'), {
+            commissionRate,
+            commissionType:          'fixed',
+            coverageKm,
+            platformCommissionType:  'fixed',
+            platformCommissionValue: 1500
+          });
         }
         else if (section === 'center') {
           const centerLat = parseFloat(document.getElementById('setupCenterLat').value);

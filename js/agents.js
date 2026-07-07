@@ -80,20 +80,14 @@ const _PLATFORM_SHARE_FIXED = 1500; // عمولة المنصة دائماً 1500
 const _NO_AGENT_SHARE_FIXED =  500; // عمولة افتراضية عند غياب الوكيل
 
 export function calcProfitSplit(orderTotal, deliveryFee, agent = null) {
-  // عمولة الوكيل: 500 إذا لم يُحدَّد وكيل، أو بحسب إعداد الوكيل/الإعداد العام
-  let agentShare;
-  if (agent != null) {
-    const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
-    const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
-    const aVal  = agentHasOwn ? agent.commissionRate : (AGENT_COMMISSION_RATE * 100);
-    agentShare = aType === 'fixed'
-      ? Number(aVal)
-      : Math.round(orderTotal * aVal / 100);
-  } else {
-    agentShare = _NO_AGENT_SHARE_FIXED;
-  }
+  // عمولة الوكيل — دائماً مبلغ ثابت بالدينار (لا نسب مئوية)
+  // إذا كان للوكيل commissionRate محدد → يُستخدم كمبلغ ثابت بالدينار
+  // إذا لم يكن هناك وكيل أو لم يُحدَّد مبلغ → 500 دينار افتراضي
+  const agentShare = agent != null && agent.commissionRate != null
+    ? (Number(agent.commissionRate) || _NO_AGENT_SHARE_FIXED)
+    : _NO_AGENT_SHARE_FIXED;
 
-  // عمولة المنصة — ثابتة 1500 دائماً بغض النظر عن أي إعداد
+  // عمولة المنصة — ثابتة 1500 دائماً
   const platformShare = _PLATFORM_SHARE_FIXED;
 
   return { agentShare, platformShare };

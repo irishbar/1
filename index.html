@@ -1097,18 +1097,9 @@
       document.getElementById('agentShare').textContent    = formatPrice(safeA);
       document.getElementById('platformShare').textContent = formatPrice(safeP);
       document.getElementById('summaryGrandTotal').textContent = formatPrice(products + fee + safeA + safeP);
-      // تسمية الوكيل
-      let agentLabel;
-      if (agent) {
-        const agentHasOwn = agent.commissionType != null && agent.commissionRate != null;
-        const aType = agentHasOwn ? agent.commissionType : AGENT_COMMISSION_TYPE;
-        const aVal  = agentHasOwn ? agent.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-        agentLabel = aType === 'fixed'
-          ? `عمولة الوكيل (${Number(aVal).toLocaleString('en-US')} د.ع)`
-          : `عمولة الوكيل (${aVal}%)`;
-      } else {
-        agentLabel = 'عمولة الوكيل (500 د.ع)';
-      }
+      // تسمية الوكيل — دائماً مبلغ ثابت بالدينار
+      const agentAmt  = agent?.commissionRate != null ? Number(agent.commissionRate) : 500;
+      const agentLabel = `عمولة الوكيل (${agentAmt.toLocaleString('en-US')} د.ع ثابت)`;
       document.getElementById('agentShareLabel').innerHTML =
         `<i class="fas fa-store" style="margin-left:5px;font-size:0.75rem;"></i>${agentLabel}`;
       // تسمية المنصة — ثابتة دائماً
@@ -1309,18 +1300,9 @@
       document.getElementById('ciGrandTotal').textContent    = formatPrice(invoiceGrandTotal);
       // إظهار عمولة المنصة دائماً، وعمولة الوكيل فقط إذا كانت > 0
       {
-        const agnt = invoiceAgent || null;
-        let aLabel;
-        if (agnt) {
-          const own = agnt.commissionType != null && agnt.commissionRate != null;
-          const t = own ? agnt.commissionType : AGENT_COMMISSION_TYPE;
-          const v = own ? agnt.commissionRate : Math.round(AGENT_COMMISSION_RATE * 100);
-          aLabel = t === 'fixed'
-            ? `عمولة الوكيل (${Number(v).toLocaleString('en-US')} د.ع)`
-            : `عمولة الوكيل (${v}%)`;
-        } else {
-          aLabel = 'عمولة الوكيل (500 د.ع)';
-        }
+        const agnt   = invoiceAgent || null;
+        const invAmt = agnt?.commissionRate != null ? Number(agnt.commissionRate) : 500;
+        const aLabel = `عمولة الوكيل (${invAmt.toLocaleString('en-US')} د.ع ثابت)`;
         document.getElementById('ciAgentLabel').textContent    = aLabel;
         document.getElementById('ciPlatformLabel').textContent = 'عمولة المنصة (1,500 د.ع ثابت)';
         document.getElementById('ciAgentShare').textContent    = formatPrice(invoiceAgentShare || 0);
