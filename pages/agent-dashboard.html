@@ -416,8 +416,8 @@
     </div>
     <div class="stat-card purple">
       <span class="stat-icon">⭐</span>
-      <span class="stat-value" id="statRate">35%</span>
-      <span class="stat-label">نسبة العمولة</span>
+      <span class="stat-value" id="statRate">—</span>
+      <span class="stat-label">عمولة الطلب</span>
     </div>
   </div>
 
@@ -497,37 +497,33 @@
 
     <!-- Commission Formula -->
     <div class="section">
-      <div class="section-title"><i class="fas fa-chart-pie"></i> معادلة توزيع الأرباح</div>
+      <div class="section-title"><i class="fas fa-chart-pie"></i> توزيع الأرباح</div>
       <div class="commission-card">
-        <p style="font-size:clamp(0.8rem,2.2vw,0.86rem);color:var(--text-secondary);margin-bottom:12px;line-height:1.65;">
-          من كل طلب يصلك، تحصل على <strong>35%</strong> من رسوم التوصيل كعمولة، والباقي يذهب للمنصة.
+        <p style="font-size:clamp(0.8rem,2.2vw,0.86rem);color:var(--text-secondary);margin-bottom:16px;line-height:1.7;">
+          من كل طلب يُسلَّم عبرك، تحصل على مبلغ ثابت بالدينار العراقي كعمولة — بغض النظر عن قيمة الطلب أو رسوم التوصيل.
         </p>
         <div class="commission-formula">
-          <div class="formula-box">
-            <span class="formula-label">رسوم التوصيل</span>
-            <span class="formula-value">مثال: 5,000</span>
-          </div>
-          <div class="formula-sep">=</div>
           <div class="formula-box highlight">
-            <span class="formula-label">عمولتك (35%)</span>
-            <span class="formula-value green">1,750 د.ع</span>
+            <span class="formula-label">عمولتك / طلب</span>
+            <span class="formula-value green" id="formulaAgentShare">— د.ع</span>
           </div>
           <div class="formula-sep">+</div>
           <div class="formula-box">
-            <span class="formula-label">المنصة (65%)</span>
-            <span class="formula-value gold">3,250 د.ع</span>
+            <span class="formula-label">عمولة المنصة</span>
+            <span class="formula-value gold">1,500 د.ع</span>
+          </div>
+          <div class="formula-sep">+</div>
+          <div class="formula-box">
+            <span class="formula-label">رسوم التوصيل</span>
+            <span class="formula-value">بحسب المسافة</span>
           </div>
         </div>
-        <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-top:4px;">
-          <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">حساب العمولة</div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <input type="number" id="calcInput" class="form-input" style="flex:1;min-width:120px;"
-                   placeholder="رسوم التوصيل (د.ع)" oninput="calcCommission(this.value)">
-            <div style="min-width:120px;">
-              <div style="font-size:0.72rem;color:var(--text-muted);">عمولتك</div>
-              <div style="font-family:var(--font-en-body);font-size:1.1rem;font-weight:900;color:var(--green);" id="calcResult">—</div>
-            </div>
+        <div style="background:var(--bg-secondary);border-radius:var(--radius-md);padding:14px;margin-top:8px;
+                    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;">
+            عمولتك المحددة من الإدارة
           </div>
+          <div style="font-family:var(--font-en-body);font-size:1.25rem;font-weight:900;color:var(--green);" id="agentCommissionFixed">— د.ع</div>
         </div>
       </div>
     </div>
@@ -749,10 +745,12 @@
 <div class="modal-overlay" id="addDriverModal" onclick="if(event.target===this)closeAddDriverModal()">
   <div class="modal-sheet">
     <div class="modal-sheet-handle"></div>
-    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> ربط سائق بحسابه</div>
-    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
-      اختر حساب السائق من القائمة أدناه — يجب أن يكون الحساب من نوع <strong>سائق</strong>.
-    </p>
+    <div class="modal-sheet-title"><i class="fas fa-motorcycle"></i> ربط سائق</div>
+    <div style="background:rgba(184,146,42,0.08);border:1px solid rgba(184,146,42,0.25);border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.8rem;color:var(--text-secondary);line-height:1.65;">
+      <strong style="color:var(--gold-dark);">خطوتان:</strong><br>
+      ١ — الإدارة تصنع حساب من نوع <strong>سائق</strong> عبر لوحة التحكم<br>
+      ٢ — يظهر الحساب هنا فتضغط عليه وتضيف بياناته
+    </div>
     <div class="form-group">
       <label class="form-label">حسابات السائقين المتاحة</label>
       <div id="driverUsersLoading" style="text-align:center;padding:16px;color:var(--text-muted);font-size:0.85rem;">
@@ -761,7 +759,8 @@
       <div id="driverUsersList" style="display:none;"></div>
       <div id="driverUsersEmpty" class="no-driver-users" style="display:none;">
         <i class="fas fa-user-slash" style="font-size:1.8rem;opacity:0.2;margin-bottom:8px;display:block;"></i>
-        لا توجد حسابات سائقين متاحة — أضف مستخدماً من نوع سائق أولاً
+        لا توجد حسابات سائقين متاحة<br>
+        <span style="font-size:0.78rem;">اطلب من الإدارة إضافة مستخدم من نوع "سائق"</span>
       </div>
     </div>
     <input type="hidden" id="selectedDriverUserId">
@@ -982,10 +981,14 @@
     }
 
     const agentCoverage = agentDoc?.coverageKm ?? AGENT_COVERAGE_KM;
-    const agentRate     = agentDoc?.commissionRate ?? Math.round(AGENT_COMMISSION_RATE * 100);
-    document.getElementById('statCoverage').textContent = agentCoverage + ' كم';
-    document.getElementById('statRate').textContent     = agentRate + '%';
+    const agentRate     = agentDoc?.commissionRate != null ? Number(agentDoc.commissionRate) : 500;
+    const agentRateFmt  = agentRate.toLocaleString('en-US') + ' د.ع';
+    document.getElementById('statCoverage').textContent    = agentCoverage + ' كم';
+    document.getElementById('statRate').textContent        = agentRateFmt;
     document.getElementById('coverageKmLabel').textContent = agentCoverage;
+    // قسم توزيع الأرباح
+    document.getElementById('formulaAgentShare').textContent  = agentRateFmt;
+    document.getElementById('agentCommissionFixed').textContent = agentRateFmt;
 
     // Telegram status
     const tid = agentDoc?.telegramId || null;
@@ -1220,13 +1223,6 @@
     btn.disabled = false; btn.innerHTML = '<i class="fab fa-telegram"></i> إرسال رسالة تجريبية';
   };
 
-  // ── Commission Calculator ──────────────────────────────────────────────────
-  window.calcCommission = function(val) {
-    const fee        = parseFloat(val) || 0;
-    const commission = agentDoc?.commissionRate != null ? Number(agentDoc.commissionRate) : 500;
-    document.getElementById('calcResult').textContent =
-      fee > 0 ? commission.toLocaleString('en-US') + ' د.ع' : '—';
-  };
 
   // ── Change Password ────────────────────────────────────────────────────────
   window.changePassword = async function() {
