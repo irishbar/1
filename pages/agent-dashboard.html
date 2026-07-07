@@ -917,8 +917,9 @@
     getAuth, reauthenticateWithCredential, updatePassword, EmailAuthProvider
   } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
 
-  let currentUser = null;
-  let agentDoc    = null;
+  let currentUser   = null;
+  let agentDoc      = null;
+  let _tgSettings   = null; // cached telegram settings
   let agentMap    = null;
   let agentMarker = null;
   let coverageCircle = null;
@@ -966,7 +967,11 @@
     currentUser = user;
     if (!user) { window.location.href = '../pages/auth.html'; return; }
 
-    agentDoc = await findMyAgent(user.uid);
+    // تحميل الوكيل وإعدادات التليجرام بالتوازي
+    [agentDoc, _tgSettings] = await Promise.all([
+      findMyAgent(user.uid),
+      getDoc(doc(db, 'settings', 'telegram')).then(s => s.exists() ? s.data() : null).catch(() => null)
+    ]);
 
     const displayName = agentDoc?.name || profile?.name || user.email || 'الوكيل';
     document.getElementById('agentName').textContent = displayName;
@@ -1112,8 +1117,7 @@
   // ── Telegram ───────────────────────────────────────────────────────────────
   async function initTelegramBotLink() {
     try {
-      const tgSnap = await getDoc(doc(db, 'settings', 'telegram'));
-      const tg = tgSnap.exists() ? tgSnap.data() : null;
+      const tg = _tgSettings;
       if (!tg?.botToken) return;
       const res  = await fetch(`https://api.telegram.org/bot${tg.botToken}/getMe`);
       const data = await res.json();
@@ -1174,8 +1178,7 @@
     const btn = document.getElementById('testTelegramBtn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
     try {
-      const tgSnap = await getDoc(doc(db, 'settings', 'telegram'));
-      const tg = tgSnap.exists() ? tgSnap.data() : null;
+      const tg = _tgSettings;
       if (!tg?.botToken) {
         showToast('لم يتم إعداد بوت تيليجرام — تواصل مع الإدارة', 'warning');
         btn.disabled = false; btn.innerHTML = '<i class="fab fa-telegram"></i> إرسال رسالة تجريبية';
