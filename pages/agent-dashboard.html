@@ -577,6 +577,41 @@
       </div>
     </div>
 
+    <!-- Email Notification Settings -->
+    <div class="section">
+      <div class="section-title"><i class="fas fa-envelope"></i> إشعارات البريد الإلكتروني</div>
+      <div class="commission-card" style="padding:16px;">
+
+        <!-- Status bar -->
+        <div id="emailStatusBar" style="display:flex;align-items:center;gap:10px;
+          padding:11px 14px;border-radius:var(--radius-md);margin-bottom:16px;
+          background:rgba(239,68,68,0.07);border:1.5px solid rgba(239,68,68,0.2);">
+          <div id="emailStatusDot" style="width:10px;height:10px;border-radius:50%;
+            background:#ef4444;flex-shrink:0;"></div>
+          <div id="emailStatusText" style="font-size:0.82rem;font-weight:700;color:#b91c1c;flex:1;">
+            غير مرتبط — لن تصلك إشعارات بالبريد
+          </div>
+        </div>
+
+        <div style="background:rgba(34,158,217,0.06);border:1px solid rgba(34,158,217,0.2);border-radius:10px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:0.8rem;font-weight:700;color:#0d5f8a;margin-bottom:6px;"><i class="fas fa-info-circle"></i> إشعارات تلقائية</div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;line-height:1.7;">
+            أدخل بريدك الإلكتروني لتلقي إشعار فوري على بريدك عند وصول كل طلب جديد إليك.
+          </p>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="email" id="agentEmailInput" class="form-input" style="flex:1;"
+            placeholder="example@gmail.com" dir="ltr">
+          <button id="saveEmailBtn" class="btn btn-primary btn-sm"
+            onclick="saveAgentEmail()" style="white-space:nowrap;">
+            <i class="fas fa-save"></i> حفظ
+          </button>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 
   <!-- ══════════════════════════════════════════
@@ -871,12 +906,33 @@
   </div>
 </div>
 
+<!-- Dispatch (انطلق السائق) Modal -->
+<div class="modal-overlay" id="dispatchModal" onclick="if(event.target===this)closeDispatchModal()">
+  <div class="modal-sheet">
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-title"><i class="fas fa-motorcycle" style="color:var(--green);"></i> انطلق السائق</div>
+    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+      أدخل اسم السائق المنتدب لهذا الطلب ثم أكد الانطلاق.
+    </p>
+    <div class="form-group">
+      <label class="form-label">اسم السائق <span style="color:var(--gold-dark);">*</span></label>
+      <input type="text" class="form-input" id="dispatchDriverName" placeholder="مثال: أحمد محمد">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" style="flex:1;background:linear-gradient(135deg,#1a3a2a,#2d6a4f);" id="confirmDispatchBtn" onclick="confirmDispatch()">
+        <i class="fas fa-check"></i> تأكيد الانطلاق
+      </button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeDispatchModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   import { onAuthChange, logout } from '../js/auth.js';
   import { showToast, formatPrice } from '../js/ui.js';
   import { AGENT_COVERAGE_KM, AGENT_COMMISSION_RATE } from '../js/agents.js';
-  import { fetchAgentOrders, assignDriverToOrder, selfProcessOrder } from '../js/orders.js';
+  import { listenAgentOrders, updateAgentOrderStatus, assignDriverToOrder, selfProcessOrder } from '../js/orders.js';
   import { db } from '../js/firebase-config.js';
   import {
     fetchDriversByAgent, addDriver, deleteDriver,
@@ -904,6 +960,7 @@
   let agentAddress = '';
   let myDrivers = [];
   let activeTopupDriverId = null;
+  let unsubscribeOrders = null;
 
   window.showToast = showToast;
 
@@ -964,10 +1021,15 @@
     if (tid) document.getElementById('telegramIdInput').value = tid;
     updateTelegramStatusUI(tid);
 
+    // Email notification status
+    const agentEmail = agentDoc?.email || null;
+    if (agentEmail) document.getElementById('agentEmailInput').value = agentEmail;
+    updateEmailStatusUI(agentEmail);
+
     initAgentMap(agentDoc);
     await packagesReady;
     renderAgentBalanceCard();
-    await loadAgentData();
+    startOrdersListener();
     await loadDrivers();
     // Set today's date as default for purchase form
     const prcDateEl = document.getElementById('prcDate');
@@ -1220,16 +1282,16 @@
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> تغيير كلمة المرور';
   };
 
-  // ── Load Agent Orders & Stats ──────────────────────────────────────────────
-  async function loadAgentData() {
+  // ── Real-time Orders Listener ──────────────────────────────────────────────
+  function startOrdersListener() {
     if (!agentDoc) return;
-    try {
-      const myOrders = await fetchAgentOrders(agentDoc.id);
-      const totalCommission = myOrders.reduce((s, o) => s + (o.agentShare || 0), 0);
-      document.getElementById('statOrders').textContent     = myOrders.length;
+    if (unsubscribeOrders) unsubscribeOrders();
+    unsubscribeOrders = listenAgentOrders(agentDoc.id, orders => {
+      const totalCommission = orders.reduce((s, o) => s + (o.agentShare || 0), 0);
+      document.getElementById('statOrders').textContent     = orders.length;
       document.getElementById('statCommission').textContent = totalCommission.toLocaleString('en-US');
-      renderAgentOrders(myOrders);
-    } catch (e) { console.error(e); }
+      renderAgentOrders(orders);
+    });
   }
 
   function getBadgeClass(s) {
@@ -1242,11 +1304,36 @@
       el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><div>لا توجد طلبات بعد</div></div>`;
       return;
     }
-    const assignable = ['جديد', 'قيد التجهيز'];
     const fmt = n => new Intl.NumberFormat('en-US').format(n);
-    el.innerHTML = orders.slice(0, 30).map(o => {
+    el.innerHTML = orders.slice(0, 50).map(o => {
       const productsTotal = (o.items || []).reduce((s, i) => s + ((i.price||0)*(i.quantity||1)), 0);
       const orderTotal    = productsTotal + (o.deliveryFee || 0);
+
+      let actionBtns = '';
+      if (o.status === 'جديد') {
+        actionBtns = `
+          <button class="btn btn-sm btn-primary" onclick="markPreparing('${o.id}')">
+            <i class="fas fa-check-circle"></i> بدأ التجهيز
+          </button>
+          <button class="btn btn-sm btn-primary" style="margin-top:2px;" onclick="openAssignDriverModal('${o.id}')">
+            <i class="fas fa-motorcycle"></i> تعيين سائق
+          </button>
+          <button class="btn btn-sm btn-ghost" style="color:var(--green);border-color:var(--green);margin-top:2px;" onclick="confirmSelfProcess('${o.id}',${orderTotal})">
+            <i class="fas fa-person-walking"></i> ذاتي
+          </button>`;
+      } else if (o.status === 'قيد التجهيز') {
+        actionBtns = `
+          <button class="btn btn-sm" style="background:rgba(45,106,79,0.1);color:var(--green);border:1.5px solid rgba(45,106,79,0.3);" onclick="openDispatchModal('${o.id}')">
+            <i class="fas fa-motorcycle"></i> انطلق السائق
+          </button>
+          <button class="btn btn-sm btn-primary" style="margin-top:2px;" onclick="openAssignDriverModal('${o.id}')">
+            <i class="fas fa-user-tag"></i> تعيين سائق
+          </button>
+          <button class="btn btn-sm btn-ghost" style="color:var(--green);border-color:var(--green);margin-top:2px;" onclick="confirmSelfProcess('${o.id}',${orderTotal})">
+            <i class="fas fa-person-walking"></i> ذاتي
+          </button>`;
+      }
+
       return `
       <div class="order-item">
         <div class="order-item-info">
@@ -1263,19 +1350,84 @@
             <span style="color:var(--text-secondary);">الإجمالي: <strong style="color:var(--gold-dark);">${fmt(orderTotal)} د.ع</strong></span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:120px;">
           <div class="order-item-commission">+${fmt(o.agentShare||0)} د.ع</div>
-          ${assignable.includes(o.status) ? `
-            <button class="btn btn-sm btn-primary" onclick="openAssignDriverModal('${o.id}')">
-              <i class="fas fa-motorcycle"></i> تعيين سائق
-            </button>
-            <button class="btn btn-sm btn-ghost" style="color:var(--green);border-color:var(--green);" onclick="confirmSelfProcess('${o.id}',${orderTotal})">
-              <i class="fas fa-person-walking"></i> ذاتي
-            </button>` : ''}
+          ${actionBtns}
         </div>
       </div>`;
     }).join('');
   }
+
+  // ── Agent Order Status Actions ─────────────────────────────────────────────
+  window.markPreparing = async function(orderId) {
+    try {
+      await updateAgentOrderStatus(orderId, 'قيد التجهيز');
+      showToast('✅ الطلب قيد التجهيز', 'success');
+    } catch (e) { showToast(e.message || 'حدث خطأ', 'error'); }
+  };
+
+  let dispatchOrderId = null;
+  window.openDispatchModal = function(orderId) {
+    dispatchOrderId = orderId;
+    document.getElementById('dispatchDriverName').value = '';
+    document.getElementById('dispatchModal').classList.add('open');
+  };
+  window.closeDispatchModal = function() {
+    document.getElementById('dispatchModal').classList.remove('open');
+    dispatchOrderId = null;
+  };
+  window.confirmDispatch = async function() {
+    if (!dispatchOrderId) return;
+    const driverName = document.getElementById('dispatchDriverName').value.trim();
+    if (!driverName) { showToast('أدخل اسم السائق', 'warning'); return; }
+    const btn = document.getElementById('confirmDispatchBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+    try {
+      await updateAgentOrderStatus(dispatchOrderId, 'في التوصيل', { driverName });
+      showToast('✅ انطلق السائق — تم تحديث الحالة', 'success');
+      closeDispatchModal();
+    } catch (e) { showToast(e.message || 'حدث خطأ', 'error'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> تأكيد الانطلاق';
+  };
+
+  // ── Agent Email Notification ───────────────────────────────────────────────
+  function updateEmailStatusUI(email) {
+    const bar  = document.getElementById('emailStatusBar');
+    const dot  = document.getElementById('emailStatusDot');
+    const text = document.getElementById('emailStatusText');
+    if (!bar) return;
+    if (email) {
+      bar.style.background = 'rgba(45,106,79,0.07)';
+      bar.style.border     = '1.5px solid rgba(45,106,79,0.25)';
+      dot.style.background = '#4ade80';
+      text.style.color     = '#2d6a4f';
+      text.textContent     = `✅ مرتبط — ${email}`;
+    } else {
+      bar.style.background = 'rgba(239,68,68,0.07)';
+      bar.style.border     = '1.5px solid rgba(239,68,68,0.2)';
+      dot.style.background = '#ef4444';
+      text.style.color     = '#b91c1c';
+      text.textContent     = 'غير مرتبط — لن تصلك إشعارات بالبريد';
+    }
+  }
+  window.saveAgentEmail = async function() {
+    if (!agentDoc) { showToast('لم يتم ربط حسابك بوكيل بعد', 'warning'); return; }
+    const val = document.getElementById('agentEmailInput').value.trim();
+    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      showToast('أدخل بريد إلكتروني صحيح', 'warning'); return;
+    }
+    const btn = document.getElementById('saveEmailBtn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+      await updateDoc(doc(db, 'agents', agentDoc.id), {
+        email: val || null, updatedAt: new Date().toISOString()
+      });
+      agentDoc.email = val || null;
+      updateEmailStatusUI(val);
+      showToast(val ? '✅ تم حفظ البريد الإلكتروني' : '🔕 تم إلغاء إشعارات البريد', val ? 'success' : 'info');
+    } catch { showToast('خطأ في الحفظ', 'error'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+  };
 
   // ── Balance Card ───────────────────────────────────────────────────────────
   function renderAgentBalanceCard() {
@@ -1739,9 +1891,6 @@
       await assignDriverToOrder(assignOrderId, driver);
       showToast(`✅ تم تعيين ${driver.name}`, 'success');
       closeAssignDriverModal();
-      const orders = await fetchAllOrders();
-      const myOrders = orders.filter(o => o.agentId === agentDoc.id);
-      renderAgentOrders(myOrders);
       await loadDrivers();
     } catch (e) { showToast(e.message || 'حدث خطأ', 'error'); }
   };
@@ -1767,9 +1916,6 @@
       await selfProcessOrder(selfProcessOrderId, agentDoc);
       showToast('✅ تم تحديد معالجة ذاتية — الطلب في التوصيل', 'success');
       closeSelfProcessModal();
-      const orders = await fetchAllOrders();
-      const myOrders = orders.filter(o => o.agentId === agentDoc.id);
-      renderAgentOrders(myOrders);
       renderAgentBalanceCard();
     } catch (e) { showToast(e.message || 'حدث خطأ', 'error'); }
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> تأكيد';
