@@ -816,6 +816,10 @@
     if (!products.length) return '';
     return products.map(p => {
       const safeP = JSON.stringify(p).replace(/"/g, '&quot;');
+      const hasSizes = p.sizes && p.sizes.length > 0;
+      const displayPrice = hasSizes
+        ? 'من ' + formatPrice(Math.min(...p.sizes.map(s => s.price)))
+        : formatPrice(p.price);
       return `
         <div class="product-card ${p.available === false ? 'product-unavailable' : ''}"
              onclick="openProductModal(${safeP})">
@@ -827,12 +831,16 @@
           </div>
           <div class="product-name">${p.name}</div>
           ${p.description ? `<div class="product-desc">${p.description}</div>` : ''}
-          <div class="product-price">${formatPrice(p.price)}</div>
+          <div class="product-price">${displayPrice}</div>
           ${p.available === false
             ? `<div style="font-size:0.73rem;color:var(--text-muted);text-align:center;padding:0 8px;">غير متاح حالياً</div>`
-            : `<button class="product-add-btn" onclick="event.stopPropagation();handleAddToCart('${p.id}')">
-                 <i class="fas fa-plus"></i> أضف للسلة
-               </button>`
+            : hasSizes
+              ? `<button class="product-add-btn" onclick="event.stopPropagation();openProductModal(${safeP})">
+                   <i class="fas fa-list"></i> اختر القياس
+                 </button>`
+              : `<button class="product-add-btn" onclick="event.stopPropagation();handleAddToCart('${p.id}')">
+                   <i class="fas fa-plus"></i> أضف للسلة
+                 </button>`
           }
         </div>
       `;
@@ -864,6 +872,10 @@
   window.handleAddToCart = function(productId) {
     const product = allProducts.find(p => p.id === productId);
     if (!product) return;
+    if (product.sizes && product.sizes.length > 0) {
+      openProductModal(product);
+      return;
+    }
     addToCart(product);
     renderCart();
     showToast(`تمت الإضافة: ${product.name}`, 'success');
@@ -872,9 +884,53 @@
     setTimeout(() => badge.style.transform = '', 250);
   };
 
+  function _animateCartBadge() {
+    const badge = document.getElementById('cartBadge');
+    if (badge) { badge.style.transform = 'scale(1.6)'; setTimeout(() => badge.style.transform = '', 250); }
+  }
+
   // ── Product Detail Modal ──
+  let _modalProduct  = null;
+  let _selectedSizeIdx = -1;
+
   window.openProductModal = function(p) {
-    const inCart = getCart().find(i => i.id === p.id);
+    _modalProduct    = p;
+    _selectedSizeIdx = -1;
+    const hasSizes   = p.sizes && p.sizes.length > 0;
+    const cart       = getCart();
+    const inCart     = hasSizes ? null : cart.find(i => (i.cartKey || i.id) === p.id);
+
+    let actionHtml;
+    if (p.available === false) {
+      actionHtml = `<div style="color:var(--text-muted);padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);">غير متاح حالياً</div>`;
+    } else if (hasSizes) {
+      actionHtml = `
+        <div style="margin:18px 0 8px;">
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;text-align:right;">اختر القياس:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;" id="sizeChipsRow">
+            ${p.sizes.map((s, i) => `
+              <button id="sizeChip_${i}" onclick="selectSizeChip(${i})"
+                      style="padding:10px 18px;border-radius:22px;border:2px solid var(--border);background:var(--bg-elevated);color:var(--text);font-family:var(--font-arabic);cursor:pointer;transition:var(--transition);text-align:center;min-width:80px;">
+                <div style="font-weight:700;font-size:0.95rem;">${s.name}</div>
+                <div style="font-size:0.8rem;color:var(--gold);margin-top:2px;">${formatPrice(s.price)}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+        <div id="sizeAddBtnWrap" style="display:none;margin-top:10px;">
+          <button class="btn btn-primary btn-lg btn-block" onclick="addSelectedSizeToCart()">
+            <i class="fas fa-shopping-bag"></i>
+            <span id="sizeAddBtnLabel">أضف للسلة</span>
+          </button>
+        </div>`;
+    } else {
+      actionHtml = `
+        <button class="btn btn-primary btn-lg btn-block" onclick="handleAddToCart('${p.id}');closeProductModal();">
+          <i class="fas fa-shopping-bag"></i>
+          أضف للسلة ${inCart ? '('+inCart.quantity+' في السلة)' : ''}
+        </button>`;
+    }
+
     document.getElementById('productDetailContent').innerHTML = `
       <div style="text-align:center;">
         <div class="product-detail-image">
@@ -885,20 +941,46 @@
         </div>
         <div class="product-detail-name">${p.name}</div>
         ${p.description ? `<div class="product-detail-desc">${p.description}</div>` : ''}
-        <div class="product-detail-price">${formatPrice(p.price)}</div>
-        ${p.available === false
-          ? `<div style="color:var(--text-muted);padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);">غير متاح حالياً</div>`
-          : `<button class="btn btn-primary btn-lg btn-block" onclick="handleAddToCart('${p.id}');closeProductModal();">
-               <i class="fas fa-shopping-bag"></i>
-               أضف للسلة ${inCart ? '('+inCart.quantity+' في السلة)' : ''}
-             </button>`
-        }
+        ${!hasSizes ? `<div class="product-detail-price">${formatPrice(p.price)}</div>` : ''}
+        ${actionHtml}
         <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeProductModal()">إغلاق</button>
       </div>
     `;
     document.getElementById('productDetailModal').classList.add('active');
     document.body.style.overflow = 'hidden';
   };
+
+  window.selectSizeChip = function(idx) {
+    if (!_modalProduct) return;
+    _selectedSizeIdx = idx;
+    const sizes = _modalProduct.sizes;
+    sizes.forEach((_, i) => {
+      const chip = document.getElementById(`sizeChip_${i}`);
+      if (!chip) return;
+      chip.style.borderColor = i === idx ? 'var(--gold)' : 'var(--border)';
+      chip.style.background  = i === idx ? 'rgba(184,146,42,0.15)' : 'var(--bg-elevated)';
+      chip.style.color       = i === idx ? 'var(--gold-light)' : 'var(--text)';
+    });
+    const wrap = document.getElementById('sizeAddBtnWrap');
+    if (wrap) wrap.style.display = 'block';
+    const size     = sizes[idx];
+    const cartKey  = `${_modalProduct.id}_${size.name}`;
+    const inCart   = getCart().find(i => (i.cartKey || i.id) === cartKey);
+    const label    = document.getElementById('sizeAddBtnLabel');
+    if (label) label.textContent = `أضف ${size.name} للسلة${inCart ? ' ('+inCart.quantity+' في السلة)' : ''}`;
+  };
+
+  window.addSelectedSizeToCart = function() {
+    if (_selectedSizeIdx < 0 || !_modalProduct) return;
+    const size    = _modalProduct.sizes[_selectedSizeIdx];
+    const cartKey = `${_modalProduct.id}_${size.name}`;
+    addToCart({ ..._modalProduct, cartKey, price: size.price, selectedSize: size });
+    renderCart();
+    showToast(`تمت الإضافة: ${_modalProduct.name} — ${size.name}`, 'success');
+    closeProductModal();
+    _animateCartBadge();
+  };
+
   window.closeProductModal = function() {
     document.getElementById('productDetailModal').classList.remove('active');
     document.body.style.overflow = '';
@@ -927,28 +1009,31 @@
       </div>`;
       return;
     }
-    list.innerHTML = cart.map(item => `
-      <div class="cart-item">
-        <div class="cart-item-icon">
-          ${item.imageUrl
-            ? `<img src="${item.imageUrl}" alt="${item.name}">`
-            : (item.emoji || '🍺')}
+    list.innerHTML = cart.map(item => {
+      const key = item.cartKey || item.id;
+      return `
+        <div class="cart-item">
+          <div class="cart-item-icon">
+            ${item.imageUrl
+              ? `<img src="${item.imageUrl}" alt="${item.name}">`
+              : (item.emoji || '🍺')}
+          </div>
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}${item.selectedSize ? `<span style="color:var(--gold);font-size:0.8rem;margin-right:4px;">(${item.selectedSize.name})</span>` : ''}</div>
+            <div class="cart-item-unit">${formatPrice(item.price)} / قطعة</div>
+          </div>
+          <div class="cart-item-subtotal">${formatPrice(item.price * item.quantity)}</div>
+          <div class="cart-item-controls">
+            <button class="qty-btn" onclick="changeQty('${key}', ${item.quantity - 1})">−</button>
+            <span class="qty-display">${item.quantity}</span>
+            <button class="qty-btn" onclick="changeQty('${key}', ${item.quantity + 1})">+</button>
+          </div>
         </div>
-        <div class="cart-item-info">
-          <div class="cart-item-name">${item.name}</div>
-          <div class="cart-item-unit">${formatPrice(item.price)} / قطعة</div>
-        </div>
-        <div class="cart-item-subtotal">${formatPrice(item.price * item.quantity)}</div>
-        <div class="cart-item-controls">
-          <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity - 1})">−</button>
-          <span class="qty-display">${item.quantity}</span>
-          <button class="qty-btn" onclick="changeQty('${item.id}', ${item.quantity + 1})">+</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
-  window.changeQty = function(id, qty) { updateCartQty(id, qty); renderCart(); };
+  window.changeQty = function(key, qty) { updateCartQty(key, qty); renderCart(); };
 
   window.openCartDrawer = function() {
     renderCart();
@@ -1378,17 +1463,35 @@
 
   function updateMapLocation(latlng) {
     const { lat, lng } = latlng;
-    const fee  = calcDeliveryFee(lat, lng, deliverySettings);
-    const dist = getDistance(lat, lng);
+
+    // أقرب وكيل أولاً — أجرة التوصيل تُحسب من موقعه لا من نقطة ثابتة
+    const status = getCoverageStatus(lat, lng, agents);
+
+    let fee, distKm;
+    if (status.nearest?.lat && status.nearest?.lng) {
+      // أجرة التوصيل = مسافة (موقع الوكيل → موقع الزبون) × سعر الكيلومتر الخاص بالوكيل أو الافتراضي
+      const agentSettings = {
+        ...deliverySettings,
+        centerLat:  status.nearest.lat,
+        centerLng:  status.nearest.lng,
+        pricePerKm: status.nearest.pricePerKm ?? deliverySettings.pricePerKm,
+        minFee:     status.nearest.minFee     ?? deliverySettings.minFee
+      };
+      fee    = calcDeliveryFee(lat, lng, agentSettings);
+      distKm = status.distance;
+    } else {
+      // لا يوجد وكلاء — نرجع للنقطة الثابتة
+      fee    = calcDeliveryFee(lat, lng, deliverySettings);
+      distKm = getDistance(lat, lng);
+    }
 
     document.getElementById('distanceBadge').style.display = 'flex';
-    document.getElementById('distanceText').textContent = dist.toFixed(1) + ' كم';
+    document.getElementById('distanceText').textContent = distKm.toFixed(1) + ' كم';
     document.getElementById('mapFeeVal').textContent = formatPrice(fee);
     document.getElementById('mapAddressText').textContent = `خط العرض: ${lat.toFixed(5)} | خط الطول: ${lng.toFixed(5)}`;
     document.getElementById('mapConfirmBtn').disabled = false;
 
-    // Check agent coverage
-    const status = getCoverageStatus(lat, lng, agents);
+    // عرض معلومات الوكيل
     const agentRow  = document.getElementById('mapAgentRow');
     const agentText = document.getElementById('mapAgentText');
     agentRow.style.display = 'flex';

@@ -36,7 +36,7 @@ function buildTelegramMessage(order) {
   const shortId = order.id.slice(-6).toUpperCase();
 
   const itemLines = (order.items || [])
-    .map(i => `  • ${i.name} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
+    .map(i => `  • ${i.name}${i.selectedSize ? ' ('+i.selectedSize.name+')' : ''} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
     .join('\n');
 
   const mapLine = order.location
@@ -81,7 +81,7 @@ async function sendAgentTelegramNotification(order, agent) {
     const fmt = (n) => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
     const shortId = order.id.slice(-6).toUpperCase();
     const itemLines = (order.items || [])
-      .map(i => `  • ${i.name} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
+      .map(i => `  • ${i.name}${i.selectedSize ? ' ('+i.selectedSize.name+')' : ''} × ${i.quantity}  ←  ${fmt(i.price * i.quantity)}`)
       .join('\n');
     const mapLine = order.location
       ? `\n📌 [موقع الزبون](https://www.google.com/maps?q=${order.location.lat},${order.location.lng})`
@@ -129,6 +129,46 @@ ${itemLines}
     if (!json.ok) console.warn('Agent Telegram failed:', json.description, '| chatId:', agent.telegramId);
   } catch (e) {
     console.warn('Agent Telegram notification failed:', e);
+  }
+}
+
+async function sendAgentEmailNotification(order, agent) {
+  if (!agent.email) return;
+  try {
+    const fmt = n => new Intl.NumberFormat('en-US').format(n) + ' د.ع';
+    const shortId = order.id.slice(-6).toUpperCase();
+    const itemsRows = (order.items || [])
+      .map(i => `<tr><td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">${i.name}${i.selectedSize ? ' <span style="color:#b8922a;">('+i.selectedSize.name+')</span>' : ''}</td><td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:center;">${i.quantity}</td><td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;" dir="ltr">${fmt((i.price||0) * (i.quantity||1))}</td></tr>`)
+      .join('');
+    const html = `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #e8e0d0;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#1a3a2a,#2d6a4f);padding:24px;text-align:center;">
+    <h1 style="color:#d4aa45;margin:0;font-size:1.4rem;">🥃 Irish Bar</h1>
+    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:0.9rem;">طلب جديد مُعيَّن إليك</p>
+  </div>
+  <div style="padding:24px;">
+    <p style="font-size:1rem;color:#1a3a2a;font-weight:700;margin-bottom:4px;">مرحباً ${agent.name || 'الوكيل'}،</p>
+    <p style="color:#555;margin-bottom:20px;">لديك طلب جديد بانتظارك <strong style="color:#b8922a;">#${shortId}</strong></p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #e8e0d0;">
+      <thead><tr style="background:#f5f0e8;"><th style="padding:8px 10px;text-align:right;">المنتج</th><th style="padding:8px 10px;text-align:center;">الكمية</th><th style="padding:8px 10px;text-align:right;">المبلغ</th></tr></thead>
+      <tbody>${itemsRows}</tbody>
+    </table>
+    <div style="background:#f8f5ee;border-radius:8px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#666;">الزبون:</span><strong>${order.customerName}</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#666;">الهاتف:</span><strong dir="ltr">${order.phone}</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#666;">وقت التوصيل:</span><strong>${order.deliveryTime || 'اسرع وقت'}</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#666;">أجرة التوصيل:</span><strong>${fmt(order.deliveryFee || 0)}</strong></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid #e0d8c8;padding-top:8px;margin-top:4px;"><span style="color:#666;font-weight:700;">عمولتك:</span><strong style="color:#2d6a4f;font-size:1.1rem;">${fmt(order.agentShare || 0)}</strong></div>
+    </div>
+    <a href="${APP_BASE_URL}/pages/agent-dashboard.html" style="display:block;text-align:center;background:linear-gradient(135deg,#1a3a2a,#2d6a4f);color:#fff;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;">افتح لوحة الوكيل</a>
+  </div>
+  <div style="background:#f8f5ee;padding:14px;text-align:center;font-size:0.78rem;color:#888;">تم الإرسال تلقائياً من منصة Irish Bar</div>
+</div>`;
+    await addDoc(collection(db, 'mail'), {
+      to: agent.email,
+      message: { subject: `🥃 طلب جديد #${shortId} — Irish Bar`, html }
+    });
+  } catch (e) {
+    console.warn('Email notification failed:', e);
   }
 }
 
@@ -250,8 +290,8 @@ export async function createOrder({
     total:              isNaN(total)      ? 0 : (total || 0),
     deliveryFee:        isNaN(deliveryFee)? 0 : (deliveryFee || 0),
     location:           location          || null,
-    agentId:            null,
-    agentName:          null,
+    agentId:            suggestedAgentId  || null,
+    agentName:          suggestedAgentName|| null,
     suggestedAgentId:   suggestedAgentId  || null,
     suggestedAgentName: suggestedAgentName|| null,
     agentShare:         isNaN(agentShare)    ? 0 : (agentShare    || 0),
@@ -267,6 +307,20 @@ export async function createOrder({
 
   // 🔔 إشعار الأدمن مع اسم الوكيل المقترح
   sendTelegramNotification(fullOrder);
+
+  // 🔔 إشعار فوري للوكيل المُعيَّن تلقائياً
+  if (suggestedAgentId) {
+    (async () => {
+      try {
+        const agentSnap = await getDoc(doc(db, 'agents', suggestedAgentId));
+        if (agentSnap.exists()) {
+          const agent = { id: agentSnap.id, ...agentSnap.data() };
+          if (agent.telegramId) sendAgentTelegramNotification(fullOrder, agent);
+          if (agent.email)      sendAgentEmailNotification(fullOrder, agent);
+        }
+      } catch {}
+    })();
+  }
 
   return fullOrder;
 }
@@ -349,6 +403,30 @@ export async function fetchAgentOrders(agentId) {
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── Real-time listener for agent orders ──
+export function listenAgentOrders(agentId, callback) {
+  const q = query(
+    collection(db, 'orders'),
+    where('agentId', '==', agentId),
+    orderBy('createdAt', 'desc')
+  );
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err  => console.warn('listenAgentOrders:', err)
+  );
+}
+
+// ── Update order status by agent (with optional extra fields like driverName) ──
+export async function updateAgentOrderStatus(orderId, status, extra = {}) {
+  const updates = { status, updatedAt: new Date().toISOString(), ...extra };
+  if (status === 'مكتمل') {
+    updates.needsRating = true;
+    updates.completedAt = new Date().toISOString();
+  }
+  await updateDoc(doc(db, 'orders', orderId), updates);
+  sendStatusNotification(orderId, status);
 }
 
 // ── Fetch Driver Active Orders ──

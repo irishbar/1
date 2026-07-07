@@ -113,23 +113,24 @@ export function saveCart(cart) {
 }
 
 export function addToCart(product) {
-  const cart = getCart();
-  const idx  = cart.findIndex(i => i.id === product.id);
+  const cart    = getCart();
+  const cartKey = product.cartKey || product.id;
+  const idx     = cart.findIndex(i => (i.cartKey || i.id) === cartKey);
   if (idx >= 0) {
     cart[idx].quantity++;
   } else {
-    cart.push({ ...product, quantity: 1 });
+    cart.push({ ...product, cartKey, quantity: 1 });
   }
   saveCart(cart);
   return cart;
 }
 
-export function updateCartQty(productId, qty) {
+export function updateCartQty(cartKey, qty) {
   let cart = getCart();
   if (qty <= 0) {
-    cart = cart.filter(i => i.id !== productId);
+    cart = cart.filter(i => (i.cartKey || i.id) !== cartKey);
   } else {
-    const item = cart.find(i => i.id === productId);
+    const item = cart.find(i => (i.cartKey || i.id) === cartKey);
     if (item) item.quantity = qty;
   }
   saveCart(cart);

@@ -171,6 +171,22 @@
         <label class="form-label">سعر الشراء / التكلفة (د.ع) <span style="color:var(--text-muted);font-size:0.8rem;">— يُستخدم لحساب هامش الربح والعمولة</span></label>
         <input type="number" class="form-input" id="apCostPrice" placeholder="مثال: 40000" min="0">
       </div>
+      <!-- ── القياسات ── -->
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-ruler-combined" style="color:var(--gold);"></i>
+          القياسات
+          <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — حتى 7 قياسات)</span>
+        </label>
+        <div id="apSizesList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button type="button" id="apAddSizeBtn" onclick="addSizeRow('ap')"
+                style="width:100%;padding:9px;border:2px dashed var(--border);background:transparent;color:var(--text-muted);border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-arabic);font-size:0.85rem;transition:var(--transition);">
+          <i class="fas fa-plus"></i> إضافة قياس
+        </button>
+        <div style="font-size:0.73rem;color:var(--text-muted);margin-top:6px;padding:6px 10px;background:var(--bg-elevated);border-radius:var(--radius-sm);border-right:3px solid var(--gold);">
+          💡 إذا أضفت قياسات، يجب على الزبون اختيار قياس قبل الإضافة للسلة — السعر الأساسي يُستخدم فقط إذا لم تُضف قياسات
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">الوصف</label>
         <textarea class="form-textarea" id="apDesc" rows="2" placeholder="وصف مختصر للمنتج"></textarea>
@@ -300,6 +316,22 @@
       <div class="form-group">
         <label class="form-label">سعر الشراء / التكلفة (د.ع)</label>
         <input type="number" class="form-input" id="epCostPrice" placeholder="0">
+      </div>
+      <!-- ── القياسات ── -->
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-ruler-combined" style="color:var(--gold);"></i>
+          القياسات
+          <span style="color:var(--text-muted);font-size:0.78rem;">(اختياري — حتى 7 قياسات)</span>
+        </label>
+        <div id="epSizesList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button type="button" id="epAddSizeBtn" onclick="addSizeRow('ep')"
+                style="width:100%;padding:9px;border:2px dashed var(--border);background:transparent;color:var(--text-muted);border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-arabic);font-size:0.85rem;transition:var(--transition);">
+          <i class="fas fa-plus"></i> إضافة قياس
+        </button>
+        <div style="font-size:0.73rem;color:var(--text-muted);margin-top:6px;padding:6px 10px;background:var(--bg-elevated);border-radius:var(--radius-sm);border-right:3px solid var(--gold);">
+          💡 إذا أضفت قياسات، يجب على الزبون اختيار قياس قبل الإضافة للسلة
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">الوصف</label>
@@ -488,6 +520,41 @@
       <button class="btn btn-ghost" onclick="closeModal('topupAgentModal')">إلغاء</button>
       <button class="btn btn-primary" id="topupAgentBtn" onclick="submitTopupAgent()">
         <i class="fas fa-check-circle"></i> تأكيد التعزيز
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Agent Location Confirm Modal ── -->
+<div class="modal-overlay" id="agentLocationModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-map-marker-alt" style="color:var(--green);"></i> تأكيد موقع الوكيل</div>
+      <button class="modal-close" onclick="closeModal('agentLocationModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="locationAgentId">
+      <div style="font-weight:800;font-size:0.95rem;margin-bottom:12px;color:var(--text-primary);" id="locationAgentNameLabel">—</div>
+      <div id="adminAgentMap" style="height:270px;border-radius:12px;overflow:hidden;margin-bottom:14px;border:1.5px solid var(--border);"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">خط العرض</label>
+          <input type="number" step="any" class="form-input" id="locationLat" dir="ltr" oninput="syncAdminMapPin()">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">خط الطول</label>
+          <input type="number" step="any" class="form-input" id="locationLng" dir="ltr" oninput="syncAdminMapPin()">
+        </div>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+        <i class="fas fa-info-circle" style="color:var(--gold);"></i>
+        اسحب الدبوس أو انقر على الخارطة لضبط الموقع بالضبط — أو عدّل الإحداثيات يدوياً
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('agentLocationModal')">إلغاء</button>
+      <button class="btn btn-primary" id="confirmLocationBtn" onclick="confirmAgentLocation()">
+        <i class="fas fa-check"></i> تأكيد الموقع
       </button>
     </div>
   </div>
@@ -801,7 +868,7 @@
 
   function renderOrderCard(o, viewerRole = 'admin') {
     const badge     = getStatusBadgeClass(o.status);
-    const itemsText = o.items?.map(i => `${i.emoji || ''} ${i.name} ×${i.quantity}`).join('، ') || '';
+    const itemsText = o.items?.map(i => `${i.emoji || ''} ${i.name}${i.selectedSize ? ' ('+i.selectedSize.name+')' : ''} ×${i.quantity}`).join('، ') || '';
     const isAdmin   = viewerRole === 'admin' || viewerRole === 'manager';
 
     const productsTotal = (o.items || []).reduce((s, i) => s + ((i.price || 0) * (i.quantity || 1)), 0);
@@ -1117,6 +1184,7 @@
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإضافة...';
     try {
       const imageUrl = document.getElementById('apImageUrl').value || '';
+      const apSizes = collectSizes('ap');
       await addProduct({
         name:           document.getElementById('apName').value,
         categoryId:     document.getElementById('apCategory').value,
@@ -1127,7 +1195,8 @@
         imageUrl,
         available:      document.getElementById('apAvailable').checked,
         unavailableFrom:  document.getElementById('apUnavailableFrom').value || null,
-        unavailableUntil: document.getElementById('apUnavailableUntil').value || null
+        unavailableUntil: document.getElementById('apUnavailableUntil').value || null,
+        sizes:          apSizes
       });
       showToast('تم إضافة المنتج ✅', 'success');
       closeModal('addProductModal');
@@ -1136,6 +1205,8 @@
       document.getElementById('imgPreview').style.display = 'none';
       document.getElementById('imgPlaceholder').style.display = 'block';
       document.getElementById('imgUploadArea').style.borderColor = '';
+      document.getElementById('apSizesList').innerHTML = '';
+      updateSizeAddBtn('ap');
       await renderPage('products');
     } catch { showToast('حدث خطأ', 'error'); }
     btn.disabled = false;
@@ -1932,6 +2003,57 @@
 
 
   // ─────────────────────────────────────
+  // PRODUCT SIZES HELPERS
+  // ─────────────────────────────────────
+  window.addSizeRow = function(prefix, name = '', price = '') {
+    const list = document.getElementById(`${prefix}SizesList`);
+    if (!list || list.children.length >= 7) return;
+    const row = document.createElement('div');
+    row.className = 'size-row';
+    row.style.cssText = 'display:flex;gap:6px;align-items:center;';
+    row.innerHTML = `
+      <input type="text" class="form-input" placeholder="اسم القياس (مثال: بطل)"
+             style="flex:1.5;" value="${name}">
+      <input type="number" class="form-input" placeholder="السعر" dir="ltr"
+             style="flex:1;" value="${price}" min="0">
+      <button type="button" onclick="removeSizeRow(this,'${prefix}')"
+              style="flex-shrink:0;width:30px;height:30px;border-radius:50%;border:none;background:rgba(239,68,68,0.15);color:#ef4444;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;padding:0;">×</button>
+    `;
+    list.appendChild(row);
+    updateSizeAddBtn(prefix);
+  };
+  window.removeSizeRow = function(btn, prefix) {
+    btn.closest('.size-row').remove();
+    updateSizeAddBtn(prefix);
+  };
+  function updateSizeAddBtn(prefix) {
+    const list = document.getElementById(`${prefix}SizesList`);
+    const btn  = document.getElementById(`${prefix}AddSizeBtn`);
+    if (!list || !btn) return;
+    const full = list.children.length >= 7;
+    btn.disabled = full;
+    btn.style.opacity = full ? '0.4' : '1';
+    btn.style.cursor  = full ? 'not-allowed' : 'pointer';
+  }
+  function collectSizes(prefix) {
+    const list = document.getElementById(`${prefix}SizesList`);
+    if (!list) return [];
+    return [...list.querySelectorAll('.size-row')].reduce((acc, row) => {
+      const [nameEl, priceEl] = row.querySelectorAll('input');
+      const name  = nameEl.value.trim();
+      const price = Number(priceEl.value);
+      if (name && price > 0) acc.push({ name, price });
+      return acc;
+    }, []);
+  }
+  function populateSizes(prefix, sizes) {
+    const list = document.getElementById(`${prefix}SizesList`);
+    if (!list) return;
+    list.innerHTML = '';
+    (sizes || []).forEach(s => window.addSizeRow(prefix, s.name, s.price));
+  }
+
+  // ─────────────────────────────────────
   // EDIT PRODUCT
   // ─────────────────────────────────────
   window.openEditProduct = async function(id) {
@@ -1947,6 +2069,7 @@
     document.getElementById('epAvailable').checked = p.available !== false;
     document.getElementById('epUnavailableFrom').value  = p.unavailableFrom  || '';
     document.getElementById('epUnavailableUntil').value = p.unavailableUntil || '';
+    populateSizes('ep', p.sizes || []);
     const cats = await fetchCategories();
     document.getElementById('epCategory').innerHTML =
       cats.map(c => `<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.icon} ${c.name}</option>`).join('');
@@ -1960,6 +2083,7 @@
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
     try {
       const id = document.getElementById('epId').value;
+      const epSizes = collectSizes('ep');
       await updateProduct(id, {
         name:        document.getElementById('epName').value,
         categoryId:  document.getElementById('epCategory').value,
@@ -1970,7 +2094,8 @@
         imageUrl:       document.getElementById('epImageUrl').value || '',
         available:      document.getElementById('epAvailable').checked,
         unavailableFrom:  document.getElementById('epUnavailableFrom').value  || null,
-        unavailableUntil: document.getElementById('epUnavailableUntil').value || null
+        unavailableUntil: document.getElementById('epUnavailableUntil').value || null,
+        sizes:          epSizes
       });
       showToast('✅ تم تحديث المنتج', 'success');
       closeModal('editProductModal');
@@ -2900,12 +3025,17 @@
     // Global defaults from Firestore
     let defaultCommissionRate = 35;
     let AGENT_COVERAGE_KM_DEFAULT = 8;
+    let defaultPricePerKm = 1000;
     try {
-      const snap = await getDoc(doc(db, 'settings', 'agents'));
-      if (snap.exists()) {
-        if (snap.data().commissionRate != null) defaultCommissionRate    = snap.data().commissionRate;
-        if (snap.data().coverageKm     != null) AGENT_COVERAGE_KM_DEFAULT = snap.data().coverageKm;
+      const [agSnap, dlSnap] = await Promise.all([
+        getDoc(doc(db, 'settings', 'agents')),
+        getDoc(doc(db, 'settings', 'delivery'))
+      ]);
+      if (agSnap.exists()) {
+        if (agSnap.data().commissionRate != null) defaultCommissionRate    = agSnap.data().commissionRate;
+        if (agSnap.data().coverageKm     != null) AGENT_COVERAGE_KM_DEFAULT = agSnap.data().coverageKm;
       }
+      if (dlSnap.exists() && dlSnap.data().pricePerKm != null) defaultPricePerKm = dlSnap.data().pricePerKm;
     } catch {}
 
     // Load agents + orders + products + users in parallel
@@ -3010,14 +3140,23 @@
               </span>
             </div>
 
-            <!-- هاتف + محافظة -->
+            <!-- هاتف + محافظة + حالة الموقع -->
             <div style="font-size:0.83rem;color:var(--text-muted);margin-bottom:6px;direction:ltr;text-align:right;">
               📞 ${a.phone || '—'}
             </div>
             ${(a.governorate || a.district) ? `
-            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">
               📍 ${[a.governorate, a.district].filter(Boolean).join(' ← ')}
-            </div>` : `<div style="margin-bottom:10px;"></div>`}
+            </div>` : `<div style="margin-bottom:6px;"></div>`}
+            <div style="margin-bottom:10px;">
+              ${a.locationConfirmed && a.lat && a.lng
+                ? `<span style="font-size:0.72rem;font-weight:700;color:#2d6a4f;background:rgba(45,106,79,0.1);padding:2px 10px;border-radius:20px;border:1px solid rgba(45,106,79,0.25);">✅ موقع مؤكد</span>`
+                : a.lat && a.lng
+                  ? `<span style="font-size:0.72rem;font-weight:700;color:#d97706;background:rgba(217,119,6,0.1);padding:2px 10px;border-radius:20px;border:1px solid rgba(217,119,6,0.25);">⚠️ موقع غير مؤكد</span>`
+                  : `<span style="font-size:0.72rem;font-weight:700;color:#c0392b;background:rgba(192,57,43,0.08);padding:2px 10px;border-radius:20px;border:1px solid rgba(192,57,43,0.2);">❌ بدون موقع</span>`
+              }
+              ${a.pricePerKm ? `<span style="font-size:0.72rem;font-weight:700;color:#1a56db;background:rgba(26,86,219,0.08);padding:2px 10px;border-radius:20px;border:1px solid rgba(26,86,219,0.2);margin-right:4px;">${a.pricePerKm.toLocaleString('en-US')} د.ع/كم</span>` : ''}
+            </div>
             ${a.purchaseSource ? `<div style="font-size:0.75rem;color:#7c4dff;margin-bottom:6px;">🛒 المورد: ${a.purchaseSource}</div>` : ''}
             ${a.userId ? (() => { const u = users.find(x => x.id === a.userId); return u ? `<div style="font-size:0.75rem;color:#1a56db;margin-bottom:8px;">👤 ${u.name || u.email}</div>` : ''; })() : ''}
 
@@ -3042,13 +3181,17 @@
             </div>
 
             <!-- أزرار الإجراءات -->
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button onclick="openEditAgent('${a.id}')"
-                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;">
+                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;min-width:70px;">
                 <i class="fas fa-edit" style="color:var(--gold-dark);"></i> تعديل
               </button>
+              <button onclick="openAgentLocationModal('${a.id}')"
+                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;min-width:70px;color:var(--green);">
+                <i class="fas fa-map-marker-alt"></i> الموقع
+              </button>
               <button onclick="toggleAgentStatus('${a.id}',${isActive})"
-                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;">
+                class="btn btn-ghost btn-sm" style="flex:1;font-size:0.8rem;min-width:70px;">
                 <i class="fas fa-${isActive?'pause-circle':'play-circle'}"
                   style="color:${isActive?'#e67e22':'var(--green)'};">
                 </i> ${isActive ? 'إيقاف' : 'تفعيل'}
@@ -3126,9 +3269,16 @@
             <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = الافتراضية</div>
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label">نطاق التغطية (كيلومتر) *</label>
-          <input type="number" min="1" max="100" step="any" class="form-input" id="${prefix}CoverageKm" value="${a.coverageKm||''}" placeholder="8" dir="ltr">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">نطاق التغطية (كيلومتر) *</label>
+            <input type="number" min="1" max="100" step="any" class="form-input" id="${prefix}CoverageKm" value="${a.coverageKm||''}" placeholder="8" dir="ltr">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">سعر الكيلومتر (د.ع)</label>
+            <input type="number" min="0" step="any" class="form-input" id="${prefix}PricePerKm" value="${a.pricePerKm||''}" placeholder="${defaultPricePerKm}" dir="ltr">
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">فارغ = الافتراضي (${defaultPricePerKm})</div>
+          </div>
         </div>
         <div class="form-group" style="margin-bottom:12px;">
           <label class="form-label">Telegram Chat ID <span style="color:var(--text-muted);font-size:0.75rem;">(لإشعارات الطلبات)</span></label>
@@ -3208,13 +3358,15 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       try {
-        const agentData = { name, phone, lat, lng, coverageKm, governorate, district, active: true, createdAt: new Date().toISOString() };
+        const pricePerKmRaw = document.getElementById('agPricePerKm').value;
+        const agentData = { name, phone, lat, lng, coverageKm, governorate, district, active: true, locationConfirmed: true, createdAt: new Date().toISOString() };
         if (telegramId) agentData.telegramId = telegramId;
         if (purchaseSource) agentData.purchaseSource = purchaseSource;
         if (commRaw !== '') {
           agentData.commissionRate = parseFloat(commRaw);
           agentData.commissionType = document.getElementById('agCommType').value;
         }
+        if (pricePerKmRaw !== '') agentData.pricePerKm = parseFloat(pricePerKmRaw);
         if (linkedUserId) {
           agentData.userId = linkedUserId;
           await setDoc(doc(db, 'users', linkedUserId), { role: 'agent' }, { merge: true });
@@ -3266,6 +3418,8 @@
           data.commissionType = document.getElementById('editAgCommType').value;
         }
         if (coverageRaw !== '') data.coverageKm = parseFloat(coverageRaw);
+        const pricePerKmRaw = document.getElementById('editAgPricePerKm').value;
+        data.pricePerKm = pricePerKmRaw !== '' ? parseFloat(pricePerKmRaw) : null;
 
         // ربط الحساب / إلغاء الربط
         const oldAgent = agents.find(a => a.id === id);
@@ -3327,6 +3481,81 @@
     };
 
     // ── تأكيد تعزيز رصيد الوكيل ──────────────────────────────────────────────
+    // ── تأكيد / تعديل موقع الوكيل (خارطة) ───────────────────────────────────
+    window.openAgentLocationModal = async function(id) {
+      const a = agents.find(x => x.id === id);
+      if (!a) return;
+      document.getElementById('locationAgentId').value = id;
+      document.getElementById('locationAgentNameLabel').textContent = `🏪 ${a.name || '—'}`;
+      document.getElementById('locationLat').value = a.lat || '';
+      document.getElementById('locationLng').value = a.lng || '';
+      openModal('agentLocationModal');
+      await _initAdminAgentMap(a.lat || 32.6136, a.lng || 44.0092, !!(a.lat && a.lng));
+    };
+
+    window.syncAdminMapPin = function() {
+      const lat = parseFloat(document.getElementById('locationLat').value);
+      const lng = parseFloat(document.getElementById('locationLng').value);
+      if (!isNaN(lat) && !isNaN(lng) && window._adminAgentMarker) {
+        window._adminAgentMarker.setLatLng([lat, lng]);
+        window._adminAgentMap.setView([lat, lng], window._adminAgentMap.getZoom());
+      }
+    };
+
+    async function _initAdminAgentMap(lat, lng, hasLocation) {
+      if (!window.L) {
+        await new Promise((resolve, reject) => {
+          if (document.getElementById('_leaflet_css_admin')) { resolve(); return; }
+          const css = document.createElement('link');
+          css.id = '_leaflet_css_admin';
+          css.rel = 'stylesheet';
+          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(css);
+          const js = document.createElement('script');
+          js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          js.onload = resolve; js.onerror = reject;
+          document.head.appendChild(js);
+        });
+      }
+      setTimeout(() => {
+        const el = document.getElementById('adminAgentMap');
+        if (!el) return;
+        if (window._adminAgentMap) { window._adminAgentMap.remove(); window._adminAgentMap = null; }
+        const map = L.map('adminAgentMap', { center: [lat, lng], zoom: hasLocation ? 15 : 10 });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '©OSM' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        const icon = L.divIcon({
+          html: `<div style="width:34px;height:34px;background:linear-gradient(135deg,#1a3a2a,#2d6a4f);border-radius:50%;border:3px solid #fff;box-shadow:0 4px 14px rgba(45,106,79,0.5);display:flex;align-items:center;justify-content:center;font-size:15px;">🏪</div>`,
+          iconSize: [34,34], iconAnchor: [17,17], className: ''
+        });
+        const marker = L.marker([lat, lng], { icon, draggable: true }).addTo(map);
+        const _sync = (ll) => {
+          document.getElementById('locationLat').value = ll.lat.toFixed(6);
+          document.getElementById('locationLng').value = ll.lng.toFixed(6);
+        };
+        marker.on('dragend', () => _sync(marker.getLatLng()));
+        map.on('click', (e) => { marker.setLatLng(e.latlng); _sync(e.latlng); });
+        window._adminAgentMap    = map;
+        window._adminAgentMarker = marker;
+      }, 220);
+    }
+
+    window.confirmAgentLocation = async function() {
+      const id  = document.getElementById('locationAgentId').value;
+      const lat = parseFloat(document.getElementById('locationLat').value);
+      const lng = parseFloat(document.getElementById('locationLng').value);
+      if (!id || isNaN(lat) || isNaN(lng)) { showToast('إحداثيات غير صحيحة', 'warning'); return; }
+      const btn = document.getElementById('confirmLocationBtn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري...';
+      try {
+        await updateDoc(doc(db, 'agents', id), { lat, lng, locationConfirmed: true, updatedAt: new Date().toISOString() });
+        showToast('✅ تم تأكيد موقع الوكيل', 'success');
+        closeModal('agentLocationModal');
+        await renderAgentsPage(content);
+      } catch (e) { showToast('حدث خطأ: ' + e.message, 'error'); }
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> تأكيد الموقع';
+    };
+
     window.submitTopupAgent = async function() {
       const btn        = document.getElementById('topupAgentBtn');
       const agentId    = document.getElementById('topupAgentId').value;
