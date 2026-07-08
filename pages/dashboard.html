@@ -211,6 +211,14 @@
         </div>
         <input type="file" id="apImageFile" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
         <input type="hidden" id="apImageUrl">
+        <div id="apImgActions" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;">
+          <button type="button" onclick="doUpload('ap')" class="btn btn-primary btn-sm" style="flex:1;min-width:120px;">
+            <i class="fas fa-upload"></i> رفع الصورة
+          </button>
+          <button type="button" onclick="doRemoveBgUpload('ap')" id="apRemoveBgBtn" class="btn btn-ghost btn-sm" style="flex:1;min-width:150px;">
+            <i class="fas fa-magic"></i> إزالة الخلفية ورفع
+          </button>
+        </div>
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:12px;">
         <input type="checkbox" id="apAvailable" checked style="width:auto">
@@ -357,6 +365,14 @@
         </div>
         <input type="file" id="epImageFile" accept="image/*" style="display:none" onchange="handleEditImageUpload(this)">
         <input type="hidden" id="epImageUrl">
+        <div id="epImgActions" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;">
+          <button type="button" onclick="doUpload('ep')" class="btn btn-primary btn-sm" style="flex:1;min-width:120px;">
+            <i class="fas fa-upload"></i> رفع الصورة
+          </button>
+          <button type="button" onclick="doRemoveBgUpload('ep')" id="epRemoveBgBtn" class="btn btn-ghost btn-sm" style="flex:1;min-width:150px;">
+            <i class="fas fa-magic"></i> إزالة الخلفية ورفع
+          </button>
+        </div>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">اترك فارغاً لاستخدام الإيموجي</div>
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:12px;">
@@ -607,9 +623,8 @@
   window.openModal = openModal;
   window.closeModal = closeModal;
 
-  // ── ImgBB Upload ──
-  let IMGBB_KEY = '9bab59197bd489ad54ef8917dff4ce81'; // default key
-  // نحمّل المفتاح من Firestore — لو محفوظ هناك يستبدل الافتراضي
+  // ── ImgBB Upload + Background Removal ──────────────────────────────────────
+  let IMGBB_KEY = '9bab59197bd489ad54ef8917dff4ce81';
   const imgbbKeyReady = (async () => {
     try {
       const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
@@ -618,72 +633,121 @@
     } catch {}
   })();
 
-  // دالة مشتركة لرفع صورة على ImgBB وتحديث حقل الـ URL والمعاينة
-  async function uploadImageToImgBB({ file, urlInputId, previewElId, previewWrapperId, placeholderId, uploadingId, areaId }) {
-    // تأكد من تحميل المفتاح أولاً
-    await imgbbKeyReady;
-    if (!IMGBB_KEY) {
-      showToast('لم يتم إعداد مفتاح ImgBB — اذهب إلى إعدادات المتجر وأدخل المفتاح', 'warning');
-      return;
-    }
-    // معاينة محلية فورية
+  // إعدادات كل منطقة رفع (ap = إضافة, ep = تعديل)
+  const _imgCfg = {
+    ap: { urlId:'apImageUrl', prevEl:'imgPreviewEl', prevWrap:'imgPreview', phId:'imgPlaceholder', upId:'imgUploading', areaId:'imgUploadArea', actId:'apImgActions', removeBtnId:'apRemoveBgBtn' },
+    ep: { urlId:'epImageUrl', prevEl:'epImgPreviewEl', prevWrap:'epImgPreview', phId:'epImgPlaceholder', upId:'epImgUploading', areaId:'epImgUploadArea', actId:'epImgActions', removeBtnId:'epRemoveBgBtn' }
+  };
+  const _pendingFiles = {};
+
+  function _showPreview(prefix, src) {
+    const c = _imgCfg[prefix];
+    document.getElementById(c.prevEl).src = src;
+    document.getElementById(c.prevWrap).style.display = 'block';
+    document.getElementById(c.phId).style.display = 'none';
+  }
+
+  window._resetImgArea = function _resetImgArea(prefix) {
+    const c = _imgCfg[prefix];
+    delete _pendingFiles[prefix];
+    document.getElementById(c.urlId).value = '';
+    document.getElementById(c.prevWrap).style.display = 'none';
+    document.getElementById(c.phId).style.display = 'block';
+    document.getElementById(c.upId).style.display = 'none';
+    document.getElementById(c.actId).style.display = 'none';
+    document.getElementById(c.areaId).style.borderColor = '';
+  }
+
+  // عند اختيار ملف — معاينة فورية + إظهار الأزرار فقط، لا رفع بعد
+  function _onFileSelected(prefix) {
+    const file = _pendingFiles[prefix];
+    if (!file) return;
+    const c = _imgCfg[prefix];
     const reader = new FileReader();
-    reader.onload = (e) => {
-      if (previewElId)      document.getElementById(previewElId).src = e.target.result;
-      if (previewWrapperId) document.getElementById(previewWrapperId).style.display = 'block';
-    };
+    reader.onload = e => _showPreview(prefix, e.target.result);
     reader.readAsDataURL(file);
-    if (placeholderId) document.getElementById(placeholderId).style.display = 'none';
-    if (uploadingId)   document.getElementById(uploadingId).style.display = 'block';
+    document.getElementById(c.urlId).value = '';
+    document.getElementById(c.areaId).style.borderColor = '';
+    document.getElementById(c.actId).style.display = 'flex';
+  }
+
+  window.handleImageUpload = function(input) {
+    const file = input.files[0]; if (!file) return;
+    _pendingFiles['ap'] = file; _onFileSelected('ap');
+  };
+  window.handleEditImageUpload = function(input) {
+    const file = input.files[0]; if (!file) return;
+    _pendingFiles['ep'] = file; _onFileSelected('ep');
+  };
+
+  // رفع Blob إلى ImgBB (مشتركة)
+  async function _uploadBlobToImgBB(blob, prefix) {
+    const c = _imgCfg[prefix];
+    await imgbbKeyReady;
+    if (!IMGBB_KEY) { showToast('لم يتم إعداد مفتاح ImgBB في الإعدادات', 'warning'); return false; }
+    document.getElementById(c.actId).style.display = 'none';
+    document.getElementById(c.upId).innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الرفع...';
+    document.getElementById(c.upId).style.display = 'block';
     try {
-      const webpBlob = await compressToWebP(file, 0.82);
-      const formData = new FormData();
-      formData.append('image', webpBlob, 'product.webp');
-      const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
+      const webpBlob = await compressToWebP(blob, 0.82);
+      const fd = new FormData();
+      fd.append('image', webpBlob, 'product.webp');
+      const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method:'POST', body:fd });
       const data = await res.json();
       if (data.success && data.data?.url) {
-        document.getElementById(urlInputId).value = data.data.url;
-        if (uploadingId) document.getElementById(uploadingId).style.display = 'none';
-        if (areaId)      document.getElementById(areaId).style.borderColor = 'var(--green-light)';
+        document.getElementById(c.urlId).value = data.data.url;
+        document.getElementById(c.upId).style.display = 'none';
+        document.getElementById(c.areaId).style.borderColor = 'var(--green-light)';
         showToast('تم رفع الصورة ✅', 'success');
-      } else {
-        const msg = data.error?.message || 'رمز الخطأ: ' + (data.status_code || '?');
-        throw new Error(msg);
+        return true;
       }
+      throw new Error(data.error?.message || 'فشل الرفع');
     } catch (err) {
-      if (uploadingId)   document.getElementById(uploadingId).style.display = 'none';
-      if (placeholderId) document.getElementById(placeholderId).style.display = 'block';
-      document.getElementById(urlInputId).value = '';
-      showToast('فشل رفع الصورة: ' + (err.message || 'خطأ غير معروف'), 'error');
+      document.getElementById(c.upId).style.display = 'none';
+      document.getElementById(c.actId).style.display = 'flex';
+      showToast('فشل رفع الصورة: ' + (err.message || 'خطأ'), 'error');
+      return false;
     }
   }
 
-  window.handleImageUpload = async function(input) {
-    const file = input.files[0];
+  // رفع مباشر بدون إزالة خلفية
+  window.doUpload = async function(prefix) {
+    const file = _pendingFiles[prefix];
     if (!file) return;
-    await uploadImageToImgBB({
-      file,
-      urlInputId:      'apImageUrl',
-      previewElId:     'imgPreviewEl',
-      previewWrapperId:'imgPreview',
-      placeholderId:   'imgPlaceholder',
-      uploadingId:     'imgUploading',
-      areaId:          'imgUploadArea',
-    });
+    await _uploadBlobToImgBB(file, prefix);
   };
 
-  window.handleEditImageUpload = async function(input) {
-    const file = input.files[0];
+  // إزالة الخلفية ثم رفع
+  window.doRemoveBgUpload = async function(prefix) {
+    const file = _pendingFiles[prefix];
     if (!file) return;
-    await uploadImageToImgBB({
-      file,
-      urlInputId:      'epImageUrl',
-      previewElId:     'epImgPreviewEl',
-      previewWrapperId:'epImgPreview',
-      placeholderId:   'epImgPlaceholder',
-      uploadingId:     'epImgUploading',
-      areaId:          'epImgUploadArea',
-    });
+    const c = _imgCfg[prefix];
+    const btn = document.getElementById(c.removeBtnId);
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحليل...';
+    document.getElementById(c.actId).style.display = 'none';
+    document.getElementById(c.upId).innerHTML = '<i class="fas fa-spinner fa-spin"></i> إزالة الخلفية — قد تستغرق 20-40 ثانية في أول مرة...';
+    document.getElementById(c.upId).style.display = 'block';
+    try {
+      const { removeBackground } = await import(
+        'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/index.browser.js'
+      );
+      const resultBlob = await removeBackground(file, {
+        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/',
+        model: 'small',
+        output: { format: 'image/png', quality: 1 }
+      });
+      document.getElementById(c.upId).style.display = 'none';
+      _showPreview(prefix, URL.createObjectURL(resultBlob));
+      await _uploadBlobToImgBB(resultBlob, prefix);
+    } catch (err) {
+      document.getElementById(c.upId).style.display = 'none';
+      document.getElementById(c.actId).style.display = 'flex';
+      showToast('فشل إزالة الخلفية: ' + (err.message || 'خطأ غير معروف'), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-magic"></i> إزالة الخلفية ورفع';
+    }
   };
 
   // ── ضغط الصورة وتحويلها إلى WebP (مشتركة بين المنتجات والإعلانات) ──
@@ -1188,7 +1252,7 @@
     content.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 style="font-family:var(--font-display);color:var(--gold-light);">المنتجات</h2>
-        <button class="btn btn-primary btn-sm" onclick="openModal('addProductModal')">
+        <button class="btn btn-primary btn-sm" onclick="_resetImgArea('ap');openModal('addProductModal')">
           <i class="fas fa-plus"></i> منتج جديد
         </button>
       </div>
@@ -2131,18 +2195,13 @@
     document.getElementById('epCostPrice').value  = p.costPrice || '';
     document.getElementById('epDesc').value       = p.description || '';
     document.getElementById('epEmoji').value      = p.emoji || '🍺';
+    // إعادة تهيئة منطقة رفع الصورة
+    _resetImgArea('ep');
     document.getElementById('epImageUrl').value = p.imageUrl || '';
-    // أعد تهيئة منطقة رفع الصورة
-    const epArea = document.getElementById('epImgUploadArea');
-    if (epArea) epArea.style.borderColor = '';
-    document.getElementById('epImgUploading').style.display = 'none';
     if (p.imageUrl) {
       document.getElementById('epImgPreviewEl').src = p.imageUrl;
       document.getElementById('epImgPreview').style.display = 'block';
       document.getElementById('epImgPlaceholder').style.display = 'none';
-    } else {
-      document.getElementById('epImgPreview').style.display = 'none';
-      document.getElementById('epImgPlaceholder').style.display = 'block';
     }
     document.getElementById('epAvailable').checked = p.available !== false;
     document.getElementById('epUnavailableFrom').value  = p.unavailableFrom  || '';
