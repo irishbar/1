@@ -729,11 +729,9 @@
     document.getElementById(c.upId).innerHTML = '<i class="fas fa-spinner fa-spin"></i> إزالة الخلفية — قد تستغرق 20-40 ثانية في أول مرة...';
     document.getElementById(c.upId).style.display = 'block';
     try {
-      const { removeBackground } = await import(
-        'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/index.browser.js'
-      );
+      const { removeBackground } = await import('https://esm.sh/@imgly/background-removal@1.4.5');
       const resultBlob = await removeBackground(file, {
-        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/',
+        publicPath: 'https://esm.sh/@imgly/background-removal@1.4.5/dist/',
         model: 'small',
         output: { format: 'image/png', quality: 1 }
       });
