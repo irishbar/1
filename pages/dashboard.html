@@ -342,12 +342,23 @@
         <input type="text" class="form-input" id="epEmoji" placeholder="🍺">
       </div>
       <div class="form-group">
-  <label class="form-label">رابط الصورة (اختياري)</label>
-  <input type="url" class="form-input" id="epImageUrl" placeholder="https://...">
-  <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
-    إذا أضفت صورة ستظهر بدل الإيموجي
-  </div>
-</div>
+        <label class="form-label">صورة المنتج (اختياري)</label>
+        <div id="epImgUploadArea" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:16px;text-align:center;cursor:pointer;transition:var(--transition);background:var(--bg-elevated);" onclick="document.getElementById('epImageFile').click()">
+          <div id="epImgPreview" style="display:none;margin-bottom:8px;">
+            <img id="epImgPreviewEl" src="" style="max-height:100px;border-radius:8px;max-width:100%;">
+          </div>
+          <div id="epImgPlaceholder">
+            <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--gold);display:block;margin-bottom:6px;"></i>
+            <span style="color:var(--text-muted);font-size:0.82rem;">اضغط لاختيار صورة جديدة</span>
+          </div>
+          <div id="epImgUploading" style="display:none;color:var(--gold);font-size:0.85rem;">
+            <i class="fas fa-spinner fa-spin"></i> جاري الرفع...
+          </div>
+        </div>
+        <input type="file" id="epImageFile" accept="image/*" style="display:none" onchange="handleEditImageUpload(this)">
+        <input type="hidden" id="epImageUrl">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">اترك فارغاً لاستخدام الإيموجي</div>
+      </div>
       <div class="form-group" style="display:flex;align-items:center;gap:12px;">
         <input type="checkbox" id="epAvailable" style="width:18px;height:18px;accent-color:var(--gold);">
         <label for="epAvailable" class="form-label" style="margin:0;">متاح للبيع</label>
@@ -597,9 +608,9 @@
   window.closeModal = closeModal;
 
   // ── ImgBB Upload ──
-  // المفتاح يُحمَّل من Firestore أولاً، والقيمة الافتراضية كـ fallback
-  let IMGBB_KEY = ''; // loaded from Firestore settings/general
-  (async () => {
+  let IMGBB_KEY = '';
+  // نحمّل المفتاح مرة واحدة ونخزّن الـ Promise لنضمن انتهاء التحميل قبل أي رفع
+  const imgbbKeyReady = (async () => {
     try {
       const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
       const snap = await getDoc(doc(db, 'settings', 'general'));
@@ -607,41 +618,72 @@
     } catch {}
   })();
 
-  window.handleImageUpload = async function(input) {
-    const file = input.files[0];
-    if (!file) return;
-    // Show preview locally first
+  // دالة مشتركة لرفع صورة على ImgBB وتحديث حقل الـ URL والمعاينة
+  async function uploadImageToImgBB({ file, urlInputId, previewElId, previewWrapperId, placeholderId, uploadingId, areaId }) {
+    // تأكد من تحميل المفتاح أولاً
+    await imgbbKeyReady;
+    if (!IMGBB_KEY) {
+      showToast('لم يتم إعداد مفتاح ImgBB — اذهب إلى إعدادات المتجر وأدخل المفتاح', 'warning');
+      return;
+    }
+    // معاينة محلية فورية
     const reader = new FileReader();
     reader.onload = (e) => {
-      document.getElementById('imgPreviewEl').src = e.target.result;
-      document.getElementById('imgPreview').style.display = 'block';
+      if (previewElId)      document.getElementById(previewElId).src = e.target.result;
+      if (previewWrapperId) document.getElementById(previewWrapperId).style.display = 'block';
     };
     reader.readAsDataURL(file);
-    // Upload to ImgBB as WebP
-    document.getElementById('imgPlaceholder').style.display = 'none';
-    document.getElementById('imgUploading').style.display = 'block';
+    if (placeholderId) document.getElementById(placeholderId).style.display = 'none';
+    if (uploadingId)   document.getElementById(uploadingId).style.display = 'block';
     try {
       const webpBlob = await compressToWebP(file, 0.82);
       const formData = new FormData();
       formData.append('image', webpBlob, 'product.webp');
-      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
-        method: 'POST', body: formData
-      });
+      const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.success) {
-        document.getElementById('apImageUrl').value = data.data.url;
-        document.getElementById('imgUploading').style.display = 'none';
-        document.getElementById('imgUploadArea').style.borderColor = 'var(--green-light)';
-        showToast('تم رفع الصورة بصيغة WebP ✅', 'success');
+      if (data.success && data.data?.url) {
+        document.getElementById(urlInputId).value = data.data.url;
+        if (uploadingId) document.getElementById(uploadingId).style.display = 'none';
+        if (areaId)      document.getElementById(areaId).style.borderColor = 'var(--green-light)';
+        showToast('تم رفع الصورة ✅', 'success');
       } else {
-        throw new Error('فشل الرفع');
+        const msg = data.error?.message || 'رمز الخطأ: ' + (data.status_code || '?');
+        throw new Error(msg);
       }
     } catch (err) {
-      document.getElementById('imgUploading').style.display = 'none';
-      document.getElementById('imgPlaceholder').style.display = 'block';
-      document.getElementById('apImageUrl').value = '';
-      showToast('فشل رفع الصورة، حاول مجدداً', 'error');
+      if (uploadingId)   document.getElementById(uploadingId).style.display = 'none';
+      if (placeholderId) document.getElementById(placeholderId).style.display = 'block';
+      document.getElementById(urlInputId).value = '';
+      showToast('فشل رفع الصورة: ' + (err.message || 'خطأ غير معروف'), 'error');
     }
+  }
+
+  window.handleImageUpload = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    await uploadImageToImgBB({
+      file,
+      urlInputId:      'apImageUrl',
+      previewElId:     'imgPreviewEl',
+      previewWrapperId:'imgPreview',
+      placeholderId:   'imgPlaceholder',
+      uploadingId:     'imgUploading',
+      areaId:          'imgUploadArea',
+    });
+  };
+
+  window.handleEditImageUpload = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    await uploadImageToImgBB({
+      file,
+      urlInputId:      'epImageUrl',
+      previewElId:     'epImgPreviewEl',
+      previewWrapperId:'epImgPreview',
+      placeholderId:   'epImgPlaceholder',
+      uploadingId:     'epImgUploading',
+      areaId:          'epImgUploadArea',
+    });
   };
 
   // ── ضغط الصورة وتحويلها إلى WebP (مشتركة بين المنتجات والإعلانات) ──
@@ -2090,6 +2132,18 @@
     document.getElementById('epDesc').value       = p.description || '';
     document.getElementById('epEmoji').value      = p.emoji || '🍺';
     document.getElementById('epImageUrl').value = p.imageUrl || '';
+    // أعد تهيئة منطقة رفع الصورة
+    const epArea = document.getElementById('epImgUploadArea');
+    if (epArea) epArea.style.borderColor = '';
+    document.getElementById('epImgUploading').style.display = 'none';
+    if (p.imageUrl) {
+      document.getElementById('epImgPreviewEl').src = p.imageUrl;
+      document.getElementById('epImgPreview').style.display = 'block';
+      document.getElementById('epImgPlaceholder').style.display = 'none';
+    } else {
+      document.getElementById('epImgPreview').style.display = 'none';
+      document.getElementById('epImgPlaceholder').style.display = 'block';
+    }
     document.getElementById('epAvailable').checked = p.available !== false;
     document.getElementById('epUnavailableFrom').value  = p.unavailableFrom  || '';
     document.getElementById('epUnavailableUntil').value = p.unavailableUntil || '';
