@@ -1049,6 +1049,40 @@
           </div>
         </div>
 
+        <!-- حالة الدفع -->
+        ${(() => {
+          const pm = { cash:'💵 كاش', zaincash:'📱 ZainCash', card:'💳 بطاقة' }[o.paymentMethod] || o.paymentMethod || '—';
+          const ps = o.paymentStatus;
+          const psLabel = ps === 'pending' ? '⏳ عند الاستلام'
+            : ps === 'pending_verification' ? '🔎 ينتظر التحقق'
+            : ps === 'verified' ? '✅ تم التحقق'
+            : ps === 'rejected' ? '❌ مرفوض'
+            : ps === 'paid' ? '✅ مدفوع' : '';
+          const psColor = ps === 'pending_verification' ? '#e67e22'
+            : ps === 'verified' || ps === 'paid' ? 'var(--green)'
+            : ps === 'rejected' ? '#c0392b' : 'var(--text-muted)';
+          return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;
+            background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border);">
+            <span style="font-size:0.8rem;color:var(--text-muted);">الدفع:</span>
+            <span style="font-size:0.82rem;font-weight:700;">${pm}</span>
+            ${psLabel ? `<span style="font-size:0.78rem;font-weight:700;color:${psColor};margin-right:4px;">${psLabel}</span>` : ''}
+            ${o.paymentRef ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-right:auto;dir:ltr;">رقم العملية: ${o.paymentRef}</span>` : ''}
+          </div>`;
+        })()}
+
+        <!-- أزرار تأكيد/رفض الدفع -->
+        ${isAdmin && o.paymentStatus === 'pending_verification' ? `
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-sm" style="background:rgba(45,106,79,0.1);color:var(--green);border:1.5px solid rgba(45,106,79,0.3);flex:1;"
+              onclick="verifyPayment('${o.id}','verified')">
+              <i class="fas fa-check-circle"></i> تأكيد الدفع
+            </button>
+            <button class="btn btn-sm" style="background:rgba(192,57,43,0.08);color:#c0392b;border:1.5px solid rgba(192,57,43,0.2);flex:1;"
+              onclick="verifyPayment('${o.id}','rejected')">
+              <i class="fas fa-times-circle"></i> رفض الدفع
+            </button>
+          </div>` : ''}
+
         ${cancelNote}
         <div class="order-footer" style="margin-top:10px;">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
@@ -1082,6 +1116,15 @@
       </div>
     `;
   }
+
+  window.verifyPayment = async function(orderId, decision) {
+    try {
+      const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      await updateDoc(doc(db, 'orders', orderId), { paymentStatus: decision });
+      showToast(decision === 'verified' ? '✅ تم تأكيد الدفع' : '❌ تم رفض الدفع', decision === 'verified' ? 'success' : 'error');
+      await renderPage('orders');
+    } catch { showToast('حدث خطأ', 'error'); }
+  };
 
   window.openStatusModal = function(orderId, currentStatus) {
     document.getElementById('statusOrderId').value = orderId;
@@ -4341,103 +4384,104 @@
         </div>
       </div>
 
-      <!-- 3. Payment Gateway -->
+      <!-- 3. Payment Methods -->
       <div class="section-card" style="margin-bottom:18px;">
         <div class="section-card-header">
           <div class="section-card-title">
-            <i class="fas fa-credit-card" style="color:var(--gold);"></i> بوابة الدفع الإلكتروني
+            <i class="fas fa-wallet" style="color:var(--gold);"></i> طرق الدفع
           </div>
         </div>
         <div class="section-card-body">
-          <!-- Gateway selector -->
-          <div class="form-group">
-            <label class="form-label">بوابة الدفع</label>
-            <select class="form-input" id="setupPaymentGateway" onchange="togglePaymentFields()" style="background:var(--bg-elevated);">
-              <option value="stripe"   ${(payment.gateway||'stripe')==='stripe'   ? 'selected':''}>Stripe</option>
-              <option value="paypal"   ${payment.gateway==='paypal'   ? 'selected':''}>PayPal</option>
-              <option value="tap"      ${payment.gateway==='tap'      ? 'selected':''}>Tap Payments (الخليج)</option>
-              <option value="paytabs"  ${payment.gateway==='paytabs'  ? 'selected':''}>PayTabs</option>
-              <option value="manual"   ${payment.gateway==='manual'   ? 'selected':''}>دفع يدوي فقط (بدون بوابة)</option>
-            </select>
+
+          <!-- Cash -->
+          <div style="border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:${(payment.cashEnabled!==false) ? '0' : '0'};">
+              <div id="pmToggle_cash" class="toggle-switch ${payment.cashEnabled!==false ? 'on' : ''}"
+                onclick="togglePayMethod('cash',this)"></div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.92rem;">💵 دفع عند الاستلام</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">الزبون يدفع نقداً عند استلام الطلب</div>
+              </div>
+            </div>
           </div>
 
-          <!-- Stripe fields -->
-          <div id="payFields_stripe" style="${(payment.gateway||'stripe')==='stripe' ? '' : 'display:none'}">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Publishable Key (pk_)</label>
-                <input type="text" class="form-input" id="setupStripePublic"
-                  value="${payment.stripePublicKey || ''}" placeholder="pk_live_..." dir="ltr">
+          <!-- ZainCash -->
+          <div style="border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:${payment.zaincashEnabled ? '14px' : '0'};">
+              <div id="pmToggle_zaincash" class="toggle-switch ${payment.zaincashEnabled ? 'on' : ''}"
+                onclick="togglePayMethod('zaincash',this)"></div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.92rem;">📱 ZainCash (يدوي)</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">الزبون يحول ويرسل رقم العملية — أنت تؤكد</div>
+              </div>
+            </div>
+            <div id="pmFields_zaincash" style="${payment.zaincashEnabled ? '' : 'display:none'}">
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">رقم ZainCash التاجر</label>
+                <input type="tel" class="form-input" id="pmZaincashPhone"
+                  value="${payment.zaincashPhone || ''}" placeholder="07XXXXXXXXX" dir="ltr">
               </div>
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Secret Key (sk_)</label>
-                <div style="position:relative;">
-                  <input type="password" class="form-input" id="setupStripeSecret"
-                    value="${payment.stripeSecretKey || ''}" placeholder="sk_live_..." dir="ltr" style="padding-left:44px;">
-                  <button onclick="toggleVisibility('setupStripeSecret')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
-                    <i class="fas fa-eye"></i>
-                  </button>
+                <label class="form-label">تعليمات إضافية للزبون (اختياري)</label>
+                <input type="text" class="form-input" id="pmZaincashNote"
+                  value="${payment.zaincashNote || ''}" placeholder="مثال: اكتب رقم طلبك في ملاحظات التحويل">
+              </div>
+            </div>
+          </div>
+
+          <!-- Credit Card -->
+          <div style="border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:${payment.cardEnabled ? '14px' : '0'};">
+              <div id="pmToggle_card" class="toggle-switch ${payment.cardEnabled ? 'on' : ''}"
+                onclick="togglePayMethod('card',this)"></div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.92rem;">💳 بطاقة ائتمانية (يدوي)</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">الزبون يحول عبر البطاقة ويرسل رقم العملية</div>
+              </div>
+            </div>
+            <div id="pmFields_card" style="${payment.cardEnabled ? '' : 'display:none'}">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">تعليمات الدفع بالبطاقة للزبون</label>
+                <input type="text" class="form-input" id="pmCardNote"
+                  value="${payment.cardNote || ''}" placeholder="مثال: حوّل عبر تطبيق البنك إلى IBAN: IQ...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Method -->
+          <div style="border:1.5px dashed var(--border);border-radius:14px;padding:14px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:${payment.customEnabled ? '14px' : '0'};">
+              <div id="pmToggle_custom" class="toggle-switch ${payment.customEnabled ? 'on' : ''}"
+                onclick="togglePayMethod('custom',this)"></div>
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.92rem;">➕ طريقة مخصصة</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">أضف طريقة دفع خاصة بك</div>
+              </div>
+            </div>
+            <div id="pmFields_custom" style="${payment.customEnabled ? '' : 'display:none'}">
+              <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;margin-bottom:10px;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">أيقونة</label>
+                  <input type="text" class="form-input" id="pmCustomIcon"
+                    value="${payment.customIcon || '💰'}" placeholder="💰" style="text-align:center;font-size:1.2rem;">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">اسم طريقة الدفع</label>
+                  <input type="text" class="form-input" id="pmCustomLabel"
+                    value="${payment.customLabel || ''}" placeholder="مثال: Asia Hawala">
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- PayPal fields -->
-          <div id="payFields_paypal" style="${payment.gateway==='paypal' ? '' : 'display:none'}">
-            <div class="form-group">
-              <label class="form-label">Client ID</label>
-              <input type="text" class="form-input" id="setupPaypalClientId"
-                value="${payment.paypalClientId || ''}" placeholder="AXxx..." dir="ltr">
-            </div>
-          </div>
-
-          <!-- Tap fields -->
-          <div id="payFields_tap" style="${payment.gateway==='tap' ? '' : 'display:none'}">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Public Key</label>
-                <input type="text" class="form-input" id="setupTapPublic"
-                  value="${payment.tapPublicKey || ''}" placeholder="pk_live_..." dir="ltr">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Secret Key</label>
-                <div style="position:relative;">
-                  <input type="password" class="form-input" id="setupTapSecret"
-                    value="${payment.tapSecretKey || ''}" placeholder="sk_live_..." dir="ltr" style="padding-left:44px;">
-                  <button onclick="toggleVisibility('setupTapSecret')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
+                <label class="form-label">تعليمات للزبون</label>
+                <input type="text" class="form-input" id="pmCustomNote"
+                  value="${payment.customNote || ''}" placeholder="وصف كيفية الدفع وما يجب على الزبون فعله">
               </div>
             </div>
           </div>
 
-          <!-- PayTabs fields -->
-          <div id="payFields_paytabs" style="${payment.gateway==='paytabs' ? '' : 'display:none'}">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Profile ID</label>
-                <input type="text" class="form-input" id="setupPaytabsProfile"
-                  value="${payment.paytabsProfileId || ''}" placeholder="xxxxxx" dir="ltr">
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label class="form-label">Server Key</label>
-                <div style="position:relative;">
-                  <input type="password" class="form-input" id="setupPaytabsKey"
-                    value="${payment.paytabsServerKey || ''}" placeholder="SXXXXX..." dir="ltr" style="padding-left:44px;">
-                  <button onclick="toggleVisibility('setupPaytabsKey')" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin-top:16px;">
-            <button onclick="saveSetupSection('payment')" class="btn btn-primary btn-sm" id="savePaymentBtn">
-              <i class="fas fa-save"></i> حفظ مفاتيح الدفع
-            </button>
-          </div>
+          <button onclick="saveSetupSection('payment')" class="btn btn-primary btn-sm" id="savePaymentBtn">
+            <i class="fas fa-save"></i> حفظ طرق الدفع
+          </button>
         </div>
       </div>
 
@@ -4585,6 +4629,13 @@
       document.getElementById('previewPlatformShare').textContent = platformShare.toLocaleString('ar-IQ') + ' د.ع';
     };
 
+    // ── Toggle payment method on/off ──
+    window.togglePayMethod = function(method, btn) {
+      const isOn = btn.classList.toggle('on');
+      const fields = document.getElementById('pmFields_' + method);
+      if (fields) fields.style.display = isOn ? '' : 'none';
+    };
+
     // ── Save sections ──
     window.saveSetupSection = async function(section) {
       const btnId = { imgbb:'saveImgbbBtn', telegram:'saveTgBtn', payment:'savePaymentBtn', agents:'saveAgentsBtn', center:'saveCenterBtn' }[section];
@@ -4605,20 +4656,22 @@
           await setDoc(doc(db, 'settings', 'telegram'), { botToken, chatId }, { merge: true });
         }
         else if (section === 'payment') {
-          const gateway = document.getElementById('setupPaymentGateway').value;
-          const data = { gateway };
-          if (gateway === 'stripe') {
-            data.stripePublicKey = document.getElementById('setupStripePublic').value.trim();
-            data.stripeSecretKey = document.getElementById('setupStripeSecret').value.trim();
-          } else if (gateway === 'paypal') {
-            data.paypalClientId = document.getElementById('setupPaypalClientId').value.trim();
-          } else if (gateway === 'tap') {
-            data.tapPublicKey = document.getElementById('setupTapPublic').value.trim();
-            data.tapSecretKey = document.getElementById('setupTapSecret').value.trim();
-          } else if (gateway === 'paytabs') {
-            data.paytabsProfileId  = document.getElementById('setupPaytabsProfile').value.trim();
-            data.paytabsServerKey  = document.getElementById('setupPaytabsKey').value.trim();
-          }
+          const cashEnabled    = document.getElementById('pmToggle_cash').classList.contains('on');
+          const zaincashEnabled = document.getElementById('pmToggle_zaincash').classList.contains('on');
+          const cardEnabled    = document.getElementById('pmToggle_card').classList.contains('on');
+          const customEnabled  = document.getElementById('pmToggle_custom').classList.contains('on');
+          const data = {
+            cashEnabled,
+            zaincashEnabled,
+            zaincashPhone: document.getElementById('pmZaincashPhone').value.trim(),
+            zaincashNote:  document.getElementById('pmZaincashNote').value.trim(),
+            cardEnabled,
+            cardNote:      document.getElementById('pmCardNote').value.trim(),
+            customEnabled,
+            customIcon:    document.getElementById('pmCustomIcon').value.trim() || '💰',
+            customLabel:   document.getElementById('pmCustomLabel').value.trim(),
+            customNote:    document.getElementById('pmCustomNote').value.trim(),
+          };
           await setDoc(doc(db, 'settings', 'payment'), data);
         }
         else if (section === 'agents') {

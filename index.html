@@ -319,52 +319,59 @@
       </div>
 
       <!-- ── Payment Method ── -->
-      <div class="form-group">
+      <div class="form-group" id="paymentMethodSection">
         <label class="form-label">طريقة الدفع <span style="color:var(--gold-dark);">*</span></label>
-        <div class="payment-methods">
+        <!-- يُبنى ديناميكياً من إعدادات Firestore -->
+        <div class="payment-methods" id="paymentMethodCards">
           <div class="payment-method-card selected" data-method="cash" onclick="selectPayment('cash')">
             <span class="payment-method-icon">💵</span>
             <span class="payment-method-label">دفع عند الاستلام</span>
           </div>
-          <div class="payment-method-card" data-method="zaincash" onclick="selectPayment('zaincash')">
-            <span class="payment-method-icon">📱</span>
-            <span class="payment-method-label">ZainCash</span>
-          </div>
-          <div class="payment-method-card" data-method="card" onclick="selectPayment('card')">
-            <span class="payment-method-icon">💳</span>
-            <span class="payment-method-label">بطاقة ائتمانية</span>
-          </div>
         </div>
 
-        <!-- ZainCash Fields -->
+        <!-- حقول ZainCash اليدوي -->
         <div id="zaincash-fields" style="display:none;">
           <div style="background:rgba(26,86,219,0.06);border:1.5px solid rgba(26,86,219,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
-            <div style="font-size:0.82rem;font-weight:700;color:#1a56db;margin-bottom:8px;"><i class="fas fa-mobile-alt" style="margin-left:6px;"></i>ZainCash — دفع إلكتروني</div>
-            <div class="form-group" style="margin-bottom:10px;">
-              <label class="form-label">رقم ZainCash</label>
-              <input type="tel" class="form-input" id="zaincashPhone" placeholder="07XXXXXXXXX" inputmode="numeric">
+            <div style="font-size:0.82rem;font-weight:700;color:#1a56db;margin-bottom:10px;">
+              <i class="fas fa-mobile-alt" style="margin-left:6px;"></i>ZainCash — تحويل يدوي
             </div>
-            <div style="font-size:0.76rem;color:var(--text-muted);">سيتم إرسال طلب دفع إلى رقمك عبر تطبيق ZainCash</div>
+            <!-- رقم التاجر — يُملأ من الإعدادات -->
+            <div id="zaincashMerchantBox" style="background:rgba(26,86,219,0.08);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:none;">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">حوّل المبلغ إلى هذا الرقم:</div>
+              <div id="zaincashMerchantNum" style="font-size:1.1rem;font-weight:800;color:#1a56db;letter-spacing:2px;dir:ltr;"></div>
+            </div>
+            <div id="zaincashNoteBox" style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;display:none;"></div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">رقم عملية التحويل <span style="color:var(--gold-dark);">*</span></label>
+              <input type="text" class="form-input" id="paymentRef"
+                placeholder="أدخل رقم العملية بعد التحويل" dir="ltr" inputmode="numeric">
+            </div>
           </div>
         </div>
 
-        <!-- Credit Card Fields -->
+        <!-- حقول بطاقة يدوي -->
         <div id="card-fields" style="display:none;">
           <div style="background:rgba(45,106,79,0.06);border:1.5px solid rgba(45,106,79,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
-            <div style="font-size:0.82rem;font-weight:700;color:var(--green);margin-bottom:10px;"><i class="fas fa-credit-card" style="margin-left:6px;"></i>بطاقة ائتمانية</div>
-            <div class="form-group" style="margin-bottom:10px;">
-              <label class="form-label">رقم البطاقة</label>
-              <input type="text" class="form-input" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" oninput="formatCardNumber(this)">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--green);margin-bottom:10px;">
+              <i class="fas fa-credit-card" style="margin-left:6px;"></i>بطاقة ائتمانية — تحويل يدوي
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0;">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">تاريخ الانتهاء</label>
-                <input type="text" class="form-input" id="cardExpiry" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)">
-              </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">CVV</label>
-                <input type="text" class="form-input" id="cardCvv" placeholder="XXX" maxlength="3" inputmode="numeric">
-              </div>
+            <div id="cardNoteBox" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7;"></div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">رقم عملية التحويل <span style="color:var(--gold-dark);">*</span></label>
+              <input type="text" class="form-input" id="cardPaymentRef"
+                placeholder="أدخل رقم العملية بعد الدفع" dir="ltr" inputmode="numeric">
+            </div>
+          </div>
+        </div>
+
+        <!-- حقول طريقة مخصصة -->
+        <div id="custom-fields" style="display:none;">
+          <div style="background:rgba(184,146,42,0.06);border:1.5px solid rgba(184,146,42,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
+            <div id="customNoteBox" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7;"></div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">رقم عملية التحويل <span style="color:var(--gold-dark);">*</span></label>
+              <input type="text" class="form-input" id="customPaymentRef"
+                placeholder="أدخل رقم العملية" dir="ltr" inputmode="numeric">
             </div>
           </div>
         </div>
@@ -1053,6 +1060,17 @@
     document.body.style.overflow = '';
   };
 
+  // ── Payment settings cache ──
+  let _paySettings = null;
+  const _paySettingsReady = (async () => {
+    try {
+      const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+      const { db } = await import('./js/firebase-config.js');
+      const snap = await getDoc(doc(db, 'settings', 'payment'));
+      if (snap.exists()) _paySettings = snap.data();
+    } catch {}
+  })();
+
   // ── Payment Selection ──
   window.selectPayment = function(method) {
     selectedPayment = method;
@@ -1060,26 +1078,54 @@
       el.classList.toggle('selected', el.dataset.method === method)
     );
     document.getElementById('zaincash-fields').style.display = method === 'zaincash' ? 'block' : 'none';
-    document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
+    document.getElementById('card-fields').style.display    = method === 'card'      ? 'block' : 'none';
+    document.getElementById('custom-fields').style.display  = method === 'custom'    ? 'block' : 'none';
   };
 
-  // ── Card number formatter ──
-  window.formatCardNumber = function(el) {
-    let v = el.value.replace(/\D/g, '').slice(0, 16);
-    el.value = v.match(/.{1,4}/g)?.join(' ') || v;
-  };
-  window.formatExpiry = function(el) {
-    let v = el.value.replace(/\D/g, '').slice(0, 4);
-    if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
-    el.value = v;
-  };
+  // ── Build payment method cards from settings ──
+  function buildPaymentMethods(ps) {
+    const wrap = document.getElementById('paymentMethodCards');
+    wrap.innerHTML = '';
+    const methods = [];
+    if (!ps || ps.cashEnabled !== false)  methods.push({ id:'cash',     icon:'💵', label:'دفع عند الاستلام' });
+    if (ps?.zaincashEnabled)              methods.push({ id:'zaincash', icon:'📱', label:'ZainCash' });
+    if (ps?.cardEnabled)                  methods.push({ id:'card',     icon:'💳', label:'بطاقة ائتمانية' });
+    if (ps?.customEnabled && ps?.customLabel) methods.push({ id:'custom', icon: ps.customIcon||'💰', label: ps.customLabel });
+    if (!methods.length) methods.push({ id:'cash', icon:'💵', label:'دفع عند الاستلام' });
+
+    methods.forEach((m, i) => {
+      const div = document.createElement('div');
+      div.className = 'payment-method-card' + (i === 0 ? ' selected' : '');
+      div.dataset.method = m.id;
+      div.onclick = () => selectPayment(m.id);
+      div.innerHTML = `<span class="payment-method-icon">${m.icon}</span><span class="payment-method-label">${m.label}</span>`;
+      wrap.appendChild(div);
+    });
+
+    // ZainCash merchant info
+    if (ps?.zaincashPhone) {
+      document.getElementById('zaincashMerchantBox').style.display = '';
+      document.getElementById('zaincashMerchantNum').textContent   = ps.zaincashPhone;
+    }
+    if (ps?.zaincashNote) {
+      document.getElementById('zaincashNoteBox').style.display = '';
+      document.getElementById('zaincashNoteBox').textContent   = ps.zaincashNote;
+    }
+    if (ps?.cardNote)   document.getElementById('cardNoteBox').textContent   = ps.cardNote;
+    if (ps?.customNote) document.getElementById('customNoteBox').textContent = ps.customNote;
+
+    // Select first by default
+    selectedPayment = methods[0].id;
+  }
 
   // ── Checkout ──
-  window.openCheckout = function() {
+  window.openCheckout = async function() {
     const cart = getCart();
     if (!cart.length) { showToast('السلة فارغة', 'warning'); return; }
     closeCartDrawer();
     if (currentProfile) document.getElementById('chName').value = currentProfile.name || '';
+    await _paySettingsReady;
+    buildPaymentMethods(_paySettings);
     updateCheckoutTotals();
     openModal('checkoutModal');
   };
@@ -1209,13 +1255,19 @@
         return;
       }
     }
+    // التحقق من رقم العملية للدفع اليدوي
+    let _payRef = '';
+    if (selectedPayment === 'zaincash') {
+      _payRef = document.getElementById('paymentRef').value.trim();
+      if (!_payRef) { showToast('أدخل رقم عملية التحويل', 'warning'); return; }
+    }
     if (selectedPayment === 'card') {
-      const cn = document.getElementById('cardNumber').value.replace(/\s/g,'');
-      const ex = document.getElementById('cardExpiry').value;
-      const cv = document.getElementById('cardCvv').value;
-      if (cn.length < 16) { showToast('رقم البطاقة غير صحيح', 'warning'); return; }
-      if (!ex || ex.length < 5) { showToast('تاريخ انتهاء البطاقة غير صحيح', 'warning'); return; }
-      if (cv.length < 3) { showToast('رمز CVV غير صحيح', 'warning'); return; }
+      _payRef = document.getElementById('cardPaymentRef').value.trim();
+      if (!_payRef) { showToast('أدخل رقم عملية الدفع بالبطاقة', 'warning'); return; }
+    }
+    if (selectedPayment === 'custom') {
+      _payRef = document.getElementById('customPaymentRef').value.trim();
+      if (!_payRef) { showToast('أدخل رقم العملية', 'warning'); return; }
     }
 
     const btn = document.getElementById('placeOrderBtn');
@@ -1223,13 +1275,6 @@
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
 
     try {
-      // Simulate payment processing for non-cash
-      if (selectedPayment !== 'cash') {
-        closeModal('checkoutModal');
-        openModal('paymentProcessingModal');
-        await new Promise(r => setTimeout(r, 2200)); // simulate gateway
-        closeModal('paymentProcessingModal');
-      }
 
       const cart = getCart();
       const _cartTotal = getCartTotal(cart);
@@ -1263,7 +1308,8 @@
         location:      { lat: selectedLocation.lat, lng: selectedLocation.lng },
         deliveryFee:   fee,
         paymentMethod: selectedPayment,
-        paymentStatus: selectedPayment === 'cash' ? 'pending' : 'paid',
+        paymentRef:    _payRef || null,
+        paymentStatus: selectedPayment === 'cash' ? 'pending' : 'pending_verification',
         suggestedAgentId:   selectedLocation.agent?.id   || null,
         suggestedAgentName: selectedLocation.agent?.name || null,
         agentShare:    safeAgentShare,
