@@ -4411,15 +4411,26 @@
               <div id="pmToggle_zaincash" class="toggle-switch ${payment.zaincashEnabled ? 'on' : ''}"
                 onclick="togglePayMethod('zaincash',this)"></div>
               <div style="flex:1;">
-                <div style="font-weight:700;font-size:0.92rem;">📱 ZainCash (يدوي)</div>
-                <div style="font-size:0.75rem;color:var(--text-muted);">الزبون يحول ويرسل رقم العملية — أنت تؤكد</div>
+                <div style="font-weight:700;font-size:0.92rem;">📱 ZainCash</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">الزبون يسكن الباركود أو يضغط الرابط — ثم يرسل رقم العملية</div>
               </div>
             </div>
             <div id="pmFields_zaincash" style="${payment.zaincashEnabled ? '' : 'display:none'}">
+              <div style="background:rgba(26,86,219,0.05);border:1px solid rgba(26,86,219,0.15);border-radius:10px;padding:12px;margin-bottom:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.7;">
+                <strong style="color:#1a56db;">كيف تحصل على الباركود؟</strong><br>
+                افتح تطبيق ZainCash ← اضغط "استلام" ← اختر مبلغ أو اتركه فارغ ← خذ سكرينشوت للباركود ← ارفعه على ImgBB ← انسخ الرابط هنا
+              </div>
               <div class="form-group" style="margin-bottom:10px;">
-                <label class="form-label">رقم ZainCash التاجر</label>
-                <input type="tel" class="form-input" id="pmZaincashPhone"
-                  value="${payment.zaincashPhone || ''}" placeholder="07XXXXXXXXX" dir="ltr">
+                <label class="form-label">رابط صورة الباركود (QR Code) <span style="color:var(--gold-dark);">*</span></label>
+                <input type="url" class="form-input" id="pmZaincashQr"
+                  value="${payment.zaincashQr || ''}" placeholder="https://i.ibb.co/..." dir="ltr">
+                ${payment.zaincashQr ? `<img src="${payment.zaincashQr}" style="width:100px;height:100px;object-fit:contain;margin-top:8px;border-radius:8px;border:1px solid var(--border);">` : ''}
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label class="form-label">رابط الدفع المباشر (اختياري)</label>
+                <input type="url" class="form-input" id="pmZaincashLink"
+                  value="${payment.zaincashLink || ''}" placeholder="https://zaincash.iq/pay/..." dir="ltr">
+                <div style="font-size:0.73rem;color:var(--text-muted);margin-top:4px;">إذا كان لديك رابط دفع من ZainCash، يظهر للزبون كزر</div>
               </div>
               <div class="form-group" style="margin:0;">
                 <label class="form-label">تعليمات إضافية للزبون (اختياري)</label>
@@ -4663,7 +4674,8 @@
           const data = {
             cashEnabled,
             zaincashEnabled,
-            zaincashPhone: document.getElementById('pmZaincashPhone').value.trim(),
+            zaincashQr:    document.getElementById('pmZaincashQr').value.trim(),
+            zaincashLink:  document.getElementById('pmZaincashLink').value.trim(),
             zaincashNote:  document.getElementById('pmZaincashNote').value.trim(),
             cardEnabled,
             cardNote:      document.getElementById('pmCardNote').value.trim(),

@@ -333,12 +333,20 @@
         <div id="zaincash-fields" style="display:none;">
           <div style="background:rgba(26,86,219,0.06);border:1.5px solid rgba(26,86,219,0.2);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;">
             <div style="font-size:0.82rem;font-weight:700;color:#1a56db;margin-bottom:10px;">
-              <i class="fas fa-mobile-alt" style="margin-left:6px;"></i>ZainCash — تحويل يدوي
+              <i class="fas fa-mobile-alt" style="margin-left:6px;"></i>ZainCash
             </div>
-            <!-- رقم التاجر — يُملأ من الإعدادات -->
-            <div id="zaincashMerchantBox" style="background:rgba(26,86,219,0.08);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:none;">
-              <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">حوّل المبلغ إلى هذا الرقم:</div>
-              <div id="zaincashMerchantNum" style="font-size:1.1rem;font-weight:800;color:#1a56db;letter-spacing:2px;dir:ltr;"></div>
+            <!-- QR Code الباركود — يُملأ من الإعدادات -->
+            <div id="zaincashQrBox" style="display:none;text-align:center;margin-bottom:12px;">
+              <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:8px;">سكّن الباركود بتطبيق ZainCash لإتمام الدفع</div>
+              <img id="zaincashQrImg" src="" alt="ZainCash QR"
+                style="width:160px;height:160px;object-fit:contain;border-radius:12px;border:2px solid rgba(26,86,219,0.25);background:#fff;padding:6px;">
+            </div>
+            <!-- زر رابط الدفع المباشر — اختياري -->
+            <div id="zaincashLinkBox" style="display:none;margin-bottom:12px;">
+              <a id="zaincashPayLink" href="#" target="_blank" rel="noopener"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1a56db;color:#fff;border-radius:10px;padding:12px;font-weight:700;font-size:0.92rem;text-decoration:none;">
+                <i class="fas fa-external-link-alt"></i> افتح ZainCash وادفع الآن
+              </a>
             </div>
             <div id="zaincashNoteBox" style="font-size:0.76rem;color:var(--text-muted);margin-bottom:10px;display:none;"></div>
             <div class="form-group" style="margin-bottom:0;">
@@ -1102,10 +1110,14 @@
       wrap.appendChild(div);
     });
 
-    // ZainCash merchant info
-    if (ps?.zaincashPhone) {
-      document.getElementById('zaincashMerchantBox').style.display = '';
-      document.getElementById('zaincashMerchantNum').textContent   = ps.zaincashPhone;
+    // ZainCash QR + link
+    if (ps?.zaincashQr) {
+      document.getElementById('zaincashQrBox').style.display = '';
+      document.getElementById('zaincashQrImg').src           = ps.zaincashQr;
+    }
+    if (ps?.zaincashLink) {
+      document.getElementById('zaincashLinkBox').style.display = '';
+      document.getElementById('zaincashPayLink').href          = ps.zaincashLink;
     }
     if (ps?.zaincashNote) {
       document.getElementById('zaincashNoteBox').style.display = '';
