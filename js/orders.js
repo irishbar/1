@@ -11,8 +11,7 @@ import {
 export const CUSTOMER_CANCELLABLE_STATUSES = ['جديد', 'قيد التجهيز'];
 
 // رابط قاعدة التطبيق (يُستخدم في روابط التليجرام)
-// نقرأه من Firestore أولاً (settings/general.appUrl)، وهذا هو الافتراضي
-let APP_BASE_URL = 'https://irish-a68ec.web.app';
+let APP_BASE_URL = 'https://irishbar.github.io/1';
 (async () => {
   try {
     const snap = await getDoc(doc(db, 'settings', 'general'));
@@ -90,7 +89,7 @@ async function sendAgentTelegramNotification(order, agent) {
     const agentShare2    = order.agentShare    || 0;
     const platformShare2 = order.platformShare || 0;
     const grandTotal = productsTotal + (order.deliveryFee || 0) + agentShare2 + platformShare2;
-    const orderLink = `${APP_BASE_URL}/pages/agent-dashboard.html`;
+    const orderLink = `${APP_BASE_URL}/pages/agent-dashboard.html?order=${order.id}`;
 
     const commissionLines2 = (agentShare2 > 0 || platformShare2 > 0)
       ? `\n💸 عمولتك: ${fmt(agentShare2)}\n🏢 عمولة المنصة: ${fmt(platformShare2)}`
@@ -110,7 +109,7 @@ ${itemLines}
 🚚 أجرة التوصيل: ${fmt(order.deliveryFee || 0)}${commissionLines2}
 💰 *المجموع الكلي: ${fmt(grandTotal)}*
 ━━━━━━━━━━━━━━━━━━${mapLine}
-🔗 [افتح لوحة الوكيل لتعيين السائق](${orderLink})`;
+🔗 [تعيين سائق ومتابعة الطلب](${orderLink})`;
 
     const res  = await fetch(
       `https://api.telegram.org/bot${tg.botToken}/sendMessage`,

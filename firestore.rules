@@ -192,6 +192,10 @@ service cloud.firestore {
       allow read:  if true;
       allow write: if isAdmin();
     }
+    match /settings/telegram {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
     match /settings/{docId} {
       allow read:  if isAdmin();
       allow write: if isAdmin();

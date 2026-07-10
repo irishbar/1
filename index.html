@@ -14,6 +14,12 @@
   <title>Irish Bar — المتجر</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
 
+  <!-- Google Fonts — non-blocking (لا يعيق التحميل) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap"></noscript>
+
   <!-- Preconnect to external domains early -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -1618,7 +1624,34 @@
             </div>`).join('')}
          </div>` : '';
 
-    if (item.type === 'image' && item.imageUrl) {
+    if (item.type === 'video' && item.videoUrl) {
+      // Pause auto-slide when video is showing
+      if (_bannerTimer) { clearInterval(_bannerTimer); _bannerTimer = null; }
+      const ytId = (item.videoUrl.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([A-Za-z0-9_-]{11})/) || [])[1];
+      const isDirect = /\.(mp4|webm|ogg)(\?|$)/i.test(item.videoUrl);
+      const videoEl = ytId
+        ? `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0"
+             style="width:100%;height:100%;border:none;display:block;" allowfullscreen loading="lazy"></iframe>`
+        : isDirect
+          ? `<video src="${item.videoUrl}" controls style="width:100%;height:100%;object-fit:contain;display:block;" preload="metadata"></video>`
+          : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;">رابط فيديو غير صالح</div>`;
+      wrap.innerHTML = `
+        <div style="border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-md);
+          background:#000;aspect-ratio:16/9;position:relative;">
+          ${videoEl}
+          ${item.title ? `
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 14px;
+            background:linear-gradient(0deg,rgba(0,0,0,0.65) 0%,transparent 100%);">
+            <div style="color:#fff;font-family:var(--font-display);font-weight:800;font-size:0.95rem;">${item.title}</div>
+            ${item.subtitle ? `<div style="color:rgba(255,255,255,0.8);font-size:0.75rem;margin-top:2px;">${item.subtitle}</div>` : ''}
+          </div>` : ''}
+        </div>
+        ${dots}`;
+      // Resume timer after 30s if multiple banners
+      if (_bannerItems.length > 1) {
+        setTimeout(() => startBannerTimer(wrap), 30000);
+      }
+    } else if (item.type === 'image' && item.imageUrl) {
       wrap.innerHTML = `
         <div class="promo-banner-img" onclick="${item.link ? `window.open('${item.link}','_blank')` : ''}"
           style="cursor:${item.link?'pointer':'default'};">

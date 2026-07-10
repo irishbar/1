@@ -12,7 +12,13 @@
   <link rel="apple-touch-icon" href="../icon-192.png">
   <title>Irish Bar — لوحة التحكم</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥃</text></svg>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts — non-blocking -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap"></noscript>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/dashboard.css">
   <script>
@@ -2649,22 +2655,36 @@
     ];
 
     function promoCard(p) {
-      const isImg = p.type === 'image' && p.imageUrl;
+      const isImg   = p.type === 'image' && p.imageUrl;
+      const isVideo = p.type === 'video';
       const bg = p.bgColor || 'linear-gradient(135deg,var(--bg-card),var(--gold-pale))';
       const isGrad = bg.startsWith('linear') || bg.startsWith('radial');
+      const ytId = isVideo ? getYtId(p.videoUrl||'') : null;
+      const videoThumb = isVideo && ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : null;
       return `<div style="border:1.5px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg-card);margin-bottom:14px;">
         <!-- Preview -->
         <div style="height:100px;position:relative;overflow:hidden;
-          ${isImg ? '' : (isGrad ? `background:${bg}` : `background-color:${bg}`)};
-          ${isImg ? '' : ''}">
+          ${isImg||isVideo ? '' : (isGrad ? `background:${bg}` : `background-color:${bg}`)};
+          ${isImg||isVideo ? '' : ''}">
           ${isImg
             ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
-            : `<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:16px;">
-                <div style="font-family:var(--font-display);font-weight:800;font-size:1rem;
-                  color:${p.textColor||'var(--gold-dark)'};margin-bottom:4px;">${p.title||'بدون عنوان'}</div>
-                ${p.subtitle ? `<div style="font-size:0.78rem;color:${p.textColor||'var(--gold-dark)'};opacity:0.75;">${p.subtitle}</div>` : ''}
-                ${p.badge ? `<div style="display:inline-block;margin-top:8px;background:var(--gold);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;">${p.badge}</div>` : ''}
-              </div>`}
+            : isVideo
+              ? (videoThumb
+                  ? `<img src="${videoThumb}" style="width:100%;height:100%;object-fit:cover;">
+                     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);">
+                       <div style="width:36px;height:36px;background:rgba(255,0,0,0.85);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                         <i class="fas fa-play" style="color:#fff;font-size:14px;margin-right:-2px;"></i>
+                       </div>
+                     </div>`
+                  : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#111;">
+                       <i class="fas fa-film" style="font-size:2rem;color:#888;"></i>
+                     </div>`)
+              : `<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:16px;">
+                  <div style="font-family:var(--font-display);font-weight:800;font-size:1rem;
+                    color:${p.textColor||'var(--gold-dark)'};margin-bottom:4px;">${p.title||'بدون عنوان'}</div>
+                  ${p.subtitle ? `<div style="font-size:0.78rem;color:${p.textColor||'var(--gold-dark)'};opacity:0.75;">${p.subtitle}</div>` : ''}
+                  ${p.badge ? `<div style="display:inline-block;margin-top:8px;background:var(--gold);color:#fff;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;">${p.badge}</div>` : ''}
+                </div>`}
         </div>
         <!-- Info row -->
         <div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">
@@ -2673,7 +2693,7 @@
               ${p.title || '—'}
             </div>
             <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
-              ${p.type==='image'?'🖼 صورة':'📝 نص'} · ترتيب: ${p.order??0}
+              ${p.type==='image'?'🖼 صورة':p.type==='video'?'🎬 فيديو':'📝 نص'} · ترتيب: ${p.order??0}
             </div>
           </div>
           <span style="padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;flex-shrink:0;
@@ -2723,14 +2743,18 @@
             <input type="hidden" id="promoEditId">
 
             <!-- Type selector -->
-            <div style="display:flex;gap:10px;margin-bottom:18px;">
+            <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
               <button id="typeBtn_text" onclick="setPromoType('text')"
-                class="btn btn-primary btn-sm" style="flex:1;">
-                📝 عرض نصي
+                class="btn btn-primary btn-sm" style="flex:1;min-width:90px;">
+                📝 نصي
               </button>
               <button id="typeBtn_image" onclick="setPromoType('image')"
-                class="btn btn-ghost btn-sm" style="flex:1;">
-                🖼 إعلان بصورة
+                class="btn btn-ghost btn-sm" style="flex:1;min-width:90px;">
+                🖼 صورة
+              </button>
+              <button id="typeBtn_video" onclick="setPromoType('video')"
+                class="btn btn-ghost btn-sm" style="flex:1;min-width:90px;">
+                🎬 فيديو
               </button>
             </div>
 
@@ -2851,6 +2875,23 @@
               </div>
             </div>
 
+            <!-- VIDEO fields -->
+            <div id="promoVideoFields" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">رابط الفيديو</label>
+                <input type="url" class="form-input" id="promoVideoUrl" dir="ltr"
+                  placeholder="https://youtube.com/watch?v=... أو رابط MP4 مباشر"
+                  oninput="previewPromoVideo()">
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+                  <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube &nbsp;·&nbsp;
+                  <i class="fas fa-film"></i> MP4 / WebM مباشر
+                </div>
+              </div>
+              <div id="promoVideoPreviewArea" style="display:none;border-radius:12px;overflow:hidden;margin-bottom:14px;background:#000;aspect-ratio:16/9;max-height:180px;position:relative;">
+                <!-- preview injected here -->
+              </div>
+            </div>
+
             <!-- Link (optional) -->
             <div class="form-group">
               <label class="form-label">رابط عند الضغط (اختياري)</label>
@@ -2891,13 +2932,41 @@
     let selectedBgPreset = 0;
     let selectedTextColor = 'var(--gold-dark)';
 
+    // ── Helper: استخراج YouTube ID ──
+    function getYtId(url) {
+      const m = (url||'').match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
     // ── Type toggle ──
     window.setPromoType = function(type) {
       currentPromoType = type;
       document.getElementById('promoTextFields').style.display  = type==='text'  ? '' : 'none';
       document.getElementById('promoImageFields').style.display = type==='image' ? '' : 'none';
+      document.getElementById('promoVideoFields').style.display = type==='video' ? '' : 'none';
       document.getElementById('typeBtn_text').className  = `btn btn-sm ${type==='text'  ? 'btn-primary' : 'btn-ghost'} `;
       document.getElementById('typeBtn_image').className = `btn btn-sm ${type==='image' ? 'btn-primary' : 'btn-ghost'} `;
+      document.getElementById('typeBtn_video').className = `btn btn-sm ${type==='video' ? 'btn-primary' : 'btn-ghost'} `;
+    };
+
+    // ── Video Preview ──
+    window.previewPromoVideo = function() {
+      const url   = (document.getElementById('promoVideoUrl').value || '').trim();
+      const area  = document.getElementById('promoVideoPreviewArea');
+      if (!url) { area.style.display = 'none'; return; }
+      const ytId  = getYtId(url);
+      if (ytId) {
+        area.style.display = '';
+        area.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0"
+          style="width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe>`;
+      } else if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
+        area.style.display = '';
+        area.innerHTML = `<video src="${url}" controls style="width:100%;height:100%;object-fit:contain;"
+          preload="metadata"></video>`;
+      } else {
+        area.style.display = 'none';
+        showToast('رابط غير معروف — أدخل رابط YouTube أو MP4 مباشر', 'warning');
+      }
     };
 
     // ── BG Preset ──
@@ -3015,6 +3084,9 @@
       document.getElementById('promoImgPreview').style.display   = 'none';
       document.getElementById('promoImgPlaceholder').style.display = 'block';
       document.getElementById('promoImgArea').style.borderColor  = '';
+      document.getElementById('promoVideoUrl').value = '';
+      document.getElementById('promoVideoPreviewArea').style.display = 'none';
+      document.getElementById('promoVideoPreviewArea').innerHTML = '';
       document.getElementById('promoFormTitle').innerHTML = '<i class="fas fa-plus-circle"></i> إعلان جديد';
       document.getElementById('savePromoLabel').textContent = 'حفظ الإعلان';
       setPromoType('text');
@@ -3031,6 +3103,9 @@
       if (!title) { showToast('أدخل عنواناً للإعلان', 'warning'); return; }
       if (currentPromoType === 'image' && !document.getElementById('promoImgUrl').value) {
         showToast('ارفع صورة أولاً', 'warning'); return;
+      }
+      if (currentPromoType === 'video' && !document.getElementById('promoVideoUrl').value.trim()) {
+        showToast('أدخل رابط الفيديو أولاً', 'warning'); return;
       }
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
@@ -3049,8 +3124,10 @@
         data.bgColor   = document.getElementById('promoBgValue').value;
         data.textColor = document.getElementById('promoTextColor').value;
         data.emoji     = document.getElementById('promoEmoji').value || '🍀';
-      } else {
+      } else if (currentPromoType === 'image') {
         data.imageUrl  = document.getElementById('promoImgUrl').value;
+      } else if (currentPromoType === 'video') {
+        data.videoUrl  = document.getElementById('promoVideoUrl').value.trim();
       }
 
       try {
@@ -3088,6 +3165,10 @@
         document.getElementById('promoImgPreviewEl').src = p.imageUrl;
         document.getElementById('promoImgPreview').style.display = 'block';
         document.getElementById('promoImgPlaceholder').style.display = 'none';
+      }
+      if (p.type === 'video' && p.videoUrl) {
+        document.getElementById('promoVideoUrl').value = p.videoUrl;
+        previewPromoVideo();
       }
       if (p.type !== 'image' && p.bgColor) {
         // Check if matches a preset

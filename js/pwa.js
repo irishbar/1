@@ -6,51 +6,72 @@
   'use strict';
 
   // ── 1. Register Service Worker ─────────────────────────────────────────
-  // Detect base path automatically (works on GitHub Pages subdirectory)
   const BASE_PATH = (function() {
     const scripts = document.querySelectorAll('script[src]');
     for (const s of scripts) {
-      if (s.src.includes('/js/pwa.js')) {
-        return s.src.replace('/js/pwa.js', '/');
-      }
+      if (s.src.includes('/js/pwa.js')) return s.src.replace('/js/pwa.js', '/');
     }
-    // fallback: derive from current page location
     const loc = window.location.href;
-    const idx = loc.lastIndexOf('/');
-    return loc.substring(0, idx + 1);
+    return loc.substring(0, loc.lastIndexOf('/') + 1);
   })();
 
+  // ── Auto-update: reload when new SW takes over ─────────────────────────
+  // Track whether a SW was already controlling this page BEFORE registration
+  const _hadController = !!navigator.serviceWorker.controller;
+  let _reloadPending = false;
+
   if ('serviceWorker' in navigator) {
+    // When a new SW activates and claims this client → auto-reload
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!_hadController) return; // first install on this device, skip
+      if (_reloadPending) return;
+      _reloadPending = true;
+
+      if (document.hidden) {
+        // App is in background — reload silently
+        window.location.reload();
+      } else {
+        // App is in foreground — brief bar then auto-reload (no button needed)
+        _showAutoUpdateBar();
+      }
+    });
+
+    // If app comes back to foreground while a reload is pending, do it then
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && _reloadPending) window.location.reload();
+    });
+
     window.addEventListener('load', () => {
-      // Use path relative to BASE_PATH so it works on any GitHub Pages URL
       const swUrl = BASE_PATH + 'sw.js';
       navigator.serviceWorker.register(swUrl, { scope: BASE_PATH })
         .then(reg => {
-          console.log('[PWA] Service Worker registered', reg.scope);
-
-          // Check for SW updates every 60 seconds
-          setInterval(() => reg.update(), 60000);
-
-          // Notify app when new SW is waiting
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                showUpdateBanner();
-              }
-            });
-          });
+          // Immediate update check on load + every 30 seconds
+          reg.update().catch(() => {});
+          setInterval(() => reg.update().catch(() => {}), 30000);
         })
         .catch(err => console.warn('[PWA] SW registration failed:', err));
 
-      // Listen to SW messages
       navigator.serviceWorker.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'SYNC_ORDERS') {
           console.log('[PWA] Background sync triggered');
         }
       });
     });
+  }
+
+  function _showAutoUpdateBar() {
+    const bar = document.createElement('div');
+    bar.style.cssText = [
+      'position:fixed;top:0;left:0;right:0;z-index:999999',
+      'background:linear-gradient(90deg,#1a3d28,#2d6a4f)',
+      'color:#fff;padding:10px 20px;text-align:center',
+      'font-size:0.85rem;font-weight:700;font-family:sans-serif',
+      'box-shadow:0 2px 12px rgba(0,0,0,0.4)',
+    ].join(';');
+    bar.textContent = '🔄 تحديث جديد — سيتم التحديث تلقائياً...';
+    document.body.prepend(bar);
+    // Count down 2 seconds then reload — enough time for user to see
+    setTimeout(() => window.location.reload(), 2000);
   }
 
   // ── 2. Install Banner ──────────────────────────────────────────────────
@@ -136,35 +157,7 @@
     setTimeout(() => banner.remove(), 400);
   }
 
-  // ── 3. Update Banner ───────────────────────────────────────────────────
-  function showUpdateBanner() {
-    if (document.getElementById('pwa-update-banner')) return;
-
-    const banner = document.createElement('div');
-    banner.id = 'pwa-update-banner';
-    banner.innerHTML = `
-      <div class="pwa-update-inner">
-        <span>🔄 تحديث جديد متاح</span>
-        <button id="pwaUpdateBtn">تحديث الآن</button>
-        <button id="pwaUpdateDismiss" aria-label="إغلاق">✕</button>
-      </div>
-    `;
-    document.body.appendChild(banner);
-
-    document.getElementById('pwaUpdateBtn').addEventListener('click', () => {
-      banner.remove();
-      navigator.serviceWorker.getRegistration().then(reg => {
-        if (reg && reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-        window.location.reload();
-      });
-    });
-
-    document.getElementById('pwaUpdateDismiss').addEventListener('click', () => banner.remove());
-  }
-
-  // ── 4. Push Notification Permission ────────────────────────────────────
+  // ── 3. Push Notification Permission ────────────────────────────────────
   function requestNotificationPermission() {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') return;

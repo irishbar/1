@@ -12,8 +12,14 @@
   <link rel="apple-touch-icon" href="../icon-192.png">
   <title>Irish Bar — لوحة الوكيل</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏪</text></svg>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Google Fonts — non-blocking -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700&family=Noto+Kufi+Arabic:wght@700;800;900&family=Righteous&family=Barlow:wght@600;700;800;900&display=swap"></noscript>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="../css/main.css">
   <script>
     (function(){
@@ -1271,7 +1277,33 @@
     return { 'جديد':'blue','قيد التجهيز':'gold','في التوصيل':'green','مكتمل':'green','ملغي':'red' }[s] || 'gray';
   }
 
+  // تحقق من URL param ?order=ID وانتقل للطلب تلقائياً (مرة واحدة فقط)
+  let _deepLinkHandled = false;
+  function handleOrderDeepLink(orders) {
+    if (_deepLinkHandled) return;
+    const targetId = new URLSearchParams(window.location.search).get('order');
+    if (!targetId) return;
+    const order = orders.find(o => o.id === targetId);
+    if (!order) return;
+    _deepLinkHandled = true;
+    // انتقل لقسم الطلبات
+    setTimeout(() => {
+      const card = document.getElementById('order-card-' + targetId);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.outline = '2.5px solid var(--gold)';
+        card.style.boxShadow = '0 0 0 4px rgba(184,146,42,0.18)';
+        setTimeout(() => { card.style.outline = ''; card.style.boxShadow = ''; }, 4000);
+      }
+      // إذا الطلب جديد → افتح مودال تعيين السائق مباشرة
+      if (order.status === 'جديد' || order.status === 'قيد التجهيز') {
+        openAssignDriverModal(targetId);
+      }
+    }, 400);
+  }
+
   function renderAgentOrders(orders) {
+    handleOrderDeepLink(orders);
     const el = document.getElementById('agentOrdersList');
     if (!orders.length) {
       el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><div>لا توجد طلبات بعد</div></div>`;
@@ -1308,7 +1340,7 @@
       }
 
       return `
-      <div class="order-item">
+      <div class="order-item" id="order-card-${o.id}">
         <div class="order-item-info">
           <div class="order-item-id">#${o.id.slice(-6).toUpperCase()}
             <span style="font-size:0.68rem;font-weight:600;color:var(--text-muted);margin-right:6px;">${(o.createdAt||'').slice(0,10)}</span>
